@@ -1,0 +1,6 @@
+**.br
+**.gz
+**/target/
+/Cargo.lock
+/doc/
+/release/man/adbyss.1.gz

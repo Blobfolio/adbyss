@@ -1,0 +1,27 @@
+[package]
+name = "adbyss_core"
+version = "0.1.0"
+license = "WTFPL"
+authors = ["Josh Stoik <josh@blobfolio.com>"]
+edition = "2018"
+description = "Adbyss is a DNS blacklist manager for Linux."
+publish = false
+
+[dependencies]
+lazy_static = "1.4.0"
+
+[dependencies.publicsuffix]
+version = "1.5.4"
+default-features = false
+
+[dependencies.ureq]
+version = "1.5.1"
+default-features = false
+features = [ "tls" ]
+
+[dev-dependencies]
+criterion = "*"
+
+#[[bench]]
+#name = "encode"
+#harness = false

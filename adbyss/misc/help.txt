@@ -1,0 +1,14 @@
+USAGE:
+    adbyss [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help        Prints help information
+        --stdout      Send compiled hostfile to STDOUT.
+    -V, --version     Prints version information
+
+OPTIONS:
+        --filter <srcs>     Only pull data from these comma-separated sources:
+                            [adaway, adbyss, marfjeh, stevenblack, yoyo].
+        --ignore <hosts>    Comma-separated list of hosts to *not* blacklist.
+    -i, --input  <path>     Start with this hostfile. [default: /etc/hosts]
+    -o, --output <path>     Write output to this path. [default: input path]
