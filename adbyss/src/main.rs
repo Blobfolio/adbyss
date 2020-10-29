@@ -12,6 +12,10 @@ file, preventing all spammy connection attempts system-wide. As this is just a
 text file, no special runtime scripts are required, and there is very little
 overhead.
 
+**This software is a work-in-progress.**
+
+Feel free to use it, but if something weird happens — or if you have ideas for improvement — please open an [issue](https://github.com/Blobfolio/adbyss/issues)!
+
 
 
 ## Installation
