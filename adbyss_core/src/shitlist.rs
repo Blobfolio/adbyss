@@ -83,6 +83,14 @@ const SRC_STEVENBLACK: &str = "https://raw.githubusercontent.com/StevenBlack/hos
 /// # Flag: `Yoyo` Data URL.
 const SRC_YOYO: &str = "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext";
 
+/// # Shitlist Mark.
+///
+/// This is used to divide Adbyss' compiled host shitlist from the user's own
+/// entries. (This mitigates clobbering.)
+const WATERMARK: &str = r"##########
+# ADBYSS #
+##########";
+
 
 
 #[derive(Debug)]
@@ -486,7 +494,7 @@ impl Shitlist {
 		if 0 == self.flags & FLAG_FRESH {
 			if let Ok(mut txt) = std::fs::read_to_string(&self.hostfile) {
 				// If the watermark already exists, remove it and all following.
-				if let Some(idx) = txt.find(crate::WATERMARK) {
+				if let Some(idx) = txt.find(WATERMARK) {
 					txt.truncate(idx);
 				}
 
@@ -504,8 +512,7 @@ impl Shitlist {
 		}
 
 		// Add marker.
-		self.out.extend_from_slice(crate::WATERMARK.as_bytes());
-		self.out.push(b'\n');
+		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
 		// Add all of our results!
 		let mut found: Vec<String> = self.found.iter().cloned().collect();
@@ -516,7 +523,17 @@ impl Shitlist {
 			self.out.extend_from_slice(x.as_bytes());
 		});
 
-		self.out.push(b'\n');
+		// Record a timestamp for posterity.
+		{
+			use chrono::Local;
+			let now = Local::now();
+
+			self.out.extend_from_slice(format!(
+				"\n\n#\n# Generated: {}\n# Blocked:   {} garbage hosts\n#\n# Eat the rich.\n#\n",
+				now.format("%Y-%m-%d %H:%M:%S %Z"),
+				NiceInt::from(self.found.len()).as_str(),
+			).as_bytes());
+		}
 	}
 
 	/// # Strip Ignores.

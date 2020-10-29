@@ -46,16 +46,6 @@ pub use shitlist::{
 
 
 
-/// # Shitlist Mark.
-///
-/// This is used to divide Adbyss' compiled host shitlist from the user's own
-/// entries. (This mitigates clobbering.)
-pub const WATERMARK: &str = r"##########
-# ADBYSS #
-##########";
-
-
-
 #[must_use]
 /// # Sanitize Domain.
 ///
