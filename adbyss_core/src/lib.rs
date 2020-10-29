@@ -31,7 +31,18 @@
 
 
 mod shitlist;
-pub use shitlist::Shitlist;
+pub use shitlist::{
+	Shitlist,
+	FLAG_ALL,
+	FLAG_ADAWAY,
+	FLAG_ADBYSS,
+	FLAG_STEVENBLACK,
+	FLAG_YOYO,
+	FLAG_BACKUP,
+	FLAG_FRESH,
+	FLAG_SUMMARIZE,
+	FLAG_Y,
+};
 
 
 
@@ -47,6 +58,8 @@ pub const WATERMARK: &str = r"##########
 
 #[must_use]
 /// # Sanitize Domain.
+///
+/// This ensures the domain is correctly formatted and has a recognized TLD.
 pub fn sanitize_domain(dom: &str) -> Option<String> {
 	use publicsuffix::{
 		Host,
@@ -54,6 +67,7 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 	};
 
 	lazy_static::lazy_static! {
+		// Load the Public Suffix List only once.
 		static ref PSL: List = List::from_str(
 			include_str!("../skel/public_suffix_list.dat")
 		).expect("Unable to load Public Suffix list.");
@@ -75,28 +89,11 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 	None
 }
 
-/// # Cut/Add Watermark.
-pub fn set_watermark(txt: &mut String) {
-	// If the watermark already exists, remove it and everything following.
-	if let Some(idx) = txt.find(WATERMARK) {
-		txt.truncate(idx);
-	}
-
-	// Trim it.
-	*txt = txt.trim().to_string();
-
-	// Add it.
-	txt.push_str("\n\n");
-	txt.push_str(WATERMARK);
-	txt.push('\n');
-}
-
 
 
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use criterion as _;
 
 	#[test]
 	fn t_sanitize_domain() {

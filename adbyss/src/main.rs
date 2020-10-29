@@ -1,6 +1,66 @@
 /*!
 # `Adbyss`
 
+Adbyss is a DNS blocklist manager for x86-64 Linux machines.
+
+While ad-blocking browser extensions are extremely useful, they only block
+unwatned content *in the browser*, and require read/write access to every
+page you visit, which adds overhead and potential security/privacy issues.
+
+Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
+file, preventing all spammy connection attempts system-wide. As this is just a
+text file, no special runtime scripts are required, and there is very little
+overhead.
+
+
+
+## Installation
+
+This application is written in [Rust](https://www.rust-lang.org/) and can be installed using [Cargo](https://github.com/rust-lang/cargo).
+
+For stable Rust (>= `1.47.0`), run:
+```bash
+RUSTFLAGS="-C link-arg=-s" cargo install \
+    --git https://github.com/Blobfolio/adbyss.git \
+    --bin adbyss \
+    --target x86_64-unknown-linux-gnu
+```
+
+Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
+
+
+
+## Usage
+
+It's easy. Just run `sudo adbyss [FLAGS] [OPTIONS]`.
+
+The following flags are available:
+```bash
+-h, --help          Prints help information.
+    --no-backup     Do *not* back up the hostfile when writing changes.
+    --no-preserve   Do *not* preserve custom entries from hostfile when
+                    writing changes.
+    --no-summarize  Do *not* summarize changes after write.
+    --stdout        Send compiled hostfile to STDOUT.
+-V, --version       Prints version information.
+-y, --yes           Non-interactive mode; answer "yes" to all prompts.
+```
+
+And the following options are available:
+```bash
+--filter <lists>    Specify which of [adaway, adbyss, stevenblack,
+                    yoyo] to use, separating multiple lists with
+                    commas. [default: all]
+--hostfile <path>   Hostfile to use. [default: /etc/hosts]
+--exclude <hosts>   Comma-separated list of hosts to *not* blacklist.
+--regexclude <pats> Same as --exclude except it takes a comma-separated
+                    list of regular expressions.
+--include <hosts>   Comma-separated list of additional hosts to
+                    blacklist.
+```
+
+
+
 ## License
 
 Copyright © 2020 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
@@ -50,22 +110,16 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 #![allow(clippy::module_name_repetitions)]
 
 
-
 use adbyss_core::{
-	set_watermark,
 	Shitlist,
+	FLAG_ALL,
+	FLAG_BACKUP,
+	FLAG_FRESH,
+	FLAG_SUMMARIZE,
+	FLAG_Y,
 };
 use fyi_menu::Argue;
-use fyi_msg::{
-	Msg,
-	MsgKind,
-	NiceInt,
-};
-use rayon::prelude::*;
-use std::{
-	collections::HashSet,
-	path::PathBuf,
-};
+use fyi_msg::Msg;
 
 
 
@@ -76,110 +130,53 @@ fn main() {
 		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper);
 
-	// What file are we looking at?
-	let input: PathBuf = args.option2("-i", "--input")
-		.and_then(|x| std::fs::canonicalize(x).ok())
-		.map_or(PathBuf::from("/etc/hosts"), |src| src);
+	// Handle flags.
+	let mut flags: u16 = FLAG_SUMMARIZE | FLAG_BACKUP;
+	if args.switch("--no-backup") { flags &= ! FLAG_BACKUP; }
+	if args.switch("--no-preserve") { flags |= FLAG_FRESH; }
+	if args.switch("--no-summarize") { flags &= ! FLAG_SUMMARIZE; }
+	if args.switch2("-y", "--yes") { flags |= FLAG_Y; }
 
-	// Can we read the file?
-	let res = read_hosts(&input);
-	if let Err(txt) = res {
-		MsgKind::Error.into_msg(&txt).eprintln();
-		std::process::exit(1);
+	let mut shitlist: Shitlist = Shitlist::default()
+		.with_flags(flags);
+
+	// Custom hostfile.
+	if let Some(h) = args.option("--hostfile") {
+		shitlist.set_hostfile(h);
 	}
 
-	// Extract the working hosts.
-	let mut hosts = res.unwrap();
-
-	// Add in what we're meant to add in.
-	let mut shitlist = fetch_shitlist(args.option("--filter"));
-
-	// Remove bits from the result.
-	if let Some(exclude) = args.option("--ignore") {
-		exclude.split(',')
-			.map(|x| x.trim().to_lowercase())
-			.for_each(|x| {
-				shitlist.remove(&x);
-			});
+	// Custom excludes.
+	if let Some(e) = args.option("--exclude") {
+		shitlist.exclude(e.split(',').map(String::from));
+	}
+	if let Some(e) = args.option("--regexclude") {
+		shitlist.regexclude(e.split(',').map(String::from));
 	}
 
-	// Sort the shitlist and add it to the original.
-	let mut shitlist: Vec<String> = shitlist.into_iter().collect();
-	shitlist.par_sort();
+	// Custom includes.
+	if let Some(i) = args.option("--include") {
+		shitlist.include(i.split(',').map(String::from));
+	}
 
-	shitlist.iter()
-		.for_each(|x| {
-			hosts.push_str(&format!("\n0.0.0.0 {}", x));
-		});
+	// Custom sources.
+	if let Some(s) = args.option("--filter") {
+		shitlist.set_sources(s.split(',').map(String::from));
+	}
+	else {
+		shitlist.set_flags(FLAG_ALL);
+	}
 
-	// Send it to STDOUT.
+	// Build it.
+	shitlist.build();
+
+	// Output to STDOUT?
 	if args.switch("--stdout") {
-		println!("{}", hosts);
+		println!("{}", shitlist.as_str());
 	}
-	// Write it somewhere.
+	// Write changes to file.
 	else {
-		let output: PathBuf = args.option2("-o", "--output")
-			.and_then(|x| std::fs::canonicalize(x).ok())
-			.map_or(input, |src| src);
-
-		if write_hosts(&output, &hosts).is_err() {
-			MsgKind::Error
-				.into_msg(&format!("Unable to write hosts: {:?}", output))
-				.eprintln();
-			std::process::exit(1);
-		}
-
-		MsgKind::Success
-			.into_msg(&format!(
-				"Blackholed {} hosts in {:?}!",
-				NiceInt::from(shitlist.len()).as_str(),
-				output
-			))
-			.println();
+		shitlist.write();
 	}
-}
-
-/// Read Hosts.
-fn read_hosts(src: &PathBuf) -> Result<String, String> {
-	if ! src.is_file() {
-		return Err(format!("Invalid host file: {:?}", src));
-	}
-
-	if let Ok(mut res) = std::fs::read_to_string(src) {
-		set_watermark(&mut res);
-		Ok(res)
-	}
-	else {
-		Err(String::from("Sudo privileges are (probably) required."))
-	}
-}
-
-/// Fetch Shitlist.
-fn fetch_shitlist(src: Option<&str>) -> HashSet<String> {
-	match src {
-		Some(src) => src.split(',')
-			.map(Shitlist::from)
-			.collect::<Vec<Shitlist>>(),
-		None => vec![
-			Shitlist::AdAway,
-			Shitlist::Adbyss,
-			Shitlist::Marfjeh,
-			Shitlist::StevenBlack,
-			Shitlist::Yoyo,
-		],
-	}.par_iter()
-		.flat_map(|x| x.fetch())
-		.collect()
-}
-
-/// Write Hosts.
-fn write_hosts(path: &PathBuf, txt: &str) -> Result<(), ()> {
-	use std::io::Write;
-
-	let mut temp = tempfile_fast::Sponge::new_for(path).map_err(|_| ())?;
-	temp.write_all(txt.as_bytes()).map_err(|_| ())?;
-	temp.commit().map_err(|_| ())?;
-	Ok(())
 }
 
 #[cfg(not(feature = "man"))]

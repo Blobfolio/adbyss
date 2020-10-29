@@ -19,18 +19,14 @@ assets = [
     ["./misc/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
 
-[dependencies]
-rayon = "*"
-tempfile-fast = "0.3.3"
-
 [dependencies.adbyss_core]
 path = "../adbyss_core"
 
-[dependencies.fyi_menu]
+[dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
-[dependencies.fyi_msg]
+[dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
