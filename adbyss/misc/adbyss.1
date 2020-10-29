@@ -11,24 +11,51 @@ adbyss [FLAGS] [OPTIONS]
 .SS "FLAGS:"
 .TP
 \fB\-h\fR, \fB\-\-help\fR
-Prints help information
+Prints help information.
+.TP
+\fB\-\-no\-backup\fR
+Do *not* back up the hostfile when writing changes.
+.TP
+\fB\-\-no\-preserve\fR
+Do *not* preserve custom entries from hostfile when
+writing changes.
+.HP
+\fB\-\-no\-summarize\fR Do *not* summarize changes after write.
 .TP
 \fB\-\-stdout\fR
 Send compiled hostfile to STDOUT.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
-Prints version information
+Prints version information.
+.TP
+\fB\-y\fR, \fB\-\-yes\fR
+Non\-interactive mode; answer "yes" to all prompts.
 .SS "OPTIONS:"
 .TP
-\fB\-\-filter\fR <srcs>
-Only pull data from these comma\-separated sources:
-[adaway, adbyss, marfjeh, stevenblack, yoyo].
+\fB\-\-filter\fR <lists>
+Specify which of [adaway, adbyss, stevenblack,
+yoyo] to use, separating multiple lists with
+commas. [default: all]
 .TP
-\fB\-\-ignore\fR <hosts>
+\fB\-\-hostfile\fR <path>
+Hostfile to use. [default: /etc/hosts]
+.TP
+\fB\-\-exclude\fR <hosts>
 Comma\-separated list of hosts to *not* blacklist.
 .TP
-\fB\-i\fR, \fB\-\-input\fR
-<path>     Start with this hostfile. [default: /etc/hosts]
+\fB\-\-regexclude\fR <pats> Same as \fB\-\-exclude\fR except it takes a comma\-separated
+list of regular expressions.
 .TP
-\fB\-o\fR, \fB\-\-output\fR <path>
-Write output to this path. [default: input path]
+\fB\-\-include\fR <hosts>
+Comma\-separated list of additional hosts to
+blacklist.
+.SS "For regular expression syntax details, see:"
+.IP
+<https://docs.rs/regex/1.4.1/regex/index.html#syntax>
+.SS "SOURCES:"
+.TP
+AdAway:
+<https://adaway.org/>
+.IP
+Steven Black: <https://github.com/StevenBlack/hosts>
+Yoyo:         <https://pgl.yoyo.org/adservers/>

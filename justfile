@@ -172,6 +172,8 @@ doc:
 
 # Test Run.
 @run *ARGS:
+	clear
+
 	RUSTFLAGS="{{ rustflags }}" cargo run \
 		--bin "{{ pkg_id }}" \
 		--release \

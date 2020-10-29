@@ -1,4 +1,3 @@
-/*!
 # `Adbyss`
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
@@ -11,10 +10,6 @@ Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
 file, preventing all spammy connection attempts system-wide. As this is just a
 text file, no special runtime scripts are required, and there is very little
 overhead.
-
-**This software is a work-in-progress.**
-
-Feel free to use it, but if something weird happens — or if you have ideas for improvement — please open an [issue](https://github.com/Blobfolio/adbyss/issues)!
 
 
 
@@ -81,6 +76,22 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 
 
 
+## Credits
+
+| Library | License | Author |
+| ---- | ---- | ---- |
+| [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
+| [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
+| [publicsuffix](https://crates.io/crates/publicsuffix) | Apache-2.0 OR MIT | rushmorem |
+| [rayon](https://crates.io/crates/rayon) | Apache-2.0 OR MIT | Josh Stone, Niko Matsakis |
+| [regex](https://crates.io/crates/regex) | Apache-2.0 OR MIT | The Rust Project Developers |
+| [Steven Black](https://github.com/StevenBlack/hosts) | MIT | Steven Black |
+| [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
+| [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
+| [Yoyo](https://pgl.yoyo.org/adservers/) || Peter Lowe |
+
+
+
 ## License
 
 Copyright © 2020 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
@@ -100,144 +111,3 @@ This work is free. You can redistribute it and/or modify it under the terms of t
     TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
     0. You just DO WHAT THE FUCK YOU WANT TO.
-
-*/
-
-#![warn(clippy::filetype_is_file)]
-#![warn(clippy::integer_division)]
-#![warn(clippy::needless_borrow)]
-#![warn(clippy::nursery)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::perf)]
-#![warn(clippy::suboptimal_flops)]
-#![warn(clippy::unneeded_field_pattern)]
-#![warn(macro_use_extern_crate)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(non_ascii_idents)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unreachable_pub)]
-#![warn(unused_crate_dependencies)]
-#![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
-
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::module_name_repetitions)]
-
-use adbyss_core::{
-	Shitlist,
-	FLAG_ALL,
-	FLAG_BACKUP,
-	FLAG_FRESH,
-	FLAG_SUMMARIZE,
-	FLAG_Y,
-};
-use fyi_menu::Argue;
-use fyi_msg::Msg;
-
-
-
-/// Main.
-fn main() {
-	// Parse CLI arguments.
-	let mut args = Argue::new(0)
-		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
-		.with_help(helper);
-
-	// Handle flags.
-	let mut flags: u8 = FLAG_SUMMARIZE | FLAG_BACKUP;
-	if args.switch("--no-backup") { flags &= ! FLAG_BACKUP; }
-	if args.switch("--no-preserve") { flags |= FLAG_FRESH; }
-	if args.switch("--no-summarize") { flags &= ! FLAG_SUMMARIZE; }
-	if args.switch2("-y", "--yes") { flags |= FLAG_Y; }
-
-	let mut shitlist: Shitlist = Shitlist::default()
-		.with_flags(flags);
-
-	// Custom hostfile.
-	if let Some(h) = args.option("--hostfile") {
-		shitlist.set_hostfile(h);
-	}
-
-	// Custom excludes.
-	if let Some(e) = args.option("--exclude") {
-		shitlist.exclude(e.split(',').map(String::from));
-	}
-	if let Some(e) = args.option("--regexclude") {
-		shitlist.regexclude(e.split(',').map(String::from));
-	}
-
-	// Custom includes.
-	if let Some(i) = args.option("--include") {
-		shitlist.include(i.split(',').map(String::from));
-	}
-
-	// Custom sources.
-	if let Some(s) = args.option("--filter") {
-		shitlist.set_sources(s.split(',').map(String::from));
-	}
-	else {
-		shitlist.set_flags(FLAG_ALL);
-	}
-
-	// Build it.
-	shitlist.build();
-
-	// Output to STDOUT?
-	if args.switch("--stdout") {
-		println!("{}", shitlist.as_str());
-	}
-	// Write changes to file.
-	else {
-		shitlist.write();
-	}
-}
-
-#[cfg(not(feature = "man"))]
-#[cold]
-/// Print Help.
-fn helper(_: Option<&str>) {
-	Msg::from(format!(
-		r#"
- .--,       .--,
-( (  \.---./  ) )
- '.__/o   o\__.'
-    (=  ^  =)       {}{}{}
-     >  -  <        Block ads, trackers, malware, and
-    /       \       other garbage sites in /etc/hosts.
-   //       \\
-  //|   .   |\\
-  "'\       /'"_.-~^`'-.
-     \  _  /--'         `
-   ___)( )(___
-
-{}"#,
-		"\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v",
-		env!("CARGO_PKG_VERSION"),
-		"\x1b[0m",
-		include_str!("../misc/help.txt")
-	)).print()
-}
-
-#[cfg(feature = "man")]
-#[cold]
-/// Print Help.
-///
-/// This is a stripped-down version of the help screen made specifically for
-/// `help2man`, which gets run during the Debian package release build task.
-fn helper(_: Option<&str>) {
-	Msg::from([
-		b"Adbyss ",
-		env!("CARGO_PKG_VERSION").as_bytes(),
-		b"\n",
-		env!("CARGO_PKG_DESCRIPTION").as_bytes(),
-		b"\n\n",
-		include_bytes!("../misc/help.txt"),
-	].concat())
-		.print();
-}

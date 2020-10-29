@@ -2,13 +2,30 @@ USAGE:
     adbyss [FLAGS] [OPTIONS]
 
 FLAGS:
-    -h, --help        Prints help information
-        --stdout      Send compiled hostfile to STDOUT.
-    -V, --version     Prints version information
+    -h, --help         Prints help information.
+        --no-backup    Do *not* back up the hostfile when writing changes.
+        --no-preserve  Do *not* preserve custom entries from hostfile when
+                       writing changes.
+        --no-summarize Do *not* summarize changes after write.
+        --stdout       Send compiled hostfile to STDOUT.
+    -V, --version      Prints version information.
+    -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
 OPTIONS:
-        --filter <srcs>     Only pull data from these comma-separated sources:
-                            [adaway, adbyss, marfjeh, stevenblack, yoyo].
-        --ignore <hosts>    Comma-separated list of hosts to *not* blacklist.
-    -i, --input  <path>     Start with this hostfile. [default: /etc/hosts]
-    -o, --output <path>     Write output to this path. [default: input path]
+        --filter <lists>    Specify which of [adaway, adbyss, stevenblack,
+                            yoyo] to use, separating multiple lists with
+                            commas. [default: all]
+        --hostfile <path>   Hostfile to use. [default: /etc/hosts]
+        --exclude <hosts>   Comma-separated list of hosts to *not* blacklist.
+        --regexclude <pats> Same as --exclude except it takes a comma-separated
+                            list of regular expressions.
+        --include <hosts>   Comma-separated list of additional hosts to
+                            blacklist.
+
+For regular expression syntax details, see:
+    <https://docs.rs/regex/1.4.1/regex/index.html#syntax>
+
+SOURCES:
+    AdAway:       <https://adaway.org/>
+    Steven Black: <https://github.com/StevenBlack/hosts>
+    Yoyo:         <https://pgl.yoyo.org/adservers/>
