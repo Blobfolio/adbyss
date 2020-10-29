@@ -58,6 +58,22 @@ And the following options are available:
                     blacklist.
 ```
 
+Click [here](https://docs.rs/regex/1.4.1/regex/index.html#syntax) for regular expression syntax information.
+
+After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and rerun Adbyss with `--exclude domain1,domain2,etc`.
+
+Restart your browser and/or computer and everything should be peachy again.
+
+If ads persist in displaying even after running Adbyss and rebooting, double-check the browser isn't bypassing your computer's local DNS records. (Firefox's DNS-Over-HTTPS feature sometimes does this.) Tweak your settings as needed and you should be back in business.
+
+It is important to remember that scammers and capitalists birth new schemes all the time. It is a good idea to rerun Adbyss weekly or so to ensure your hosts list contains the latest updates.
+
+
+
+## Removal
+
+To remove all Adbyss rules from your hosts file, simply open the hosts file in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and everything following it. Save, reboot, and you're back to normal.
+
 
 
 ## Credits

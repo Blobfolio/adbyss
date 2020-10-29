@@ -22,6 +22,9 @@ OPTIONS:
         --include <hosts>   Comma-separated list of additional hosts to
                             blacklist.
 
+For regular expression syntax details, see:
+    <https://docs.rs/regex/1.4.1/regex/index.html#syntax>
+
 SOURCES:
     AdAway:       <https://adaway.org/>
     Steven Black: <https://github.com/StevenBlack/hosts>
