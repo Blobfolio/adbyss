@@ -27,33 +27,33 @@ use std::{
 /// # Flag: All Sources.
 ///
 /// This flag enables all shitlist sources.
-pub const FLAG_ALL: u16         = 0b0000_0001_1011;
+pub const FLAG_ALL: u8         = 0b0000_1111;
 
 /// # Flag: `AdAway`.
 ///
 /// This flag enables the `AdAway` shitlist.
-pub const FLAG_ADAWAY: u16      = 0b0000_0000_0001;
+pub const FLAG_ADAWAY: u8      = 0b0000_0001;
 
 /// # Flag: `Adbyss`.
 ///
 /// This flag enables `Adbyss`' internal shitlist.
-pub const FLAG_ADBYSS: u16      = 0b0000_0000_0010;
+pub const FLAG_ADBYSS: u8      = 0b0000_0010;
 
 /// # Flag: `Steven Black`.
 ///
 /// This flag enables the `Steven Black` shitlist.
-pub const FLAG_STEVENBLACK: u16 = 0b0000_0000_1000;
+pub const FLAG_STEVENBLACK: u8 = 0b0000_0100;
 
 /// # Flag: `Yoyo`.
 ///
 /// This flag enables the `Yoyo` shitlist.
-pub const FLAG_YOYO: u16        = 0b0000_0001_0000;
+pub const FLAG_YOYO: u8        = 0b0000_1000;
 
 /// # Flag: Backup Before Writing.
 ///
 /// When writing to an existing file, a backup of the original will be made
 /// first.
-pub const FLAG_BACKUP: u16      = 0b0000_0010_0000;
+pub const FLAG_BACKUP: u8      = 0b0001_0000;
 
 /// # Flag: Fresh Start.
 ///
@@ -62,17 +62,17 @@ pub const FLAG_BACKUP: u16      = 0b0000_0010_0000;
 ///
 /// You almost certainly do not want to enable this when writing to /etc/hosts
 /// as it will effectively erase any custom entries you've manually added.
-pub const FLAG_FRESH: u16       = 0b0000_0100_0000;
+pub const FLAG_FRESH: u8       = 0b0010_0000;
 
 /// # Flag: Summarize
 ///
 /// Print a success message after writing results to a file.
-pub const FLAG_SUMMARIZE: u16   = 0b0000_1000_0000;
+pub const FLAG_SUMMARIZE: u8   = 0b0100_0000;
 
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u16           = 0b0001_0000_0000;
+pub const FLAG_Y: u8           = 0b1000_0000;
 
 /// # Flag: `AdAway` Data URL.
 const SRC_ADAWAY: &str = "https://adaway.org/hosts.txt";
@@ -96,7 +96,7 @@ const SRC_YOYO: &str = "https://pgl.yoyo.org/adservers/serverlist.php?hostformat
 /// different setups, instantiate a new oject.
 pub struct Shitlist {
 	hostfile: PathBuf,
-	flags: u16,
+	flags: u8,
 	exclude: HashSet<String>,
 	regexclude: Vec<Regex>,
 	found: HashSet<String>,
@@ -127,7 +127,7 @@ impl Shitlist {
 	/// # With Flags.
 	///
 	/// Enable one or more flags. See the module documentation for details.
-	pub const fn with_flags(mut self, flags: u16) -> Self {
+	pub const fn with_flags(mut self, flags: u8) -> Self {
 		self.flags |= flags;
 		self
 	}
@@ -209,7 +209,7 @@ impl Shitlist {
 	/// # Set Flags.
 	///
 	/// Enable one or more flags. See the module documentation for details.
-	pub fn set_flags(&mut self, flags: u16) {
+	pub fn set_flags(&mut self, flags: u8) {
 		self.flags |= flags;
 	}
 

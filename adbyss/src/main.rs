@@ -109,7 +109,6 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
-
 use adbyss_core::{
 	Shitlist,
 	FLAG_ALL,
@@ -131,7 +130,7 @@ fn main() {
 		.with_help(helper);
 
 	// Handle flags.
-	let mut flags: u16 = FLAG_SUMMARIZE | FLAG_BACKUP;
+	let mut flags: u8 = FLAG_SUMMARIZE | FLAG_BACKUP;
 	if args.switch("--no-backup") { flags &= ! FLAG_BACKUP; }
 	if args.switch("--no-preserve") { flags |= FLAG_FRESH; }
 	if args.switch("--no-summarize") { flags &= ! FLAG_SUMMARIZE; }
