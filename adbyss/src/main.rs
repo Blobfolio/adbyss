@@ -1,5 +1,5 @@
 /*!
-# `Adbyss`
+# Adbyss
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
