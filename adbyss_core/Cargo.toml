@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.1.1"
+version = "0.1.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -8,21 +8,21 @@ description = "Adbyss is a DNS blacklist manager for Linux."
 publish = false
 
 [dependencies]
-chrono = "0.4.19"
-lazy_static = "1.4.0"
-rayon = "1.5.0"
-regex = "1.4.1"
-tempfile-fast = "0.3.3"
+chrono = "0.4.*"
+lazy_static = "1.4.*"
+rayon = "1.5.*"
+regex = "1.4.*"
+tempfile-fast = "0.3.*"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
 [dependencies.publicsuffix]
-version = "1.5.4"
+version = "1.5.*"
 default-features = false
 
 [dependencies.ureq]
-version = "1.5.1"
+version = "1.5.*"
 default-features = false
 features = [ "tls" ]
