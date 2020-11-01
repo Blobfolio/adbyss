@@ -12,12 +12,10 @@ fn main() {
 	// We're going to shove this in "adbyss/misc/adbyss.bash". If we used
 	// `OUT_DIR` like Cargo suggests, we'd never be able to find it to shove
 	// it into the `.deb` package.
-	let mut path: PathBuf = PathBuf::from(
-		env::var("CARGO_MANIFEST_DIR")
-			.ok()
-			.and_then(|x| std::fs::canonicalize(x).ok())
-			.expect("Missing completion script directory.")
-	);
+	let mut path: PathBuf = env::var("CARGO_MANIFEST_DIR")
+		.ok()
+		.and_then(|x| std::fs::canonicalize(x).ok())
+		.expect("Missing completion script directory.");
 
 	path.push("misc");
 	path.push("adbyss.bash");
