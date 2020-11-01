@@ -1,5 +1,5 @@
 _basher__adbyss() {
-	local i cur prev opts
+	local i cur prev opts cmd
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -19,6 +19,7 @@ _basher__adbyss() {
 
 	if [ ! -z "${cmd}" ]; then
 		opts=()
+		
 		[[ " ${COMP_LINE} " =~ " --hostfile " ]] || opts+=("--hostfile")
 		[[ " ${COMP_LINE} " =~ " --exclude " ]] || opts+=("--exclude")
 		[[ " ${COMP_LINE} " =~ " --filter " ]] || opts+=("--filter")
