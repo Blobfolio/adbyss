@@ -6,6 +6,7 @@ authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "Adbyss is a DNS blacklist manager for Linux."
 publish = false
+build = "build.rs"
 
 [package.metadata.deb]
 maintainer = "Josh Stoik <hello@blobfolio.com>"
@@ -17,7 +18,12 @@ section = "utility"
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
     ["./misc/adbyss.1.gz", "usr/share/man/man1/", "644"],
+    ["./misc/adbyss.bash", "etc/bash_completion.d/", "644"],
 ]
+
+[build-dependencies.fyi_menu]
+git = "https://github.com/Blobfolio/fyi.git"
+branch = "master"
 
 [dependencies.adbyss_core]
 path = "../adbyss_core"
