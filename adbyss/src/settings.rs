@@ -20,7 +20,7 @@ use std::path::PathBuf;
 
 #[allow(clippy::redundant_pub_crate)] // Clippy is confused.
 #[allow(clippy::struct_excessive_bools)] // This is coming from Yaml.
-#[derive(Debug, Hash, Eq, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Deserialize)]
 /// # Settings.
 pub(crate) struct Settings {
 	#[serde(default = "Settings::config")]
@@ -109,5 +109,31 @@ impl Settings {
 			.without(self.exclude)
 			.without_regex(self.regexclude)
 			.with(self.include)
+	}
+}
+
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn t_filters() {
+		let shitlist = Settings::from(PathBuf::from("./misc/test.yaml"))
+			.into_shitlist()
+			.build();
+		let res = shitlist.as_str();
+
+		// Our includes should be present.
+		assert!(res.contains("batman.com"));
+		assert!(res.contains("spiderman.com"));
+
+		// Our excludes should not be present.
+		assert!(! res.contains("collect.snitcher.com"));
+		assert!(! res.contains("triptease.io"));
+
+		// Adbyss' other entries should still be there.
+		assert!(res.contains("www.snitcher.com"));
 	}
 }
