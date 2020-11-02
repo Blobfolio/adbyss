@@ -23,13 +23,28 @@ use std::path::PathBuf;
 #[derive(Debug, Hash, Eq, PartialEq, Deserialize)]
 /// # Settings.
 pub(crate) struct Settings {
+	#[serde(default = "Settings::config")]
 	hostfile: PathBuf,
+
+	#[serde(default = "Settings::source_default")]
 	source_adaway: bool,
+
+	#[serde(default = "Settings::source_default")]
 	source_adbyss: bool,
+
+	#[serde(default = "Settings::source_default")]
 	source_stevenblack: bool,
+
+	#[serde(default = "Settings::source_default")]
 	source_yoyo: bool,
+
+	#[serde(default = "Vec::new")]
 	exclude: Vec<String>,
+
+	#[serde(default = "Vec::new")]
 	regexclude: Vec<String>,
+
+	#[serde(default = "Vec::new")]
 	include: Vec<String>,
 }
 
@@ -68,6 +83,12 @@ impl From<PathBuf> for Settings {
 impl Settings {
 	/// # Configuration Path.
 	pub(crate) fn config() -> PathBuf { PathBuf::from("/etc/adbyss.yaml") }
+
+	/// # Source Default.
+	///
+	/// This is used to provide Serde with a "true" value. Not sure how to do
+	/// that using their macro. Haha.
+	pub(crate) const fn source_default() -> bool { true }
 
 	/// # Into Shitlist.
 	pub(crate) fn into_shitlist(self) -> Shitlist {
