@@ -15,14 +15,9 @@ overhead.
 
 ## Installation
 
-This application is written in [Rust](https://www.rust-lang.org/) and can be installed using [Cargo](https://github.com/rust-lang/cargo).
-
-For stable Rust (>= `1.47.0`), run:
+This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
 ```bash
-RUSTFLAGS="-C link-arg=-s" cargo install \
-    --git https://github.com/Blobfolio/adbyss.git \
-    --bin adbyss \
-    --target x86_64-unknown-linux-gnu
+sudo cp misc/adbyss.yaml /etc
 ```
 
 Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
@@ -31,7 +26,11 @@ Pre-built `.deb` packages are also added for each [release](https://github.com/B
 
 ## Usage
 
-It's easy. Just run `sudo adbyss [FLAGS] [OPTIONS]`.
+It's easy.
+
+Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
+
+Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
 ```bash
@@ -45,17 +44,9 @@ The following flags are available:
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
 ```
 
-And the following options are available:
+And the following option is available:
 ```bash
---filter <lists>    Specify which of [adaway, adbyss, stevenblack,
-                    yoyo] to use, separating multiple lists with
-                    commas. [default: all]
---hostfile <path>   Hostfile to use. [default: /etc/hosts]
---exclude <hosts>   Comma-separated list of hosts to *not* blacklist.
---regexclude <pats> Same as --exclude except it takes a comma-separated
-                    list of regular expressions.
---include <hosts>   Comma-separated list of additional hosts to
-                    blacklist.
+-c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
 ```
 
 Click [here](https://docs.rs/regex/1.4.1/regex/index.html#syntax) for regular expression syntax information.

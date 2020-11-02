@@ -1,0 +1,90 @@
+##
+# AdByss Configuration
+#
+# Adbyss is a DNS blocklist manager for x86-64 Linux machines.
+# https://github.com/Blobfolio/adbyss
+#
+# Changes to this file affect the default program behaviors for all users.
+##
+
+
+##
+# Hostfile
+#
+# The absolute path to the hostfile Adbyss should write block rules to. This is
+# almost always "/etc/hosts", but if your system is weird, put in the correct
+# value below.
+#
+# See https://en.wikipedia.org/wiki/Hosts_(file) for general information.
+##
+
+hostfile: "/etc/hosts"
+
+
+##
+# Block Sources
+#
+# If for some reason you would like to exclude one of Adbyss' sources, set the
+# value to false.
+##
+
+source_adaway: true
+source_adbyss: true
+source_stevenblack: true
+source_yoyo: true
+
+
+##
+# Exclude Hosts
+#
+# Depending on your life, you may need to access a host Adbyss would normally
+# block.
+#
+# Add any such hosts below to have them excluded from the blocklists, like:
+#
+# exclude:
+#   - example1.com
+#   - example2.com
+##
+exclude: []
+
+
+##
+# Exclude Hosts (Regex)
+#
+# For more complicated exclusion needs, you can provide any number of regular
+# expression patterns.
+#
+# Add any such patterns below. Any host matching any pattern will be excluded
+# from the blocklist.
+#
+# Note: hosts are automatically cast to lowercase; your patterns should only
+# target [a-z] ranges.
+#
+# See https://docs.rs/regex/1.4.1/regex/index.html#syntax for regular
+# expression syntax information.
+#
+# In practice this would look something like:
+#
+# regexclude:
+#   - "(.+\.)*example.com$"
+##
+
+regexclude: []
+
+
+##
+# Custom Blocks
+#
+# If you have additional enemeies, add the host(s) below, like:
+#
+# include:
+#   - example1.com
+#   - example2.com
+#
+# You can also save any number of custom entries directly to your hostfile.
+# Adbyss will preserve anything prior to the ADBYSS block when writing
+# blocklist updates (unless the --no-preserve flag is set).
+##
+
+include: []

@@ -156,27 +156,6 @@ impl Shitlist {
 	}
 
 	#[must_use]
-	/// # With Source.
-	///
-	/// Enable a source using a string slice instead of the corresponding flag.
-	pub fn with_source<S>(mut self, src: S) -> Self
-	where S: AsRef<str> {
-		self.set_source(src);
-		self
-	}
-
-	#[must_use]
-	/// # With Sources.
-	///
-	/// Enable one or more sources from strings instead of setting the
-	/// corresponding flags.
-	pub fn with_sources<I>(mut self, src: I) -> Self
-	where I: IntoIterator<Item=String> {
-		self.set_sources(src);
-		self
-	}
-
-	#[must_use]
 	/// # With Manual Entries.
 	///
 	/// Add one or more arbitrary domains to the shitlist. This is primarily
@@ -214,6 +193,13 @@ impl Shitlist {
 		self
 	}
 
+	/// # Disable Flags.
+	///
+	/// Disable one or more flags. See the module documentation for details.
+	pub fn disable_flags(&mut self, flags: u8) {
+		self.flags &= ! flags;
+	}
+
 	/// # Set Flags.
 	///
 	/// Enable one or more flags. See the module documentation for details.
@@ -234,29 +220,6 @@ impl Shitlist {
 		if let Ok(src) = std::fs::canonicalize(src) {
 			self.hostfile = src;
 		}
-	}
-
-	/// # Set Source.
-	///
-	/// Enable a source using a string slice instead of the corresponding flag.
-	pub fn set_source<S>(&mut self, src: S)
-	where S: AsRef<str> {
-		match src.as_ref().trim().to_lowercase().as_str() {
-			"adaway" => { self.flags |= FLAG_ADAWAY; },
-			"adbyss" => { self.flags |= FLAG_ADBYSS; },
-			"stevenblack" => { self.flags |= FLAG_STEVENBLACK; },
-			"yoyo" => { self.flags |= FLAG_YOYO; },
-			_ => {},
-		}
-	}
-
-	/// # Set Sources.
-	///
-	/// Enable one or more sources from strings instead of setting the
-	/// corresponding flags.
-	pub fn set_sources<I>(&mut self, src: I)
-	where I: IntoIterator<Item=String> {
-		src.into_iter().for_each(|x| self.set_source(x));
 	}
 
 	/// # Set Manual Entries.

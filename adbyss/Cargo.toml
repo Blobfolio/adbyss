@@ -15,15 +15,24 @@ license-file = ["../LICENSE", "0"]
 revision = "1"
 depends = "$auto"
 section = "utility"
+maintainer-scripts = "../misc/maintainer-scripts"
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
-    ["./misc/adbyss.1.gz", "usr/share/man/man1/", "644"],
+    ["./misc/adbyss.yaml", "etc/", "644"],
     ["./misc/adbyss.bash", "etc/bash_completion.d/", "644"],
+    ["./misc/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
 
 [build-dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
+
+[dependencies]
+serde_yaml = "0.8.*"
+
+[dependencies.serde]
+version = "1.0.*"
+features = ["derive"]
 
 [dependencies.adbyss_core]
 path = "../adbyss_core"
