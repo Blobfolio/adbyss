@@ -130,12 +130,23 @@ use adbyss_core::{
 };
 use settings::Settings;
 use fyi_menu::Argue;
-use fyi_msg::Msg;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+};
 
 
 
 /// Main.
 fn main() {
+	// We need root!
+	if sudo::escalate_if_needed().is_err() {
+		MsgKind::Error
+			.into_msg("Adbyss requires root privileges.")
+			.eprintln();
+		std::process::exit(1);
+	}
+
 	// Parse CLI arguments.
 	let mut args = Argue::new(0)
 		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
