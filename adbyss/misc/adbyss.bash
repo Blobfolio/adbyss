@@ -20,14 +20,13 @@ _basher__adbyss() {
 	if [ ! -z "${cmd}" ]; then
 		opts=()
 		
-		[[ " ${COMP_LINE} " =~ " --hostfile " ]] || opts+=("--hostfile")
-		[[ " ${COMP_LINE} " =~ " --exclude " ]] || opts+=("--exclude")
-		[[ " ${COMP_LINE} " =~ " --filter " ]] || opts+=("--filter")
-		[[ " ${COMP_LINE} " =~ " --include " ]] || opts+=("--include")
+		if [[ ! " ${COMP_LINE} " =~ " -c " ]] && [[ ! " ${COMP_LINE} " =~ " --config " ]]; then
+			opts+=("-c")
+			opts+=("--config")
+		fi
 		[[ " ${COMP_LINE} " =~ " --no-backup " ]] || opts+=("--no-backup")
 		[[ " ${COMP_LINE} " =~ " --no-preserve " ]] || opts+=("--no-preserve")
 		[[ " ${COMP_LINE} " =~ " --no-summarize " ]] || opts+=("--no-summarize")
-		[[ " ${COMP_LINE} " =~ " --regexclude " ]] || opts+=("--regexclude")
 		[[ " ${COMP_LINE} " =~ " --stdout " ]] || opts+=("--stdout")
 		if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 			opts+=("-h")
@@ -49,7 +48,7 @@ _basher__adbyss() {
 		fi
 
 		case "${prev}" in
-			--hostfile)
+			-c|--config)
 				COMPREPLY=( $( compgen -f "${cur}" ) )
 				return 0
 				;;

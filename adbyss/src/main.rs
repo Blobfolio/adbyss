@@ -20,14 +20,9 @@ Feel free to use it, but if something weird happens — or if you have ideas for
 
 ## Installation
 
-This application is written in [Rust](https://www.rust-lang.org/) and can be installed using [Cargo](https://github.com/rust-lang/cargo).
-
-For stable Rust (>= `1.47.0`), run:
+This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
 ```bash
-RUSTFLAGS="-C link-arg=-s" cargo install \
-    --git https://github.com/Blobfolio/adbyss.git \
-    --bin adbyss \
-    --target x86_64-unknown-linux-gnu
+sudo cp misc/adbyss.yaml /etc
 ```
 
 Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
@@ -36,7 +31,11 @@ Pre-built `.deb` packages are also added for each [release](https://github.com/B
 
 ## Usage
 
-It's easy. Just run `sudo adbyss [FLAGS] [OPTIONS]`.
+It's easy.
+
+Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
+
+Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
 ```bash
@@ -50,22 +49,12 @@ The following flags are available:
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
 ```
 
-And the following options are available:
+And the following option is available:
 ```bash
---filter <lists>    Specify which of [adaway, adbyss, stevenblack,
-                    yoyo] to use, separating multiple lists with
-                    commas. [default: all]
---hostfile <path>   Hostfile to use. [default: /etc/hosts]
---exclude <hosts>   Comma-separated list of hosts to *not* blacklist.
---regexclude <pats> Same as --exclude except it takes a comma-separated
-                    list of regular expressions.
---include <hosts>   Comma-separated list of additional hosts to
-                    blacklist.
+-c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
 ```
 
-Click [here](https://docs.rs/regex/1.4.1/regex/index.html#syntax) for regular expression syntax information.
-
-After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and rerun Adbyss with `--exclude domain1,domain2,etc`.
+After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.yaml` configuration accordingly.
 
 Restart your browser and/or computer and everything should be peachy again.
 
@@ -129,64 +118,61 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
+mod settings;
+
 use adbyss_core::{
-	Shitlist,
-	FLAG_ALL,
 	FLAG_BACKUP,
 	FLAG_FRESH,
 	FLAG_SUMMARIZE,
 	FLAG_Y,
 };
+use settings::Settings;
 use fyi_menu::Argue;
-use fyi_msg::Msg;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+};
 
 
 
 /// Main.
 fn main() {
+	// We need root!
+	if sudo::escalate_if_needed().is_err() {
+		MsgKind::Error
+			.into_msg("Adbyss requires root privileges.")
+			.eprintln();
+		std::process::exit(1);
+	}
+
 	// Parse CLI arguments.
 	let mut args = Argue::new(0)
 		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper);
 
-	// Handle flags.
-	let mut flags: u8 = FLAG_SUMMARIZE | FLAG_BACKUP;
-	if args.switch("--no-backup") { flags &= ! FLAG_BACKUP; }
-	if args.switch("--no-preserve") { flags |= FLAG_FRESH; }
-	if args.switch("--no-summarize") { flags &= ! FLAG_SUMMARIZE; }
-	if args.switch2("-y", "--yes") { flags |= FLAG_Y; }
+	// Load configuration.
+	let mut shitlist = Settings::from(
+		args.option2("-c", "--config")
+			.and_then(|x| std::fs::canonicalize(x).ok())
+			.unwrap_or_else(Settings::config)
+	).into_shitlist();
 
-	let mut shitlist: Shitlist = Shitlist::default()
-		.with_flags(flags);
-
-	// Custom hostfile.
-	if let Some(h) = args.option("--hostfile") {
-		shitlist.set_hostfile(h);
+	// Handle runtime flags.
+	if args.switch("--no-backup") {
+		shitlist.disable_flags(FLAG_BACKUP);
 	}
-
-	// Custom excludes.
-	if let Some(e) = args.option("--exclude") {
-		shitlist.exclude(e.split(',').map(String::from));
+	if args.switch("--no-preserve") {
+		shitlist.set_flags(FLAG_FRESH);
 	}
-	if let Some(e) = args.option("--regexclude") {
-		shitlist.regexclude(e.split(',').map(String::from));
+	if args.switch("--no-summarize") {
+		shitlist.disable_flags(FLAG_SUMMARIZE);
 	}
-
-	// Custom includes.
-	if let Some(i) = args.option("--include") {
-		shitlist.include(i.split(',').map(String::from));
-	}
-
-	// Custom sources.
-	if let Some(s) = args.option("--filter") {
-		shitlist.set_sources(s.split(',').map(String::from));
-	}
-	else {
-		shitlist.set_flags(FLAG_ALL);
+	if args.switch2("-y", "--yes") {
+		shitlist.set_flags(FLAG_Y);
 	}
 
 	// Build it.
-	shitlist.build();
+	shitlist = shitlist.build();
 
 	// Output to STDOUT?
 	if args.switch("--stdout") {

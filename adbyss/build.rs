@@ -22,14 +22,10 @@ fn main() {
 
 	// All of our options.
 	let b = Basher::new("adbyss")
-		.with_option(None, Some("--hostfile"))
-		.with_switch(None, Some("--exclude"))
-		.with_switch(None, Some("--filter"))
-		.with_switch(None, Some("--include"))
+		.with_option(Some("-c"), Some("--config"))
 		.with_switch(None, Some("--no-backup"))
 		.with_switch(None, Some("--no-preserve"))
 		.with_switch(None, Some("--no-summarize"))
-		.with_switch(None, Some("--regexclude"))
 		.with_switch(None, Some("--stdout"))
 		.with_switch(Some("-h"), Some("--help"))
 		.with_switch(Some("-V"), Some("--version"))

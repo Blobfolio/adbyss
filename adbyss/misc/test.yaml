@@ -1,0 +1,20 @@
+##
+# This configuration is used for unit tests.
+##
+
+hostfile: "/etc/hosts"
+
+source_adaway: false
+source_adbyss: true
+source_stevenblack: false
+source_yoyo: false
+
+exclude:
+  - collect.snitcher.com
+
+regexclude:
+  - '(.+\.)*triptease.io$'
+
+include:
+  - batman.com
+  - spiderman.com
