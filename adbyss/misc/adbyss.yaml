@@ -67,7 +67,7 @@ exclude: []
 # In practice this would look something like:
 #
 # regexclude:
-#   - "(.+\.)*example.com$"
+#   - '(.+\.)*example.com$'
 ##
 
 regexclude: []
