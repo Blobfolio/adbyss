@@ -54,9 +54,7 @@ And the following option is available:
 -c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
 ```
 
-Click [here](https://docs.rs/regex/1.4.1/regex/index.html#syntax) for regular expression syntax information.
-
-After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and rerun Adbyss with `--exclude domain1,domain2,etc`.
+After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.yaml` configuration accordingly.
 
 Restart your browser and/or computer and everything should be peachy again.
 
