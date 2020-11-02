@@ -261,6 +261,7 @@ impl Shitlist {
 			});
 	}
 
+	#[must_use]
 	/// # Build.
 	///
 	/// This method can be called after all of the settings have been set to
@@ -270,9 +271,7 @@ impl Shitlist {
 	/// This method does not output anything. See [`Shitlist::as_str`],
 	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
 	/// something with the results.
-	pub fn build(&mut self) -> usize {
-		let before: usize = self.found.len();
-
+	pub fn build(mut self) -> Self {
 		// Find the sources and whatnot.
 		self.found.par_extend(
 			[
@@ -301,7 +300,7 @@ impl Shitlist {
 		self.build_out();
 
 		// We're done!
-		self.found.len() - before
+		self
 	}
 
 	#[must_use]
@@ -397,14 +396,14 @@ impl Shitlist {
 					// report error.
 					if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
 						MsgKind::Error
-							.into_msg(&format!("Unable to write backup {:?}; root privileges may be required.", dst2))
+							.into_msg(&format!("Unable to write backup {:?}", dst2))
 							.eprintln();
 						std::process::exit(1);
 					}
 				}
 				else {
 					MsgKind::Error
-						.into_msg(&format!("Unable to read {:?}; root privileges may be required.", dst2))
+						.into_msg(&format!("Unable to read {:?}", dst2))
 						.eprintln();
 					std::process::exit(1);
 				}
@@ -423,7 +422,7 @@ impl Shitlist {
 			// Try to write atomically, fall back to clobbering, or report error.
 			if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
 				MsgKind::Error
-					.into_msg(&format!("Unable to write to hostfile {:?}; root privileges may be required.", dst))
+					.into_msg(&format!("Unable to write to hostfile {:?}", dst))
 					.eprintln();
 				std::process::exit(1);
 			}
@@ -467,7 +466,7 @@ impl Shitlist {
 			}
 			else {
 				MsgKind::Error
-					.into_msg(&format!("Unable to read {:?}; root privileges may be required.", self.hostfile))
+					.into_msg(&format!("Unable to read {:?}", self.hostfile))
 					.eprintln();
 
 				std::process::exit(1);

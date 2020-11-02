@@ -163,7 +163,7 @@ fn main() {
 	}
 
 	// Build it.
-	shitlist.build();
+	shitlist = shitlist.build();
 
 	// Output to STDOUT?
 	if args.switch("--stdout") {
