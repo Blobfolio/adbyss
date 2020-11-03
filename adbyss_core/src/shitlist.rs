@@ -1,7 +1,5 @@
 /*!
 # `Adbyss`: Block Lists
-
-TODO: Regex support. (exclude supportxmr, gravatar)
 */
 
 use fyi_msg::{
@@ -20,6 +18,10 @@ use std::{
 		Path,
 		PathBuf,
 	},
+};
+use strum::{
+	IntoEnumIterator,
+	EnumIter,
 };
 
 
@@ -64,24 +66,10 @@ pub const FLAG_BACKUP: u8      = 0b0001_0000;
 /// as it will effectively erase any custom entries you've manually added.
 pub const FLAG_FRESH: u8       = 0b0010_0000;
 
-/// # Flag: Summarize
-///
-/// Print a success message after writing results to a file.
-pub const FLAG_SUMMARIZE: u8   = 0b0100_0000;
-
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b1000_0000;
-
-/// # Flag: `AdAway` Data URL.
-const SRC_ADAWAY: &str = "https://adaway.org/hosts.txt";
-
-/// # Flag: `StevenBlack` Data URL.
-const SRC_STEVENBLACK: &str = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
-
-/// # Flag: `Yoyo` Data URL.
-const SRC_YOYO: &str = "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext";
+pub const FLAG_Y: u8           = 0b0100_0000;
 
 /// # Shitlist Mark.
 ///
@@ -90,6 +78,89 @@ const SRC_YOYO: &str = "https://pgl.yoyo.org/adservers/serverlist.php?hostformat
 const WATERMARK: &str = r"##########
 # ADBYSS #
 ##########";
+
+
+
+#[derive(Debug, Copy, Clone, EnumIter, Hash, Eq, PartialEq)]
+enum ShitlistSource {
+	/// AdAway.
+	AdAway,
+	/// Adbyss.
+	Adbyss,
+	/// StevenBlack.
+	StevenBlack,
+	/// Yoyo.
+	Yoyo,
+}
+
+impl ShitlistSource {
+	/// # As Byte (Flag).
+	///
+	/// Return the equivalent flag for the source.
+	const fn as_byte(self) -> u8 {
+		match self {
+			Self::AdAway => FLAG_ADAWAY,
+			Self::Adbyss => FLAG_ADBYSS,
+			Self::StevenBlack => FLAG_STEVENBLACK,
+			Self::Yoyo => FLAG_YOYO,
+		}
+	}
+
+	/// # Fetch by Flag.
+	///
+	/// This fetches and returns a single host collection given the flags.
+	fn fetch(flags: u8) -> Result<HashSet<String>, String> {
+		let mut out: HashSet<String> = HashSet::new();
+
+		for x in Self::iter().filter(|x| 0 != flags & x.as_byte()) {
+			match x.parse() {
+				Ok(y) => {
+					out.par_extend(y);
+				},
+				Err(e) => return Err(e),
+			}
+		}
+
+		Ok(out)
+	}
+
+	/// # Parse Raw.
+	///
+	/// Fetch and parse the raw source data.
+	fn parse(self) -> Result<HashSet<String>, String> {
+		let data: String = self.raw()?;
+
+		Ok(match self {
+			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&data),
+			Self::Adbyss => parse_list(&data),
+			Self::StevenBlack => parse_etc_hosts(&data),
+		})
+	}
+
+	/// # Fetch Raw.
+	///
+	/// This fetches and returns the raw, remote data for a given source.
+	fn raw(self) -> Result<String, String> {
+		match self {
+			Self::AdAway |
+			Self::StevenBlack |
+			Self::Yoyo => fetch_url(self.url()),
+			Self::Adbyss => Ok(include_str!("../skel/adbyss.shitlist").to_string()),
+		}
+	}
+
+	/// # Source URL.
+	///
+	/// For remote hosts, return the URL where data is found.
+	const fn url(self) -> &'static str {
+		match self {
+			Self::AdAway => "https://adaway.org/hosts.txt",
+			Self::Adbyss => "",
+			Self::StevenBlack => "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+			Self::Yoyo => "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
+		}
+	}
+}
 
 
 
@@ -234,7 +305,7 @@ impl Shitlist {
 				.filter_map(|x| crate::sanitize_domain(&x))
 		);
 		self.strip_excludes();
-		self.build_out();
+		let _ = self.build_out().is_ok();
 	}
 
 	/// # Exclude Entries.
@@ -261,7 +332,6 @@ impl Shitlist {
 			});
 	}
 
-	#[must_use]
 	/// # Build.
 	///
 	/// This method can be called after all of the settings have been set to
@@ -271,36 +341,15 @@ impl Shitlist {
 	/// This method does not output anything. See [`Shitlist::as_str`],
 	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
 	/// something with the results.
-	pub fn build(mut self) -> Self {
-		// Find the sources and whatnot.
-		self.found.par_extend(
-			[
-				FLAG_ADAWAY,
-				FLAG_ADBYSS,
-				FLAG_STEVENBLACK,
-				FLAG_YOYO,
-			].par_iter()
-				.filter(|x| 0 != self.flags & *x)
-				.flat_map(|x|
-					match *x {
-						FLAG_ADAWAY => parse_adaway_hosts(&fetch_url(SRC_ADAWAY)),
-						FLAG_ADBYSS => parse_list(
-							include_str!("../skel/adbyss.shitlist")
-						),
-						FLAG_STEVENBLACK => parse_etc_hosts(&fetch_url(SRC_STEVENBLACK)),
-						FLAG_YOYO => parse_adaway_hosts(&fetch_url(SRC_YOYO)),
-						_ => unreachable!(),
-					}
-				)
-				.collect::<HashSet<String>>()
-		);
+	pub fn build(mut self) -> Result<Self, String> {
+		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
 
 		// Post-processing.
 		self.strip_excludes();
-		self.build_out();
+		self.build_out()?;
 
 		// We're done!
-		self
+		Ok(self)
 	}
 
 	#[must_use]
@@ -335,11 +384,10 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
-	pub fn write(&self) {
-		self.write_to(&self.hostfile);
+	pub fn write(&self) -> Result<(), String> {
+		self.write_to(&self.hostfile)
 	}
 
-	#[allow(trivial_casts)] // Triviality is required!
 	/// # Write Changes to File.
 	///
 	/// Write the changes to an arbitrary file. This method first tries an
@@ -356,20 +404,17 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
-	pub fn write_to<P>(&self, dst: P)
+	pub fn write_to<P>(&self, dst: P) -> Result<(), String>
 	where P: AsRef<Path> {
 		let mut dst: PathBuf = dst.as_ref().to_path_buf();
 
 		// Does it already exist?
 		if dst.exists() {
-			dst = dst.canonicalize().unwrap();
+			dst = dst.canonicalize().map_err(|e| e.to_string())?;
 
 			// Can't be a directory.
 			if dst.is_dir() {
-				MsgKind::Error
-					.into_msg(&format!("Invalid hostfile: {:?}", dst))
-					.eprintln();
-				std::process::exit(1);
+				return Err(format!("Hostfile cannot be a directory: {:?}", dst));
 			}
 
 			// Prompt about writing it?
@@ -380,64 +425,38 @@ impl Shitlist {
 					.prompt()
 			{
 				MsgKind::Warning.into_msg("Operation aborted.").eprintln();
-				return;
+				return Ok(());
 			}
 
-			// Back it up!
-			if 0 != self.flags & FLAG_BACKUP {
-				let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
-					unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
-					b".adbyss.bak"
-				].concat()));
+			self.backup(&dst)?;
+		}
 
-				// Copy the original.
-				if let Ok(txt) = std::fs::read_to_string(&dst) {
-					// Try to write atomically, fall back to clobbering, or
-					// report error.
-					if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
-						MsgKind::Error
-							.into_msg(&format!("Unable to write backup {:?}", dst2))
-							.eprintln();
-						std::process::exit(1);
-					}
-				}
-				else {
-					MsgKind::Error
-						.into_msg(&format!("Unable to read {:?}", dst2))
-						.eprintln();
-					std::process::exit(1);
-				}
+		// Try to write atomically, fall back to clobbering, or report error.
+		if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
+			return Err(format!("Unable to write to hostfile: {:?}", dst));
+		}
 
-				// Explain what we've done.
-				if 0 != self.flags & FLAG_SUMMARIZE {
-					MsgKind::Notice
-						.into_msg(&format!(
-							"The original hostfile has been backed up to {:?}.",
-							dst2
-						))
-						.println();
-				}
-			}
+		Ok(())
+	}
 
-			// Try to write atomically, fall back to clobbering, or report error.
-			if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
-				MsgKind::Error
-					.into_msg(&format!("Unable to write to hostfile {:?}", dst))
-					.eprintln();
-				std::process::exit(1);
-			}
+	#[allow(trivial_casts)] // Triviality is required!
+	/// # Backup.
+	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
+		// Back it up!
+		if 0 != self.flags & FLAG_BACKUP {
+			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
+				unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
+				b".adbyss.bak"
+			].concat()));
 
-			// Summarize?
-			if 0 != self.flags & FLAG_SUMMARIZE {
-				MsgKind::Success
-					.into_msg(&format!(
-						"Wrote {} blackholed hosts to {:?}.",
-						NiceInt::from(self.len()).as_str(),
-						dst
-					))
-					.println();
+			// Copy the original, clobbering only as a fallback.
+			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
+			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
+				return Err(format!("Unable to backup hostfile: {:?}", dst2));
 			}
 		}
+
+		Ok(())
 	}
 
 	/// # Compile Output.
@@ -449,35 +468,29 @@ impl Shitlist {
 	/// If the original hostfile cannot be read, the program will print an error
 	/// and exit with a status code of `1`. This does not apply in cases where
 	/// [`FLAG_FRESH`] is set.
-	fn build_out(&mut self) {
+	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
 		// Load existing hosts.
 		if 0 == self.flags & FLAG_FRESH {
-			if let Ok(mut txt) = std::fs::read_to_string(&self.hostfile) {
-				// If the watermark already exists, remove it and all following.
-				if let Some(idx) = txt.find(WATERMARK) {
-					txt.truncate(idx);
-				}
+			let mut txt = std::fs::read_to_string(&self.hostfile)
+				.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
 
-				self.out.extend_from_slice(txt.trim().as_bytes());
-				self.out.push(b'\n');
-				self.out.push(b'\n');
+			// If the watermark already exists, remove it and all following.
+			if let Some(idx) = txt.find(WATERMARK) {
+				txt.truncate(idx);
 			}
-			else {
-				MsgKind::Error
-					.into_msg(&format!("Unable to read {:?}", self.hostfile))
-					.eprintln();
 
-				std::process::exit(1);
-			}
+			self.out.extend_from_slice(txt.trim().as_bytes());
+			self.out.push(b'\n');
+			self.out.push(b'\n');
 		}
 
 		// Add marker.
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
 		// Add all of our results!
-		let mut found: Vec<String> = self.found.iter().cloned().collect();
+		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
 		found.par_sort();
 
 		found.iter().for_each(|x| {
@@ -496,6 +509,8 @@ impl Shitlist {
 				NiceInt::from(self.found.len()).as_str(),
 			).as_bytes());
 		}
+
+		Ok(())
 	}
 
 	/// # Strip Ignores.
@@ -524,11 +539,11 @@ impl Shitlist {
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
-fn fetch_url(url: &str) -> String {
+fn fetch_url(url: &str) -> Result<String, String> {
 	ureq::get(url)
 		.call()
 		.into_string()
-		.unwrap_or_default()
+		.map_err(|e| e.to_string())
 }
 
 /// # Parse Hosts Format.

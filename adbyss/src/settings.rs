@@ -9,7 +9,6 @@ use adbyss_core::{
 	FLAG_ALL,
 	FLAG_BACKUP,
 	FLAG_STEVENBLACK,
-	FLAG_SUMMARIZE,
 	FLAG_YOYO,
 };
 use fyi_msg::MsgKind;
@@ -71,11 +70,17 @@ impl From<PathBuf> for Settings {
 					return tmp;
 				}
 			}
+
+			MsgKind::Error
+				.into_msg(&format!("Unable to parse configuration: {:?}", src))
+				.eprintln();
+		}
+		else {
+			MsgKind::Error
+				.into_msg(&format!("Missing configuration: {:?}", src))
+				.eprintln();
 		}
 
-		MsgKind::Error
-			.into_msg(&format!("Unable to parse configuration: {:?}", src))
-			.eprintln();
 		std::process::exit(1);
 	}
 }
@@ -92,17 +97,17 @@ impl Settings {
 
 	/// # Into Shitlist.
 	pub(crate) fn into_shitlist(self) -> Shitlist {
-		// Note: the CLI flags for summaries and backups are inverted (--no-*)
-		// from the constants, so we'll start with them turned on. `Main` will
-		// remove them if needed.
-		let mut flags: u8 = FLAG_SUMMARIZE | FLAG_BACKUP | FLAG_ALL;
+		// Note: the backup CLI flag is the opposite of the constant, so we'll
+		// start with it in place and `main()` will subtract if needed.
+		let mut flags: u8 = FLAG_BACKUP | FLAG_ALL;
 
-		// Convert our sources to flags.
+		// Remove any disabled sources.
 		if ! self.source_adbyss { flags &= ! FLAG_ADBYSS; }
 		if ! self.source_adaway { flags &= ! FLAG_ADAWAY; }
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
 
+		// And build!
 		Shitlist::default()
 			.with_flags(flags)
 			.with_hostfile(self.hostfile)
@@ -122,7 +127,8 @@ mod tests {
 	fn t_filters() {
 		let shitlist = Settings::from(PathBuf::from("./misc/test.yaml"))
 			.into_shitlist()
-			.build();
+			.build()
+			.unwrap();
 		let res = shitlist.as_str();
 
 		// Our includes should be present.

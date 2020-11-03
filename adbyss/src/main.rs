@@ -123,7 +123,6 @@ mod settings;
 use adbyss_core::{
 	FLAG_BACKUP,
 	FLAG_FRESH,
-	FLAG_SUMMARIZE,
 	FLAG_Y,
 };
 use settings::Settings;
@@ -131,6 +130,7 @@ use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
 	MsgKind,
+	NiceInt,
 };
 
 
@@ -164,24 +164,37 @@ fn main() {
 	if args.switch("--no-preserve") {
 		shitlist.set_flags(FLAG_FRESH);
 	}
-	if args.switch("--no-summarize") {
-		shitlist.disable_flags(FLAG_SUMMARIZE);
-	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
 	}
 
 	// Build it.
-	shitlist = shitlist.build();
+	match shitlist.build() {
+		Ok(shitlist) =>
+			// Output to STDOUT?
+			if args.switch("--stdout") {
+				println!("{}", shitlist.as_str());
+			}
+			// Write changes to file.
+			else if let Err(e) = shitlist.write() {
+				MsgKind::Error.into_msg(&e).eprintln();
+				std::process::exit(1);
+			}
+			// Summarize the results!
+			else if ! args.switch("--no-summarize") {
+				MsgKind::Success
+					.into_msg(&format!(
+						"{} unique hosts have been cast to a blackhole!",
+						NiceInt::from(shitlist.len()).as_str()
+					))
+					.println();
+			},
+		Err(e) => {
+			MsgKind::Error.into_msg(&e).eprintln();
+			std::process::exit(1);
+		}
+	}
 
-	// Output to STDOUT?
-	if args.switch("--stdout") {
-		println!("{}", shitlist.as_str());
-	}
-	// Write changes to file.
-	else {
-		shitlist.write();
-	}
 }
 
 #[cfg(not(feature = "man"))]
