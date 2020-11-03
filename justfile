@@ -107,6 +107,12 @@ bench BENCH="" FILTER="":
 	help2man -o "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1" \
 		-N "{{ cargo_bin }}"
 
+	# Clean up some formatting.
+	sd 'AdAway:\s+<' 'AdAway:\n<' "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
+	sd '.IP\s+Steven Black:\s+<' '.TP\nSteven Black:\n<' "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
+	sd 'Yoyo:\s+<' '.TP\nYoyo:\n<' "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
+	sd '.PP\s+Additional' '.SH\nAdditional' "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
+
 	# Gzip it and reset ownership.
 	gzip -k -f -9 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
 	just _fix-chown "{{ pkg_dir1 }}"
