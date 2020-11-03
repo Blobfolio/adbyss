@@ -123,7 +123,6 @@ mod settings;
 use adbyss_core::{
 	FLAG_BACKUP,
 	FLAG_FRESH,
-	FLAG_SUMMARIZE,
 	FLAG_Y,
 };
 use settings::Settings;
@@ -131,6 +130,7 @@ use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
 	MsgKind,
+	NiceInt,
 };
 
 
@@ -158,16 +158,11 @@ fn main() {
 	).into_shitlist();
 
 	// Handle runtime flags.
-	let stdout: bool = args.switch("--stdout");
-
 	if args.switch("--no-backup") {
 		shitlist.disable_flags(FLAG_BACKUP);
 	}
 	if args.switch("--no-preserve") {
 		shitlist.set_flags(FLAG_FRESH);
-	}
-	if stdout || args.switch("--no-summarize") {
-		shitlist.disable_flags(FLAG_SUMMARIZE);
 	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
@@ -177,13 +172,22 @@ fn main() {
 	match shitlist.build() {
 		Ok(shitlist) =>
 			// Output to STDOUT?
-			if stdout {
+			if args.switch("--stdout") {
 				println!("{}", shitlist.as_str());
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {
 				MsgKind::Error.into_msg(&e).eprintln();
 				std::process::exit(1);
+			}
+			// Summarize the results!
+			else if ! args.switch("--no-summarize") {
+				MsgKind::Success
+					.into_msg(&format!(
+						"{} unique hosts have been cast to a blackhole!",
+						NiceInt::from(shitlist.len()).as_str()
+					))
+					.println();
 			},
 		Err(e) => {
 			MsgKind::Error.into_msg(&e).eprintln();

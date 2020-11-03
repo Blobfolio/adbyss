@@ -66,15 +66,10 @@ pub const FLAG_BACKUP: u8      = 0b0001_0000;
 /// as it will effectively erase any custom entries you've manually added.
 pub const FLAG_FRESH: u8       = 0b0010_0000;
 
-/// # Flag: Summarize
-///
-/// Print a success message after writing results to a file.
-pub const FLAG_SUMMARIZE: u8   = 0b0100_0000;
-
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b1000_0000;
+pub const FLAG_Y: u8           = 0b0100_0000;
 
 /// # Shitlist Mark.
 ///
@@ -120,34 +115,13 @@ impl ShitlistSource {
 		for x in Self::iter().filter(|x| 0 != flags & x.as_byte()) {
 			match x.parse() {
 				Ok(y) => {
-					if 0 != flags & FLAG_SUMMARIZE {
-						MsgKind::Notice
-							.into_msg(&format!(
-								"{}'s list contains {} block-worthy hosts.",
-								x.name(),
-								NiceInt::from(y.len()).as_str(),
-							))
-							.println();
-					}
 					out.par_extend(y);
-				}
+				},
 				Err(e) => return Err(e),
 			}
 		}
 
 		Ok(out)
-	}
-
-	/// # Source Name.
-	///
-	/// Return the host's name as a string slice.
-	const fn name(self) -> &'static str {
-		match self {
-			Self::AdAway => "AdAway",
-			Self::Adbyss => "Adbyss",
-			Self::StevenBlack => "Steven Black",
-			Self::Yoyo => "Yoyo",
-		}
 	}
 
 	/// # Parse Raw.
@@ -462,16 +436,6 @@ impl Shitlist {
 			return Err(format!("Unable to write to hostfile {:?}", dst));
 		}
 
-		// Summarize?
-		if 0 != self.flags & FLAG_SUMMARIZE {
-			MsgKind::Success
-				.into_msg(&format!(
-					"{} unique hosts have been cast to a blackhole!",
-					NiceInt::from(self.len()).as_str()
-				))
-				.println();
-		}
-
 		Ok(())
 	}
 
@@ -489,16 +453,6 @@ impl Shitlist {
 			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
 			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
 				return Err(format!("Unable to write backup {:?}", dst2));
-			}
-
-			// Explain what we've done.
-			if 0 != self.flags & FLAG_SUMMARIZE {
-				MsgKind::Notice
-					.into_msg(&format!(
-						"The original hostfile has been backed up to {:?}.",
-						dst2
-					))
-					.println();
 			}
 		}
 

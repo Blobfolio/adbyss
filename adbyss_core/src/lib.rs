@@ -40,7 +40,6 @@ pub use shitlist::{
 	FLAG_YOYO,
 	FLAG_BACKUP,
 	FLAG_FRESH,
-	FLAG_SUMMARIZE,
 	FLAG_Y,
 };
 
