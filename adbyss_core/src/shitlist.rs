@@ -414,7 +414,6 @@ impl Shitlist {
 		self.write_to(&self.hostfile)
 	}
 
-	#[allow(trivial_casts)] // Triviality is required!
 	/// # Write Changes to File.
 	///
 	/// Write the changes to an arbitrary file. This method first tries an
@@ -455,29 +454,7 @@ impl Shitlist {
 				return Ok(());
 			}
 
-			// Back it up!
-			if 0 != self.flags & FLAG_BACKUP {
-				let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
-					unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
-					b".adbyss.bak"
-				].concat()));
-
-				// Copy the original, clobbering only as a fallback.
-				let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
-				if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
-					return Err(format!("Unable to write backup {:?}", dst2));
-				}
-
-				// Explain what we've done.
-				if 0 != self.flags & FLAG_SUMMARIZE {
-					MsgKind::Notice
-						.into_msg(&format!(
-							"The original hostfile has been backed up to {:?}.",
-							dst2
-						))
-						.println();
-				}
-			}
+			self.backup(&dst)?;
 		}
 
 		// Try to write atomically, fall back to clobbering, or report error.
@@ -489,10 +466,40 @@ impl Shitlist {
 		if 0 != self.flags & FLAG_SUMMARIZE {
 			MsgKind::Success
 				.into_msg(&format!(
-					"Cast {} unique hosts to a blackhole!",
+					"{} unique hosts have been cast to a blackhole!",
 					NiceInt::from(self.len()).as_str()
 				))
 				.println();
+		}
+
+		Ok(())
+	}
+
+	#[allow(trivial_casts)] // Triviality is required!
+	/// # Backup.
+	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
+		// Back it up!
+		if 0 != self.flags & FLAG_BACKUP {
+			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
+				unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
+				b".adbyss.bak"
+			].concat()));
+
+			// Copy the original, clobbering only as a fallback.
+			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
+			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
+				return Err(format!("Unable to write backup {:?}", dst2));
+			}
+
+			// Explain what we've done.
+			if 0 != self.flags & FLAG_SUMMARIZE {
+				MsgKind::Notice
+					.into_msg(&format!(
+						"The original hostfile has been backed up to {:?}.",
+						dst2
+					))
+					.println();
+			}
 		}
 
 		Ok(())
