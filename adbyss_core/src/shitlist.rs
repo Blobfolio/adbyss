@@ -433,7 +433,7 @@ impl Shitlist {
 
 		// Try to write atomically, fall back to clobbering, or report error.
 		if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
-			return Err(format!("Unable to write to hostfile {:?}", dst));
+			return Err(format!("Unable to write to hostfile: {:?}", dst));
 		}
 
 		Ok(())
@@ -452,7 +452,7 @@ impl Shitlist {
 			// Copy the original, clobbering only as a fallback.
 			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
 			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
-				return Err(format!("Unable to write backup {:?}", dst2));
+				return Err(format!("Unable to backup hostfile: {:?}", dst2));
 			}
 		}
 
