@@ -158,13 +158,15 @@ fn main() {
 	).into_shitlist();
 
 	// Handle runtime flags.
+	let stdout: bool = args.switch("--stdout");
+
 	if args.switch("--no-backup") {
 		shitlist.disable_flags(FLAG_BACKUP);
 	}
 	if args.switch("--no-preserve") {
 		shitlist.set_flags(FLAG_FRESH);
 	}
-	if args.switch("--no-summarize") {
+	if stdout || args.switch("--no-summarize") {
 		shitlist.disable_flags(FLAG_SUMMARIZE);
 	}
 	if args.switch2("-y", "--yes") {
@@ -175,7 +177,7 @@ fn main() {
 	shitlist = shitlist.build();
 
 	// Output to STDOUT?
-	if args.switch("--stdout") {
+	if stdout {
 		println!("{}", shitlist.as_str());
 	}
 	// Write changes to file.
