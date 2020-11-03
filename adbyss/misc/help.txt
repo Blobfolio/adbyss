@@ -7,7 +7,7 @@ FLAGS:
         --no-preserve  Do *not* preserve custom entries from hostfile when
                        writing changes.
         --no-summarize Do *not* summarize changes after write.
-        --stdout       Send compiled hostfile to STDOUT.
+        --stdout       Print compiled hostfile to STDOUT.
     -V, --version      Prints version information.
     -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
