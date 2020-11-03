@@ -22,6 +22,10 @@ branch = "master"
 version = "1.5.*"
 default-features = false
 
+[dependencies.strum]
+version = "0.19.*"
+features = [ "derive" ]
+
 [dependencies.ureq]
 version = "1.5.*"
 default-features = false

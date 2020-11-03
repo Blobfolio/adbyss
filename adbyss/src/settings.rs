@@ -71,11 +71,17 @@ impl From<PathBuf> for Settings {
 					return tmp;
 				}
 			}
+
+			MsgKind::Error
+				.into_msg(&format!("Unable to parse configuration: {:?}", src))
+				.eprintln();
+		}
+		else {
+			MsgKind::Error
+				.into_msg(&format!("Missing configuration: {:?}", src))
+				.eprintln();
 		}
 
-		MsgKind::Error
-			.into_msg(&format!("Unable to parse configuration: {:?}", src))
-			.eprintln();
 		std::process::exit(1);
 	}
 }
@@ -120,9 +126,14 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let shitlist = Settings::from(PathBuf::from("./misc/test.yaml"))
-			.into_shitlist()
-			.build();
+		let shitlist = {
+			let mut tmp = Settings::from(PathBuf::from("./misc/test.yaml"))
+				.into_shitlist();
+			tmp.disable_flags(FLAG_SUMMARIZE);
+			tmp
+		}
+			.build()
+			.unwrap();
 		let res = shitlist.as_str();
 
 		// Our includes should be present.

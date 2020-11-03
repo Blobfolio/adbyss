@@ -174,16 +174,23 @@ fn main() {
 	}
 
 	// Build it.
-	shitlist = shitlist.build();
+	match shitlist.build() {
+		Ok(shitlist) =>
+			// Output to STDOUT?
+			if stdout {
+				println!("{}", shitlist.as_str());
+			}
+			// Write changes to file.
+			else if let Err(e) = shitlist.write() {
+				MsgKind::Error.into_msg(&e).eprintln();
+				std::process::exit(1);
+			},
+		Err(e) => {
+			MsgKind::Error.into_msg(&e).eprintln();
+			std::process::exit(1);
+		}
+	}
 
-	// Output to STDOUT?
-	if stdout {
-		println!("{}", shitlist.as_str());
-	}
-	// Write changes to file.
-	else {
-		shitlist.write();
-	}
 }
 
 #[cfg(not(feature = "man"))]
