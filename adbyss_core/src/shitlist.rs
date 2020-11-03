@@ -529,7 +529,7 @@ impl Shitlist {
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
 		// Add all of our results!
-		let mut found: Vec<String> = self.found.iter().cloned().collect();
+		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
 		found.par_sort();
 
 		found.iter().for_each(|x| {
