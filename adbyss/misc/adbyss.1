@@ -1,6 +1,6 @@
-.TH ADBYSS "1" "November 2020" "Adbyss v0.1.4" "User Commands"
+.TH ADBYSS "1" "November 2020" "Adbyss v0.1.5" "User Commands"
 .SH NAME
-Adbyss \- Manual page for adbyss v0.1.4.
+Adbyss \- Manual page for adbyss v0.1.5.
 .SH DESCRIPTION
 Adbyss is a DNS blacklist manager for Linux.
 .SS USAGE:
@@ -32,7 +32,10 @@ Non\-interactive mode; answer "yes" to all prompts.
 .TP
 \fB\-c\fR, \fB\-\-config\fR <FILE>
 Use this configuration instead of /etc/adbyss.yaml.
-.SS SOURCES:
+.SS GLOBAL:
+.TP
+Additional settings are stored in /etc/adbyss.yaml.
+.SS SOURCE LISTS:
 .TP
 AdAway
 <https://adaway.org/>
@@ -42,5 +45,3 @@ Steven Black
 .TP
 Yoyo
 <https://pgl.yoyo.org/adservers/>
-.SH CONFIGURATION
-Additional global settings are stored in /etc/adbyss.yaml.
