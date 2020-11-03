@@ -17,7 +17,7 @@ overhead.
 
 This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
 ```bash
-sudo cp misc/adbyss.yaml /etc
+sudo cp adbyss/misc/adbyss.yaml /etc
 ```
 
 Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
