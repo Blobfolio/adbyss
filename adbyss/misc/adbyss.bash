@@ -20,18 +20,14 @@ _basher__adbyss() {
 	if [ ! -z "${cmd}" ]; then
 		opts=()
 		
-		if [[ ! " ${COMP_LINE} " =~ " -c " ]] && [[ ! " ${COMP_LINE} " =~ " --config " ]]; then
-			opts+=("-c")
-			opts+=("--config")
+		if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
+			opts+=("-h")
+			opts+=("--help")
 		fi
 		[[ " ${COMP_LINE} " =~ " --no-backup " ]] || opts+=("--no-backup")
 		[[ " ${COMP_LINE} " =~ " --no-preserve " ]] || opts+=("--no-preserve")
 		[[ " ${COMP_LINE} " =~ " --no-summarize " ]] || opts+=("--no-summarize")
 		[[ " ${COMP_LINE} " =~ " --stdout " ]] || opts+=("--stdout")
-		if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
-			opts+=("-h")
-			opts+=("--help")
-		fi
 		if [[ ! " ${COMP_LINE} " =~ " -V " ]] && [[ ! " ${COMP_LINE} " =~ " --version " ]]; then
 			opts+=("-V")
 			opts+=("--version")
@@ -39,6 +35,10 @@ _basher__adbyss() {
 		if [[ ! " ${COMP_LINE} " =~ " -y " ]] && [[ ! " ${COMP_LINE} " =~ " --yes " ]]; then
 			opts+=("-y")
 			opts+=("--yes")
+		fi
+		if [[ ! " ${COMP_LINE} " =~ " -c " ]] && [[ ! " ${COMP_LINE} " =~ " --config " ]]; then
+			opts+=("-c")
+			opts+=("--config")
 		fi
 
 		opts=" ${opts[@]} "
