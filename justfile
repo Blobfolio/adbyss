@@ -88,7 +88,7 @@ bench BENCH="" FILTER="":
 
 # Build Man.
 @build-man:
-	# Build a quickie version with the unsexy help so help2man can parse it.
+	# Build with "man" feature, triggering MAN and BASH builds.
 	RUSTFLAGS="{{ rustflags }}" cargo build \
 		--bin "{{ pkg_id }}" \
 		--release \
@@ -96,13 +96,9 @@ bench BENCH="" FILTER="":
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
-	# Clean up the BASH completion script.
-	just _fix-chown "{{ pkg_dir1 }}/misc/{{ pkg_id }}.bash"
-	chmod 644 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.bash"
-
-	# Gzip it and reset ownership.
-	gzip -k -f -9 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
-	just _fix-chown "{{ pkg_dir1 }}"
+	# Fix permissions.
+	just _fix-chmod "{{ pkg_dir1 }}/misc"
+	just _fix-chown "{{ pkg_dir1 }}/misc"
 
 
 # Check Release!
