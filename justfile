@@ -96,10 +96,8 @@ bench BENCH="" FILTER="":
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
-	# Gzip Man page.
-	gzip -k -f -9 "{{ pkg_dir1 }}/misc/{{ pkg_id }}.1"
-
 	# Fix permissions.
+	just _fix-chmod "{{ pkg_dir1 }}/misc"
 	just _fix-chown "{{ pkg_dir1 }}/misc"
 
 
