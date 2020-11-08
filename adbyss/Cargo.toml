@@ -99,7 +99,3 @@ branch = "master"
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
-
-[features]
-default = []
-man = []
