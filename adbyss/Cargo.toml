@@ -1,12 +1,11 @@
 [package]
 name = "adbyss"
-version = "0.1.6"
+version = "0.1.7"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "Adbyss is a DNS blacklist manager for Linux."
 publish = false
-build = "build.rs"
 
 [package.metadata.deb]
 maintainer = "Josh Stoik <hello@blobfolio.com>"
@@ -18,16 +17,69 @@ section = "utility"
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
     ["./misc/adbyss.yaml", "etc/", "644"],
-    ["./misc/adbyss.bash", "etc/bash_completion.d/", "644"],
-    ["./misc/adbyss.1.gz", "usr/share/man/man1/", "644"],
+    ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
+    ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
 conf-files = [
 	"/etc/adbyss.yaml",
 ]
 
-[build-dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-branch = "master"
+[package.metadata.bashman]
+name = "Adbyss"
+bash-dir = "../release/completions"
+man-dir = "../release/man"
+
+[[package.metadata.bashman.switches]]
+short = "-h"
+long = "--help"
+description = "Print help information."
+
+[[package.metadata.bashman.switches]]
+long = "--no-backup"
+description = "Do *not* back up the hostfile when writing changes."
+
+[[package.metadata.bashman.switches]]
+long = "--no-preserve"
+description = "Do *not* preserve custom entries from the hostfile when writing changes."
+
+[[package.metadata.bashman.switches]]
+long = "--no-summarize"
+description = "Do *not* summarize changes after write."
+
+[[package.metadata.bashman.switches]]
+long = "--stdout"
+description = "Print compiled hostfile to STDOUT."
+
+[[package.metadata.bashman.switches]]
+short = "-y"
+long = "--yes"
+description = "Non-interactive mode; answer \"yes\" to all prompts."
+
+[[package.metadata.bashman.switches]]
+short = "-V"
+long = "--version"
+description = "Print program version."
+
+[[package.metadata.bashman.options]]
+short = "-c"
+long = "--config"
+label = "<FILE>"
+description = "Use this configuration instead of /etc/adbyss.yaml."
+path = true
+
+[[package.metadata.bashman.sections]]
+name = "GLOBAL"
+inside = true
+lines = [ "Additional settings are stored in /etc/adbyss.yaml. Edit those to set your preferred global runtime behaviors." ]
+
+[[package.metadata.bashman.sections]]
+name = "SOURCE LISTS"
+inside = true
+items = [
+	["AdAway", "<https://adaway.org/>"],
+	["Steven Black", "<https://github.com/StevenBlack/hosts>"],
+	["Yoyo", "<https://pgl.yoyo.org/adservers/>"]
+]
 
 [dependencies]
 serde_yaml = "0.8.*"
