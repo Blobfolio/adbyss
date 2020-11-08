@@ -13,13 +13,13 @@ _basher___adbyss() {
 	[[ " ${COMP_LINE} " =~ " --no-preserve " ]] || opts+=("--no-preserve")
 	[[ " ${COMP_LINE} " =~ " --no-summarize " ]] || opts+=("--no-summarize")
 	[[ " ${COMP_LINE} " =~ " --stdout " ]] || opts+=("--stdout")
-	if [[ ! " ${COMP_LINE} " =~ " -V " ]] && [[ ! " ${COMP_LINE} " =~ " --version " ]]; then
-		opts+=("-V")
-		opts+=("--version")
-	fi
 	if [[ ! " ${COMP_LINE} " =~ " -y " ]] && [[ ! " ${COMP_LINE} " =~ " --yes " ]]; then
 		opts+=("-y")
 		opts+=("--yes")
+	fi
+	if [[ ! " ${COMP_LINE} " =~ " -V " ]] && [[ ! " ${COMP_LINE} " =~ " --version " ]]; then
+		opts+=("-V")
+		opts+=("--version")
 	fi
 	if [[ ! " ${COMP_LINE} " =~ " -c " ]] && [[ ! " ${COMP_LINE} " =~ " --config " ]]; then
 		opts+=("-c")
