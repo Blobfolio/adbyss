@@ -51,14 +51,14 @@ long = "--stdout"
 description = "Print compiled hostfile to STDOUT."
 
 [[package.metadata.bashman.switches]]
-short = "-y"
-long = "--yes"
-description = "Non-interactive mode; answer \"yes\" to all prompts."
-
-[[package.metadata.bashman.switches]]
 short = "-V"
 long = "--version"
 description = "Print program version."
+
+[[package.metadata.bashman.switches]]
+short = "-y"
+long = "--yes"
+description = "Non-interactive mode; answer \"yes\" to all prompts."
 
 [[package.metadata.bashman.options]]
 short = "-c"
