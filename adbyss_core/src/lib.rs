@@ -71,7 +71,24 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 			dom.has_known_suffix() &&
 			dom.root().is_some()
 		{
-			return Some(dom.full().to_lowercase());
+			let mut domain: String = dom.full().to_lowercase();
+
+			// Handle Unicode-formatted domains.
+			if ! domain.is_ascii() {
+				match punycode::encode(&domain) {
+					Ok(s) => {
+						domain = [
+							"xn--",
+							&s
+						].concat()
+					},
+					Err(_) => return None,
+				}
+			}
+
+			if ! domain.is_empty() {
+				return Some(domain);
+			}
 		}
 	}
 

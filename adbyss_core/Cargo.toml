@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 chrono = "0.4.*"
 lazy_static = "1.4.*"
+punycode = "0.4.*"
 rayon = "1.5.*"
 regex = "1.4.*"
 tempfile-fast = "0.3.*"
