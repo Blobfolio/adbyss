@@ -128,12 +128,35 @@ impl ShitlistSource {
 	///
 	/// Fetch and parse the raw source data.
 	fn parse(self) -> Result<HashSet<String>, String> {
-		let data: String = self.raw()?;
-
 		Ok(match self {
-			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&data),
-			Self::Adbyss => parse_list(&data),
-			Self::StevenBlack => parse_etc_hosts(&data),
+			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&self.raw()?),
+			Self::Adbyss => {
+				let mut hs: HashSet<String> = HashSet::with_capacity(20);
+
+				hs.insert(String::from("api.triptease.io"));
+				hs.insert(String::from("collect.snitcher.com"));
+				hs.insert(String::from("ct.pinterest.com"));
+				hs.insert(String::from("guest-experience.triptease.io"));
+				hs.insert(String::from("js.trendmd.com"));
+				hs.insert(String::from("medtargetsystem.com"));
+				hs.insert(String::from("onboard.triptease.io"));
+				hs.insert(String::from("rum-static.pingdom.net"));
+				hs.insert(String::from("s.pinimg.com"));
+				hs.insert(String::from("shareasale-analytics.com"));
+				hs.insert(String::from("snid.snitcher.com"));
+				hs.insert(String::from("snitcher.com"));
+				hs.insert(String::from("static-meta.triptease.io"));
+				hs.insert(String::from("static.triptease.io"));
+				hs.insert(String::from("trendmd.com"));
+				hs.insert(String::from("triptease.io"));
+				hs.insert(String::from("www.medtargetsystem.com"));
+				hs.insert(String::from("www.snitcher.com"));
+				hs.insert(String::from("www.trendmd.com"));
+				hs.insert(String::from("www.triptease.io"));
+
+				hs
+			},
+			Self::StevenBlack => parse_etc_hosts(&self.raw()?),
 		})
 	}
 
@@ -145,7 +168,7 @@ impl ShitlistSource {
 			Self::AdAway |
 			Self::StevenBlack |
 			Self::Yoyo => fetch_url(self.url()),
-			Self::Adbyss => Ok(include_str!("../skel/adbyss.shitlist").to_string()),
+			Self::Adbyss => Ok(String::new()),
 		}
 	}
 
@@ -579,21 +602,6 @@ fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 		static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
 	}
 	parse_etc_hosts(&RE.replace_all(raw, "0.0.0.0 "))
-}
-
-
-/// # Parse List.
-///
-/// This is essentially just a big ol' list of domains.
-fn parse_list(raw: &str) -> HashSet<String> {
-	raw.lines()
-		.filter_map(|x|
-			if ! x.is_empty() && ! x.starts_with('#') {
-				crate::sanitize_domain(x)
-			}
-			else { None }
-		)
-		.collect()
 }
 
 /// # Atomic Write Helper.
