@@ -57,14 +57,14 @@ pub const FLAG_YOYO: u8        = 0b0000_1000;
 /// first.
 pub const FLAG_BACKUP: u8      = 0b0001_0000;
 
-/// # Flag: Fresh Start.
+/// # Flag: Skip Hostfile.
 ///
 /// This flag excludes existing user host entries (instead of merging them with
 /// the shitlist).
 ///
 /// You almost certainly do not want to enable this when writing to /etc/hosts
 /// as it will effectively erase any custom entries you've manually added.
-pub const FLAG_FRESH: u8       = 0b0010_0000;
+pub const FLAG_SKIP_HOSTS: u8  = 0b0010_0000;
 
 /// # Flag: Non-Interactive Mode.
 ///
@@ -239,7 +239,7 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_FRESH`]
+	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
 	/// will be added to the start of the output. If [`Shitlist::write`] is
 	/// called, output will be written to this same path.
@@ -305,7 +305,7 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_FRESH`]
+	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
 	/// will be added to the start of the output. If [`Shitlist::write`] is
 	/// called, output will be written to this same path.
@@ -327,7 +327,6 @@ impl Shitlist {
 			extras.into_iter()
 				.filter_map(|x| crate::sanitize_domain(&x))
 		);
-		self.strip_excludes();
 		let _ = self.build_out().is_ok();
 	}
 
@@ -368,7 +367,6 @@ impl Shitlist {
 		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
 
 		// Post-processing.
-		self.strip_excludes();
 		self.build_out()?;
 
 		// We're done!
@@ -483,18 +481,18 @@ impl Shitlist {
 
 	/// # Compile Output.
 	///
-	/// This compiles a new hosts file using the data found. Unless [`FLAG_FRESH`]
+	/// This compiles a new hosts file using the data found. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, this will include the non-adbyss contents of the original
 	/// hostfile, followed by the shitlist.
 	///
 	/// If the original hostfile cannot be read, the program will print an error
 	/// and exit with a status code of `1`. This does not apply in cases where
-	/// [`FLAG_FRESH`] is set.
+	/// [`FLAG_SKIP_HOSTS`] is set.
 	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
 		// Load existing hosts.
-		if 0 == self.flags & FLAG_FRESH {
+		if 0 == self.flags & FLAG_SKIP_HOSTS {
 			let mut txt = std::fs::read_to_string(&self.hostfile)
 				.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
 
@@ -506,12 +504,16 @@ impl Shitlist {
 			self.out.extend_from_slice(txt.trim().as_bytes());
 			self.out.push(b'\n');
 			self.out.push(b'\n');
+
+			// TODO: pull any remaining host entries and add them to the
+			// exclude list.
 		}
 
 		// Add marker.
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
 		// Add all of our results!
+		self.strip_excludes();
 		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
 		found.par_sort();
 
@@ -558,14 +560,68 @@ impl Shitlist {
 	}
 }
 
+/// # Cache Path From URL.
+fn cache_path(url: &str) -> Option<PathBuf> {
+	use crc32fast::Hasher;
+
+	let mut out: PathBuf = std::env::temp_dir();
+	if out.is_dir() {
+		// Hash the URL for a cheap file-friendly slug.
+		let checksum: u32 = {
+			let mut hasher = Hasher::new();
+			hasher.update(url.as_bytes());
+			hasher.finalize()
+		};
+
+		// Build an outfile path.
+		out.push(format!("_adbyss_cache-{:x}.txt", checksum));
+
+		Some(out)
+	}
+	else { None }
+}
+
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
 fn fetch_url(url: &str) -> Result<String, String> {
-	ureq::get(url)
-		.call()
-		.into_string()
-		.map_err(|e| e.to_string())
+	match cache_path(url) {
+		Some(cache) => {
+			// If this raw data was fetched less than an hour ago, simply read
+			// and return that instead of asking the Internet for a new copy.
+			if cache.is_file() {
+				// It takes an epic mapping journey to arrive at the answer
+				// without nesting a million if/let statements. Haha.
+				if let Some(x) = std::fs::metadata(&cache)
+					.ok()
+					.and_then(|meta| meta.modified().ok())
+					.and_then(|time| time.elapsed().ok())
+					.and_then(|secs|
+						if 3600 > secs.as_secs() { Some(true) }
+						else { None }
+					)
+					.and_then(|_| std::fs::read_to_string(&cache).ok())
+				{
+					return Ok(x);
+				}
+			}
+
+			// Download and cache for next time.
+			match ureq::get(url).call().into_string().map_err(|e| e.to_string()) {
+				Ok(x) => {
+					// We don't care about the write status here; if caching
+					// fails, we should still return the raw response.
+					let _ = write_nonatomic_to_file(&cache, x.as_bytes()).is_ok();
+					Ok(x)
+				},
+				Err(e) => Err(e),
+			}
+		},
+		None => ureq::get(url)
+			.call()
+			.into_string()
+			.map_err(|e| e.to_string())
+	}
 }
 
 /// # Parse Hosts Format.

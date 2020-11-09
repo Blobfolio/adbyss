@@ -39,7 +39,7 @@ pub use shitlist::{
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
 	FLAG_BACKUP,
-	FLAG_FRESH,
+	FLAG_SKIP_HOSTS,
 	FLAG_Y,
 };
 

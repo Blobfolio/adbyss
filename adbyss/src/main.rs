@@ -122,7 +122,7 @@ mod settings;
 
 use adbyss_core::{
 	FLAG_BACKUP,
-	FLAG_FRESH,
+	FLAG_SKIP_HOSTS,
 	FLAG_Y,
 };
 use settings::Settings;
@@ -162,7 +162,7 @@ fn main() {
 		shitlist.disable_flags(FLAG_BACKUP);
 	}
 	if args.switch("--no-preserve") {
-		shitlist.set_flags(FLAG_FRESH);
+		shitlist.set_flags(FLAG_SKIP_HOSTS);
 	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
