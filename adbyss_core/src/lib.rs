@@ -71,24 +71,9 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 			dom.has_known_suffix() &&
 			dom.root().is_some()
 		{
-			let mut domain: String = dom.full().to_lowercase();
-
-			// Handle Unicode-formatted domains.
-			if ! domain.is_ascii() {
-				match punycode::encode(&domain) {
-					Ok(s) => {
-						domain = [
-							"xn--",
-							&s
-						].concat()
-					},
-					Err(_) => return None,
-				}
-			}
-
-			if ! domain.is_empty() {
-				return Some(domain);
-			}
+			return idna::domain_to_ascii_strict(dom.full())
+				.ok()
+				.filter(|x| ! x.is_empty());
 		}
 	}
 
@@ -110,6 +95,8 @@ mod tests {
 			("http://www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
 			("hello", None),
 			("localhost", None),
+			("☺.com", Some(String::from("xn--74h.com"))),
+			("www.☺.com", Some(String::from("www.xn--74h.com"))),
 		].iter() {
 			assert_eq!(sanitize_domain(a), *b);
 		}
