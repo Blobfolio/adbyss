@@ -113,6 +113,11 @@ rustflags   := "-C link-arg=-s"
 @_pull-suffixes:
 	[ ! -f "{{ pkg_dir2 }}/skel/public_suffix_list.dat" ] || rm "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
 	wget -O "{{ pkg_dir2 }}/skel/public_suffix_list.dat" "https://publicsuffix.org/list/public_suffix_list.dat"
+
+	sd -f mi '^// [a-z0-9].*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	sd -f mi '^\s*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	sed -i '/^$/d' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+
 	just _fix-chown "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
 
 
