@@ -424,8 +424,7 @@ impl Shitlist {
 					.into_msg(&format!("Write {} hosts to {:?}?", NiceInt::from(self.len()).as_str(), dst))
 					.prompt()
 			{
-				MsgKind::Warning.into_msg("Operation aborted.").eprintln();
-				return Ok(());
+				return Err(String::from("Operation aborted."));
 			}
 
 			self.backup(&dst)?;
