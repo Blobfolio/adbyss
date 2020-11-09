@@ -73,6 +73,7 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 | [chrono](https://crates.io/crates/chrono) | Apache-2.0 OR MIT | Kang Seonghoon, Brandon W Maister |
 | [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
 | [publicsuffix](https://crates.io/crates/publicsuffix) | Apache-2.0 OR MIT | rushmorem |
+| [punycode](https://crates.io/crates/punycode) | MIT | mcarton |
 | [rayon](https://crates.io/crates/rayon) | Apache-2.0 OR MIT | Josh Stone, Niko Matsakis |
 | [regex](https://crates.io/crates/regex) | Apache-2.0 OR MIT | The Rust Project Developers |
 | [serde](https://crates.io/crates/serde) | Apache-2.0 OR MIT | David Tolnay, Erick Tryzelaar |
