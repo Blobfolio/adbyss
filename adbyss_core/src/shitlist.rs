@@ -562,20 +562,16 @@ impl Shitlist {
 
 /// # Cache Path From URL.
 fn cache_path(url: &str) -> Option<PathBuf> {
-	use crc32fast::Hasher;
+	let file: &str = match url {
+		"https://adaway.org/hosts.txt" => "_adbyss-adaway.tmp",
+		"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" => "_adbyss-sb.tmp",
+		"https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" => "_adbyss-yoyo.tmp",
+		_ => return None,
+	};
 
 	let mut out: PathBuf = std::env::temp_dir();
 	if out.is_dir() {
-		// Hash the URL for a cheap file-friendly slug.
-		let checksum: u32 = {
-			let mut hasher = Hasher::new();
-			hasher.update(url.as_bytes());
-			hasher.finalize()
-		};
-
-		// Build an outfile path.
-		out.push(format!("_adbyss_cache-{:x}.txt", checksum));
-
+		out.push(file);
 		Some(out)
 	}
 	else { None }

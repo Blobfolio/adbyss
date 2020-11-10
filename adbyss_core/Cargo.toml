@@ -9,7 +9,6 @@ publish = false
 
 [dependencies]
 chrono = "0.4.*"
-crc32fast = "1.2.*"
 idna = "0.2.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"
