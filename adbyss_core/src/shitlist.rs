@@ -576,7 +576,7 @@ impl Shitlist {
 # instead. (Anywhere before the start of this section will do.)
 #
 # Updated: {}
-# Blocked: {}
+# Blocked: {} garbage hosts
 #
 # Eat the rich.
 #

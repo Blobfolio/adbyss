@@ -42,7 +42,7 @@ description = "Suppress the success message after updating the hostfile."
 
 [[package.metadata.bashman.switches]]
 long = "--show"
-description = "Print a sorted blackholed hosts list to STDOUT, one per line."
+description = "Print a sorted blackholable hosts list to STDOUT, one per line."
 
 [[package.metadata.bashman.switches]]
 long = "--stdout"
