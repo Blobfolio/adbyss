@@ -386,6 +386,19 @@ impl Shitlist {
 	}
 
 	#[must_use]
+	/// # Take Found
+	///
+	/// Consume the struct and return a sorted vector of the qualifying
+	/// blackholeable hosts.
+	pub fn into_vec(mut self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.drain()
+			.filter(|x| x.len() <= MAX_LINE)
+			.collect();
+		found.par_sort();
+		found
+	}
+
+	#[must_use]
 	/// # Is Empty.
 	///
 	/// Returns `true` if no shitlisted hosts have been found.

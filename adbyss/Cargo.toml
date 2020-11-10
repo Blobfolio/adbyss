@@ -41,8 +41,12 @@ long = "--quiet"
 description = "Suppress the success message after updating the hostfile."
 
 [[package.metadata.bashman.switches]]
+long = "--show"
+description = "Print a sorted blackholed hosts list to STDOUT, one per line."
+
+[[package.metadata.bashman.switches]]
 long = "--stdout"
-description = "Print compiled hostfile to STDOUT."
+description = "Print the would-be hostfile to STDOUT instead of writing it to disk."
 
 [[package.metadata.bashman.switches]]
 short = "-V"

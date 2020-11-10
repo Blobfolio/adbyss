@@ -27,7 +27,7 @@ hostfile: "/etc/hosts"
 # Backup Hostfile
 #
 # When `true`, a backup copy of the current hostfile will be saved before
-# updating it with shitlist changes.
+# updating it with any shitlist changes.
 ##
 
 backup: true

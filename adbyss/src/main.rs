@@ -41,7 +41,10 @@ The following flags are available:
 ```bash
 -h, --help          Prints help information.
 -q, --quiet         Do *not* summarize changes after write.
-    --stdout        Send compiled hostfile to STDOUT.
+    --show          Print a sorted blackholable hosts list to STDOUT, one per
+                    line.
+    --stdout        Print the would-be hostfile to STDOUT instead of writing
+                    it to disk.
 -V, --version       Prints version information.
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
 ```
@@ -169,8 +172,12 @@ fn main() {
 	// Build it.
 	match shitlist.build() {
 		Ok(shitlist) =>
+			// Just list the results.
+			if args.switch("--show") {
+				shitlist.into_vec().iter().for_each(|x| println!("{}", x));
+			}
 			// Output to STDOUT?
-			if args.switch("--stdout") {
+			else if args.switch("--stdout") {
 				println!("{}", shitlist.as_str());
 			}
 			// Write changes to file.
@@ -218,7 +225,10 @@ USAGE:
 FLAGS:
     -h, --help         Prints help information.
     -q, --quiet        Do *not* summarize changes after write.
-        --stdout       Print compiled hostfile to STDOUT.
+        --show         Print a sorted blackholable hosts list to STDOUT, one per
+                       line.
+        --stdout       Print the would-be hostfile to STDOUT instead of writing
+                       it to disk.
     -V, --version      Prints version information.
     -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
