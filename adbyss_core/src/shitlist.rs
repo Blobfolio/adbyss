@@ -60,10 +60,10 @@ pub const FLAG_YOYO: u8        = 0b0000_1000;
 /// first.
 pub const FLAG_BACKUP: u8      = 0b0001_0000;
 
-/// # Flag: Backup Before Writing.
+/// # Flag: Compact Output.
 ///
-/// When writing to an existing file, a backup of the original will be made
-/// first.
+/// Group subdomains by their top-level domain, reducing the total number of
+/// lines written to the hostfile (as well as its overall disk size).
 pub const FLAG_COMPACT: u8     = 0b0010_0000;
 
 /// # Flag: Non-Interactive Mode.
