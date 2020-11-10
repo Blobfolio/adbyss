@@ -11,17 +11,14 @@ adbyss [FLAGS] [OPTIONS]
 \fB\-h\fR, \fB\-\-help\fR
 Print help information.
 .TP
-\fB\-\-no\-backup\fR
-Do *not* back up the hostfile when writing changes.
+\fB\-q\fR, \fB\-\-quiet\fR
+Suppress the success message after updating the hostfile.
 .TP
-\fB\-\-no\-preserve\fR
-Do *not* preserve custom entries from the hostfile when writing changes.
-.TP
-\fB\-\-no\-summarize\fR
-Do *not* summarize changes after write.
+\fB\-\-show\fR
+Print a sorted blackholed hosts list to STDOUT, one per line.
 .TP
 \fB\-\-stdout\fR
-Print compiled hostfile to STDOUT.
+Print the would\-be hostfile to STDOUT instead of writing it to disk.
 .TP
 \fB\-V\fR, \fB\-\-version\fR
 Print program version.
