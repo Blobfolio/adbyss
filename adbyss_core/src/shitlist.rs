@@ -66,19 +66,10 @@ pub const FLAG_BACKUP: u8      = 0b0001_0000;
 /// first.
 pub const FLAG_COMPACT: u8     = 0b0010_0000;
 
-/// # Flag: Skip Hostfile.
-///
-/// This flag excludes existing user host entries (instead of merging them with
-/// the shitlist).
-///
-/// You almost certainly do not want to enable this when writing to /etc/hosts
-/// as it will effectively erase any custom entries you've manually added.
-pub const FLAG_SKIP_HOSTS: u8  = 0b0100_0000;
-
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b1000_0000;
+pub const FLAG_Y: u8           = 0b0100_0000;
 
 /// # Maximum Host Line.
 ///
@@ -254,10 +245,9 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
-	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
-	/// will be added to the start of the output. If [`Shitlist::write`] is
-	/// called, output will be written to this same path.
+	/// This path may be used both for input and output. When writing, anything
+	/// prior to the `# ADBYSS #` block will be retained (i.e. only the Adbyss
+	/// bits will be modified).
 	pub fn with_hostfile<P>(mut self, src: P) -> Self
 	where P: AsRef<Path> {
 		self.set_hostfile(src);
@@ -320,10 +310,9 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
-	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
-	/// will be added to the start of the output. If [`Shitlist::write`] is
-	/// called, output will be written to this same path.
+	/// This path may be used both for input and output. When writing, anything
+	/// prior to the `# ADBYSS #` block will be retained (i.e. only the Adbyss
+	/// bits will be modified).
 	pub fn set_hostfile<P>(&mut self, src: P)
 	where P: AsRef<Path> {
 		if let Ok(src) = std::fs::canonicalize(src) {
@@ -524,34 +513,32 @@ impl Shitlist {
 
 	/// # Compile Output.
 	///
-	/// This compiles a new hosts file using the data found. Unless [`FLAG_SKIP_HOSTS`]
-	/// is set, this will include the non-adbyss contents of the original
-	/// hostfile, followed by the shitlist.
+	/// This compiles the output for a new hostfile so that it can be returned
+	/// as a slice or written to a file. Only the Adbyss section of the
+	/// hostfile — if any — will be modified; any custom host entries appearing
+	/// before that block will be retained.
 	///
 	/// If the original hostfile cannot be read, the program will print an error
-	/// and exit with a status code of `1`. This does not apply in cases where
-	/// [`FLAG_SKIP_HOSTS`] is set.
+	/// and exit with a status code of `1`.
 	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
 		// Load existing hosts.
-		if 0 == self.flags & FLAG_SKIP_HOSTS {
-			let mut txt = std::fs::read_to_string(&self.hostfile)
-				.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
+		let mut txt = std::fs::read_to_string(&self.hostfile)
+			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
 
-			// If the watermark already exists, remove it and all following.
-			if let Some(idx) = txt.find(WATERMARK) {
-				txt.truncate(idx);
-			}
-
-			// Exclude these hosts from our blackhole results.
-			self.exclude.par_extend(parse_custom_hosts(&txt));
-
-			// But add the lines unaltered to the top of the response.
-			self.out.extend_from_slice(txt.trim().as_bytes());
-			self.out.push(b'\n');
-			self.out.push(b'\n');
+		// If the watermark already exists, remove it and all following.
+		if let Some(idx) = txt.find(WATERMARK) {
+			txt.truncate(idx);
 		}
+
+		// Exclude these hosts from our blackhole results.
+		self.exclude.par_extend(parse_custom_hosts(&txt));
+
+		// But add the lines unaltered to the top of the response.
+		self.out.extend_from_slice(txt.trim().as_bytes());
+		self.out.push(b'\n');
+		self.out.push(b'\n');
 
 		// Add marker.
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));

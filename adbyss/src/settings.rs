@@ -26,6 +26,9 @@ pub(crate) struct Settings {
 	#[serde(default = "Settings::config")]
 	hostfile: PathBuf,
 
+	#[serde(default = "default_true")]
+	backup: bool,
+
 	#[serde(default = "default_false")]
 	compact: bool,
 
@@ -55,6 +58,7 @@ impl Default for Settings {
 	fn default() -> Self {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
+			backup: true,
 			compact: false,
 			source_adaway: true,
 			source_adbyss: true,
@@ -108,6 +112,9 @@ impl Settings {
 
 		// Compact the output?
 		if self.compact { flags |= FLAG_COMPACT; }
+
+		// Disable backups?
+		if ! self.backup { flags &= ! FLAG_BACKUP }
 
 		// And build!
 		Shitlist::default()

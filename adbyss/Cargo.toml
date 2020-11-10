@@ -36,16 +36,9 @@ long = "--help"
 description = "Print help information."
 
 [[package.metadata.bashman.switches]]
-long = "--no-backup"
-description = "Do *not* back up the hostfile when writing changes."
-
-[[package.metadata.bashman.switches]]
-long = "--no-preserve"
-description = "Do *not* preserve custom entries from the hostfile when writing changes."
-
-[[package.metadata.bashman.switches]]
-long = "--no-summarize"
-description = "Do *not* summarize changes after write."
+short = "-q"
+long = "--quiet"
+description = "Suppress the success message after updating the hostfile."
 
 [[package.metadata.bashman.switches]]
 long = "--stdout"

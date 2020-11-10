@@ -40,10 +40,7 @@ Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 The following flags are available:
 ```bash
 -h, --help          Prints help information.
-    --no-backup     Do *not* back up the hostfile when writing changes.
-    --no-preserve   Do *not* preserve custom entries from hostfile when
-                    writing changes.
-    --no-summarize  Do *not* summarize changes after write.
+-q, --quiet         Do *not* summarize changes after write.
     --stdout        Send compiled hostfile to STDOUT.
 -V, --version       Prints version information.
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
@@ -120,11 +117,7 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 
 mod settings;
 
-use adbyss_core::{
-	FLAG_BACKUP,
-	FLAG_SKIP_HOSTS,
-	FLAG_Y,
-};
+use adbyss_core::FLAG_Y;
 use settings::Settings;
 use std::path::PathBuf;
 use fyi_menu::Argue;
@@ -169,12 +162,6 @@ fn main() {
 		.into_shitlist();
 
 	// Handle runtime flags.
-	if args.switch("--no-backup") {
-		shitlist.disable_flags(FLAG_BACKUP);
-	}
-	if args.switch("--no-preserve") {
-		shitlist.set_flags(FLAG_SKIP_HOSTS);
-	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
 	}
@@ -192,7 +179,7 @@ fn main() {
 				std::process::exit(1);
 			}
 			// Summarize the results!
-			else if ! args.switch("--no-summarize") {
+			else if ! args.switch2("-q", "--quiet") {
 				MsgKind::Success
 					.into_msg(&format!(
 						"{} unique hosts have been cast to a blackhole!",
@@ -230,10 +217,7 @@ USAGE:
 
 FLAGS:
     -h, --help         Prints help information.
-        --no-backup    Do *not* back up the hostfile when writing changes.
-        --no-preserve  Do *not* preserve custom entries from hostfile when
-                       writing changes.
-        --no-summarize Do *not* summarize changes after write.
+    -q, --quiet        Do *not* summarize changes after write.
         --stdout       Print compiled hostfile to STDOUT.
     -V, --version      Prints version information.
     -y, --yes          Non-interactive mode; answer "yes" to all prompts.

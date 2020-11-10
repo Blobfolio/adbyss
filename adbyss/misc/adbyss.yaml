@@ -24,6 +24,16 @@ hostfile: "/etc/hosts"
 
 
 ##
+# Backup Hostfile
+#
+# When `true`, a backup copy of the current hostfile will be saved before
+# updating it with shitlist changes.
+##
+
+backup: true
+
+
+##
 # Compact Output
 #
 # When `true`, subdomains will be grouped by their top-level domain, reducing
