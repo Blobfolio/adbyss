@@ -156,7 +156,7 @@ impl ShitlistSource {
 
 				hs
 			},
-			Self::StevenBlack => parse_etc_hosts(&self.raw()?),
+			Self::StevenBlack => parse_blackhole_hosts(&self.raw()?),
 		})
 	}
 
@@ -501,12 +501,13 @@ impl Shitlist {
 				txt.truncate(idx);
 			}
 
+			// Exclude these hosts from our blackhole results.
+			self.exclude.par_extend(parse_custom_hosts(&txt));
+
+			// But add the lines unaltered to the top of the response.
 			self.out.extend_from_slice(txt.trim().as_bytes());
 			self.out.push(b'\n');
 			self.out.push(b'\n');
-
-			// TODO: pull any remaining host entries and add them to the
-			// exclude list.
 		}
 
 		// Add marker.
@@ -620,6 +621,39 @@ fn fetch_url(url: &str) -> Result<String, String> {
 	}
 }
 
+/// # Parse Custom Hosts.
+///
+/// This is used to parse custom hosts out of the user's `/etc/hosts` file.
+/// We'll want to exclude these from the blackhole list to prevent duplicates,
+/// however unlikely that may be.
+fn parse_custom_hosts(raw: &str) -> HashSet<String> {
+	lazy_static::lazy_static! {
+		// Match comments.
+		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
+		// Match IPs. Man, IPv6 is *dramatic*!
+		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
+	}
+
+	raw.lines()
+		.par_bridge()
+		.filter_map(|x| {
+			let line = RE1.replace_all(x.trim(), "");
+
+			if RE2.is_match(&line) {
+				Some(
+					line.split_whitespace()
+						.skip(1)
+						.map(String::from)
+						.collect::<Vec<String>>()
+				).filter(|x| ! x.is_empty())
+			}
+			else { None }
+		})
+		.flatten()
+		.filter_map(|x| crate::sanitize_domain(x.as_str()))
+		.collect()
+}
+
 /// # Parse Hosts Format.
 ///
 /// Most data sources format results in something akin to the final `/etc/hosts`
@@ -627,15 +661,21 @@ fn fetch_url(url: &str) -> Result<String, String> {
 ///
 /// This extracts the hosts from such lines, ignoring comments and the like, as
 /// well as entries with other IPs assigned to them.
-fn parse_etc_hosts(raw: &str) -> HashSet<String> {
+fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
 	lazy_static::lazy_static! {
 		static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
 	}
 
 	raw.lines()
+		.par_bridge()
 		.filter_map(|x|
 			if x.trim().starts_with("0.0.0.0 ") {
-				Some(RE.replace_all(x, "").split_whitespace().map(String::from).collect::<Vec<String>>())
+				Some(
+					RE.replace_all(x, "")
+						.split_whitespace()
+						.map(String::from)
+						.collect::<Vec<String>>()
+				).filter(|x| ! x.is_empty())
 			}
 			else { None }
 		)
@@ -648,12 +688,12 @@ fn parse_etc_hosts(raw: &str) -> HashSet<String> {
 ///
 /// The `AdAway` sources send targets to `127.0.0.1` instead of `0.0.0.0`; this
 /// just quickly patches such data so that it can then be parsed using
-/// [`parse_etc_hosts`].
+/// [`parse_blackhole_hosts`].
 fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 	lazy_static::lazy_static! {
 		static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
 	}
-	parse_etc_hosts(&RE.replace_all(raw, "0.0.0.0 "))
+	parse_blackhole_hosts(&RE.replace_all(raw, "0.0.0.0 "))
 }
 
 /// # Atomic Write Helper.
@@ -728,8 +768,8 @@ mod tests {
 0.0.0.0 api.1mobile.com";
 
 	#[test]
-	fn t_parse_host_fmt() {
-		let mut test: Vec<String> = parse_etc_hosts(STUB).into_iter().collect();
+	fn t_parse_blackhole_hosts() {
+		let mut test: Vec<String> = parse_blackhole_hosts(STUB).into_iter().collect();
 		test.sort();
 
 		assert_eq!(
@@ -741,6 +781,51 @@ mod tests {
 				String::from("crash.163.com"),
 				String::from("crashlytics.163.com"),
 				String::from("iad.g.163.com"),
+			]
+		);
+	}
+
+	#[test]
+	fn t_parse_custom_hosts() {
+		let mut test: Vec<String> = parse_custom_hosts(r#"#############
+# Localhost #
+#############
+
+127.0.0.1 localhost
+127.0.1.1 Computer
+127.0.0.1 my-dev.loc some-other.loc
+172.19.0.2 docker-mysql
+
+##################
+# Manual Records #
+##################
+
+140.82.113.4 github.com www.github.com
+100.100.100.1 0.nextyourcontent.com
+2600:3c00::f03c:91ff:feae:ff2 blobfolio.com
+
+########
+# IPv6 #
+########
+
+::1     ip6-localhost ip6-loopback domain.com www.domain.com
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters"#).into_iter().collect();
+		test.sort();
+
+		assert_eq!(
+			test,
+			vec![
+				String::from("0.nextyourcontent.com"),
+				String::from("blobfolio.com"),
+				String::from("domain.com"),
+				String::from("github.com"),
+				String::from("my-dev.loc"),
+				String::from("some-other.loc"),
+				String::from("www.domain.com"),
+				String::from("www.github.com"),
 			]
 		);
 	}
