@@ -471,7 +471,7 @@ impl Shitlist {
 		let extra: HashSet<String> = self.found
 			.par_iter()
 			.filter_map(|x|
-				if x.starts_with("www.") && bytecount::count(x[4..].as_bytes(), b'.') > 0 {
+				if x.starts_with("www.") && x[4..].as_bytes().contains(&b'.') {
 					Some(String::from(&x[4..]))
 				}
 				else { None }
