@@ -147,7 +147,10 @@ fn main() {
 		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper);
 
-	// Load configuration.
+	// Load configuration. If the user specified one, go with that and print an
+	// error if the path is invalid. Otherwise look for a config at the default
+	// path and go with that if it exists. Otherwise just use the internal
+	// default settings.
 	let mut shitlist = args.option2("-c", "--config")
 		.map(PathBuf::from)
 		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
