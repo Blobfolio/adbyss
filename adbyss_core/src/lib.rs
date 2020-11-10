@@ -112,6 +112,7 @@ mod tests {
 			("localhost", None),
 			("☺.com", Some(String::from("xn--74h.com"))),
 			("www.☺.com", Some(String::from("www.xn--74h.com"))),
+			("www.xn--74h.com", Some(String::from("www.xn--74h.com"))),
 		].iter() {
 			assert_eq!(sanitize_domain(a), *b);
 		}
