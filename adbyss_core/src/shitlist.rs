@@ -554,37 +554,47 @@ impl Shitlist {
 		// Exclude these hosts from our blackhole results.
 		self.exclude.par_extend(parse_custom_hosts(&txt));
 
+		// While we're here, let's clean up the found list.
+		self.add_www_tlds();
+		self.strip_excludes();
+
 		// But add the lines unaltered to the top of the response.
 		self.out.extend_from_slice(txt.trim().as_bytes());
 		self.out.push(b'\n');
 		self.out.push(b'\n');
 
 		// Add marker.
-		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
+		self.out.extend_from_slice(format!(
+			r#"##########
+# ADBYSS #
+##########
+#
+# This section is automatically generated. Any changes you make here will just
+# be removed the next time Adbyss is run.
+#
+# If you have custom host entries to add, place them at the top of this file
+# instead. (Anywhere before the start of this section will do.)
+#
+# Updated: {}
+# Blocked: {}
+#
+# Eat the rich.
+#
+##########
+"#,
+			chrono::Local::now().format("%Y-%m-%d %H:%M:%S %Z"),
+			NiceInt::from(self.found.len()).as_str()
+		).as_bytes());
 
 		// Add our results!
-		self.add_www_tlds();
-		self.strip_excludes();
-		let found: Vec<String> =
-			if 0 == self.flags & FLAG_COMPACT { self.found_separate() }
-			else { self.found_compact() };
+		if 0 == self.flags & FLAG_COMPACT { self.found_separate() }
+		else { self.found_compact() }
+			.iter().for_each(|x| {
+				self.out.extend_from_slice(b"\n0.0.0.0 ");
+				self.out.extend_from_slice(x.as_bytes());
+			});
 
-		found.iter().for_each(|x| {
-			self.out.extend_from_slice(b"\n0.0.0.0 ");
-			self.out.extend_from_slice(x.as_bytes());
-		});
-
-		// Record a timestamp for posterity.
-		{
-			use chrono::Local;
-			let now = Local::now();
-
-			self.out.extend_from_slice(format!(
-				"\n\n#\n# Generated: {}\n# Blocked:   {} garbage hosts\n#\n# Eat the rich.\n#\n",
-				now.format("%Y-%m-%d %H:%M:%S %Z"),
-				NiceInt::from(self.found.len()).as_str(),
-			).as_bytes());
-		}
+		self.out.push(b'\n');
 
 		Ok(())
 	}
