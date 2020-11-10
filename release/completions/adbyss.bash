@@ -4,14 +4,16 @@ _basher___adbyss() {
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
 	opts=()
-		
+
 	if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 		opts+=("-h")
 		opts+=("--help")
 	fi
-	[[ " ${COMP_LINE} " =~ " --no-backup " ]] || opts+=("--no-backup")
-	[[ " ${COMP_LINE} " =~ " --no-preserve " ]] || opts+=("--no-preserve")
-	[[ " ${COMP_LINE} " =~ " --no-summarize " ]] || opts+=("--no-summarize")
+	if [[ ! " ${COMP_LINE} " =~ " -q " ]] && [[ ! " ${COMP_LINE} " =~ " --quiet " ]]; then
+		opts+=("-q")
+		opts+=("--quiet")
+	fi
+	[[ " ${COMP_LINE} " =~ " --show " ]] || opts+=("--show")
 	[[ " ${COMP_LINE} " =~ " --stdout " ]] || opts+=("--stdout")
 	if [[ ! " ${COMP_LINE} " =~ " -V " ]] && [[ ! " ${COMP_LINE} " =~ " --version " ]]; then
 		opts+=("-V")

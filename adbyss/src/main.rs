@@ -40,11 +40,11 @@ Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 The following flags are available:
 ```bash
 -h, --help          Prints help information.
-    --no-backup     Do *not* back up the hostfile when writing changes.
-    --no-preserve   Do *not* preserve custom entries from hostfile when
-                    writing changes.
-    --no-summarize  Do *not* summarize changes after write.
-    --stdout        Send compiled hostfile to STDOUT.
+-q, --quiet         Do *not* summarize changes after write.
+    --show          Print a sorted blackholable hosts list to STDOUT, one per
+                    line.
+    --stdout        Print the would-be hostfile to STDOUT instead of writing
+                    it to disk.
 -V, --version       Prints version information.
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
 ```
@@ -120,12 +120,9 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 
 mod settings;
 
-use adbyss_core::{
-	FLAG_BACKUP,
-	FLAG_SKIP_HOSTS,
-	FLAG_Y,
-};
+use adbyss_core::FLAG_Y;
 use settings::Settings;
+use std::path::PathBuf;
 use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
@@ -150,20 +147,27 @@ fn main() {
 		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
 		.with_help(helper);
 
-	// Load configuration.
-	let mut shitlist = Settings::from(
-		args.option2("-c", "--config")
-			.and_then(|x| std::fs::canonicalize(x).ok())
-			.unwrap_or_else(Settings::config)
-	).into_shitlist();
+	// Load configuration. If the user specified one, go with that and print an
+	// error if the path is invalid. Otherwise look for a config at the default
+	// path and go with that if it exists. Otherwise just use the internal
+	// default settings.
+	let mut shitlist = args.option2("-c", "--config")
+		.map(PathBuf::from)
+		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
+		.map_or(
+			Settings::default(),
+			|x|
+				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
+				else {
+					MsgKind::Error
+						.into_msg("Missing configuration.")
+						.eprintln();
+					std::process::exit(1);
+				}
+		)
+		.into_shitlist();
 
 	// Handle runtime flags.
-	if args.switch("--no-backup") {
-		shitlist.disable_flags(FLAG_BACKUP);
-	}
-	if args.switch("--no-preserve") {
-		shitlist.set_flags(FLAG_SKIP_HOSTS);
-	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
 	}
@@ -171,9 +175,28 @@ fn main() {
 	// Build it.
 	match shitlist.build() {
 		Ok(shitlist) =>
+			// Just list the results.
+			if args.switch("--show") {
+				use std::io::Write;
+
+				let raw: String = shitlist.into_vec().join("\n");
+				let writer = std::io::stdout();
+				let mut handle = writer.lock();
+				let _ = handle.write_all(raw.as_bytes())
+					.and_then(|_| handle.write_all(b"\n"))
+					.and_then(|_| handle.flush())
+					.is_ok();
+			}
 			// Output to STDOUT?
-			if args.switch("--stdout") {
-				println!("{}", shitlist.as_str());
+			else if args.switch("--stdout") {
+				use std::io::Write;
+
+				let writer = std::io::stdout();
+				let mut handle = writer.lock();
+				let _ = handle.write_all(shitlist.as_bytes())
+					.and_then(|_| handle.write_all(b"\n"))
+					.and_then(|_| handle.flush())
+					.is_ok();
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {
@@ -181,7 +204,7 @@ fn main() {
 				std::process::exit(1);
 			}
 			// Summarize the results!
-			else if ! args.switch("--no-summarize") {
+			else if ! args.switch2("-q", "--quiet") {
 				MsgKind::Success
 					.into_msg(&format!(
 						"{} unique hosts have been cast to a blackhole!",
@@ -219,11 +242,11 @@ USAGE:
 
 FLAGS:
     -h, --help         Prints help information.
-        --no-backup    Do *not* back up the hostfile when writing changes.
-        --no-preserve  Do *not* preserve custom entries from hostfile when
-                       writing changes.
-        --no-summarize Do *not* summarize changes after write.
-        --stdout       Print compiled hostfile to STDOUT.
+    -q, --quiet        Do *not* summarize changes after write.
+        --show         Print a sorted blackholable hosts list to STDOUT, one per
+                       line.
+        --stdout       Print the would-be hostfile to STDOUT instead of writing
+                       it to disk.
     -V, --version      Prints version information.
     -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 

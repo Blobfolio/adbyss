@@ -26,6 +26,9 @@ pub(crate) struct Settings {
 	#[serde(default = "Settings::config")]
 	hostfile: PathBuf,
 
+	#[serde(default = "default_true")]
+	backup: bool,
+
 	#[serde(default = "default_false")]
 	compact: bool,
 
@@ -55,6 +58,7 @@ impl Default for Settings {
 	fn default() -> Self {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
+			backup: true,
 			compact: false,
 			source_adaway: true,
 			source_adbyss: true,
@@ -100,14 +104,15 @@ impl Settings {
 		// start with it in place and `main()` will subtract if needed.
 		let mut flags: u8 = FLAG_BACKUP | FLAG_ALL;
 
+		// Other settings.
+		if ! self.backup { flags &= ! FLAG_BACKUP }
+		if self.compact { flags |= FLAG_COMPACT; }
+
 		// Remove any disabled sources.
 		if ! self.source_adbyss { flags &= ! FLAG_ADBYSS; }
 		if ! self.source_adaway { flags &= ! FLAG_ADAWAY; }
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
-
-		// Compact the output?
-		if self.compact { flags |= FLAG_COMPACT; }
 
 		// And build!
 		Shitlist::default()
@@ -133,21 +138,21 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let shitlist = Settings::from(PathBuf::from("./misc/test.yaml"))
+		let shitlist = Settings::from(PathBuf::from("./skel/test.yaml"))
 			.into_shitlist()
 			.build()
 			.unwrap();
-		let res = shitlist.as_str();
+		let res = shitlist.into_vec();
 
 		// Our includes should be present.
-		assert!(res.contains("batman.com"));
-		assert!(res.contains("spiderman.com"));
+		assert!(res.contains(&String::from("batman.com")));
+		assert!(res.contains(&String::from("spiderman.com")));
 
 		// Our excludes should not be present.
-		assert!(! res.contains("collect.snitcher.com"));
-		assert!(! res.contains("triptease.io"));
+		assert!(! res.contains(&String::from("collect.snitcher.com")));
+		assert!(! res.contains(&String::from("triptease.io")));
 
 		// Adbyss' other entries should still be there.
-		assert!(res.contains("www.snitcher.com"));
+		assert!(res.contains(&String::from("www.snitcher.com")));
 	}
 }

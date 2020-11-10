@@ -3,13 +3,13 @@
 ##
 
 hostfile: "/etc/hosts"
+backup: false
+compact: false
 
 source_adaway: false
 source_adbyss: true
 source_stevenblack: false
 source_yoyo: false
-
-compact: false
 
 exclude:
   - collect.snitcher.com

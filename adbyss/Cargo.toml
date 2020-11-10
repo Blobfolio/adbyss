@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.1.8"
+version = "0.1.9"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -17,7 +17,7 @@ depends = "$auto"
 section = "utility"
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
-    ["./misc/adbyss.yaml", "etc/", "644"],
+    ["./skel/adbyss.yaml", "etc/", "644"],
     ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
@@ -36,20 +36,17 @@ long = "--help"
 description = "Print help information."
 
 [[package.metadata.bashman.switches]]
-long = "--no-backup"
-description = "Do *not* back up the hostfile when writing changes."
+short = "-q"
+long = "--quiet"
+description = "Suppress the success message after updating the hostfile."
 
 [[package.metadata.bashman.switches]]
-long = "--no-preserve"
-description = "Do *not* preserve custom entries from the hostfile when writing changes."
-
-[[package.metadata.bashman.switches]]
-long = "--no-summarize"
-description = "Do *not* summarize changes after write."
+long = "--show"
+description = "Print a sorted blackholable hosts list to STDOUT, one per line."
 
 [[package.metadata.bashman.switches]]
 long = "--stdout"
-description = "Print compiled hostfile to STDOUT."
+description = "Print the would-be hostfile to STDOUT instead of writing it to disk."
 
 [[package.metadata.bashman.switches]]
 short = "-V"

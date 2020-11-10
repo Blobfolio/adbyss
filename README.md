@@ -35,11 +35,11 @@ Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 The following flags are available:
 ```bash
 -h, --help          Prints help information.
-    --no-backup     Do *not* back up the hostfile when writing changes.
-    --no-preserve   Do *not* preserve custom entries from hostfile when
-                    writing changes.
-    --no-summarize  Do *not* summarize changes after write.
-    --stdout        Send compiled hostfile to STDOUT.
+-q, --quiet         Do *not* summarize changes after write.
+    --show          Print a sorted blackholable hosts list to STDOUT, one per
+                    line.
+    --stdout        Print the would-be hostfile to STDOUT instead of writing
+                    it to disk.
 -V, --version       Prints version information.
 -y, --yes           Non-interactive mode; answer "yes" to all prompts.
 ```
