@@ -24,6 +24,20 @@ hostfile: "/etc/hosts"
 
 
 ##
+# Compact Output
+#
+# When `true`, subdomains will be grouped by their top-level domain, reducing
+# the total number of lines written to the hostfile (as well as its overall
+# disk size).
+#
+# This defaults to false as it changes the sort order, making it less
+# efficient to read or parse.
+##
+
+compact: false
+
+
+##
 # Block Sources
 #
 # If for some reason you would like to exclude one of Adbyss' sources, set the

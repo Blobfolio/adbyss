@@ -122,7 +122,7 @@ mod settings;
 
 use adbyss_core::{
 	FLAG_BACKUP,
-	FLAG_FRESH,
+	FLAG_SKIP_HOSTS,
 	FLAG_Y,
 };
 use settings::Settings;
@@ -162,7 +162,7 @@ fn main() {
 		shitlist.disable_flags(FLAG_BACKUP);
 	}
 	if args.switch("--no-preserve") {
-		shitlist.set_flags(FLAG_FRESH);
+		shitlist.set_flags(FLAG_SKIP_HOSTS);
 	}
 	if args.switch2("-y", "--yes") {
 		shitlist.set_flags(FLAG_Y);
@@ -214,10 +214,32 @@ fn helper(_: Option<&str>) {
      \  _  /--'         `
    ___)( )(___
 
-{}"#,
+USAGE:
+    adbyss [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help         Prints help information.
+        --no-backup    Do *not* back up the hostfile when writing changes.
+        --no-preserve  Do *not* preserve custom entries from hostfile when
+                       writing changes.
+        --no-summarize Do *not* summarize changes after write.
+        --stdout       Print compiled hostfile to STDOUT.
+    -V, --version      Prints version information.
+    -y, --yes          Non-interactive mode; answer "yes" to all prompts.
+
+OPTIONS:
+    -c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
+
+SOURCES:
+    AdAway:       <https://adaway.org/>
+    Steven Black: <https://github.com/StevenBlack/hosts>
+    Yoyo:         <https://pgl.yoyo.org/adservers/>
+
+Additional global settings are stored in /etc/adbyss.yaml.
+
+"#,
 		"\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v",
 		env!("CARGO_PKG_VERSION"),
 		"\x1b[0m",
-		include_str!("../misc/help.txt")
 	)).print()
 }

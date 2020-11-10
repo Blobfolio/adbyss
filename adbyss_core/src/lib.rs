@@ -39,28 +39,26 @@ pub use shitlist::{
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
 	FLAG_BACKUP,
-	FLAG_FRESH,
+	FLAG_COMPACT,
+	FLAG_SKIP_HOSTS,
 	FLAG_Y,
 };
 
 
+
+lazy_static::lazy_static! {
+	// Load the Public Suffix List only once.
+	static ref PSL: publicsuffix::List = publicsuffix::List::from_str(
+		include_str!("../skel/public_suffix_list.dat")
+	).expect("Unable to load Public Suffix list.");
+}
 
 #[must_use]
 /// # Sanitize Domain.
 ///
 /// This ensures the domain is correctly formatted and has a recognized TLD.
 pub fn sanitize_domain(dom: &str) -> Option<String> {
-	use publicsuffix::{
-		Host,
-		List,
-	};
-
-	lazy_static::lazy_static! {
-		// Load the Public Suffix List only once.
-		static ref PSL: List = List::from_str(
-			include_str!("../skel/public_suffix_list.dat")
-		).expect("Unable to load Public Suffix list.");
-	}
+	use publicsuffix::Host;
 
 	// Look for the domain any which way it happens to be.
 	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
@@ -71,11 +69,30 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 			dom.has_known_suffix() &&
 			dom.root().is_some()
 		{
-			return Some(dom.full().to_lowercase());
+			return idna::domain_to_ascii_strict(dom.full())
+				.ok()
+				.filter(|x| ! x.is_empty());
 		}
 	}
 
 	None
+}
+
+#[must_use]
+/// # Domain Suffix.
+///
+/// This extracts the domain's suffix, if any.
+pub(crate) fn domain_suffix(dom: &str) -> Option<String> {
+	use publicsuffix::Host;
+
+	// Look for the domain any which way it happens to be.
+	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
+		if dom.has_known_suffix() {
+			dom.suffix().filter(|x| x.is_ascii()).map(String::from)
+		}
+		else { None }
+	}
+	else { None }
 }
 
 
@@ -93,6 +110,9 @@ mod tests {
 			("http://www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
 			("hello", None),
 			("localhost", None),
+			("☺.com", Some(String::from("xn--74h.com"))),
+			("www.☺.com", Some(String::from("www.xn--74h.com"))),
+			("www.xn--74h.com", Some(String::from("www.xn--74h.com"))),
 		].iter() {
 			assert_eq!(sanitize_domain(a), *b);
 		}

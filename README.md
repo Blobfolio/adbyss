@@ -71,6 +71,7 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 | ---- | ---- | ---- |
 | [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
 | [chrono](https://crates.io/crates/chrono) | Apache-2.0 OR MIT | Kang Seonghoon, Brandon W Maister |
+| [idna](https://crates.io/crates/idna) | Apache-2.0 OR MIT | The `rust-url` Developers |
 | [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
 | [publicsuffix](https://crates.io/crates/publicsuffix) | Apache-2.0 OR MIT | rushmorem |
 | [rayon](https://crates.io/crates/rayon) | Apache-2.0 OR MIT | Josh Stone, Niko Matsakis |

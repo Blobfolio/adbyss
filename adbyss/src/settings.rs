@@ -10,6 +10,7 @@ use adbyss_core::{
 	FLAG_BACKUP,
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
+	FLAG_COMPACT,
 };
 use fyi_msg::MsgKind;
 use serde::Deserialize;
@@ -25,16 +26,19 @@ pub(crate) struct Settings {
 	#[serde(default = "Settings::config")]
 	hostfile: PathBuf,
 
-	#[serde(default = "Settings::source_default")]
+	#[serde(default = "default_false")]
+	compact: bool,
+
+	#[serde(default = "default_true")]
 	source_adaway: bool,
 
-	#[serde(default = "Settings::source_default")]
+	#[serde(default = "default_true")]
 	source_adbyss: bool,
 
-	#[serde(default = "Settings::source_default")]
+	#[serde(default = "default_true")]
 	source_stevenblack: bool,
 
-	#[serde(default = "Settings::source_default")]
+	#[serde(default = "default_true")]
 	source_yoyo: bool,
 
 	#[serde(default = "Vec::new")]
@@ -51,6 +55,7 @@ impl Default for Settings {
 	fn default() -> Self {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
+			compact: false,
 			source_adaway: true,
 			source_adbyss: true,
 			source_stevenblack: true,
@@ -89,12 +94,6 @@ impl Settings {
 	/// # Configuration Path.
 	pub(crate) fn config() -> PathBuf { PathBuf::from("/etc/adbyss.yaml") }
 
-	/// # Source Default.
-	///
-	/// This is used to provide Serde with a "true" value. Not sure how to do
-	/// that using their macro. Haha.
-	pub(crate) const fn source_default() -> bool { true }
-
 	/// # Into Shitlist.
 	pub(crate) fn into_shitlist(self) -> Shitlist {
 		// Note: the backup CLI flag is the opposite of the constant, so we'll
@@ -107,6 +106,9 @@ impl Settings {
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
 
+		// Compact the output?
+		if self.compact { flags |= FLAG_COMPACT; }
+
 		// And build!
 		Shitlist::default()
 			.with_flags(flags)
@@ -116,6 +118,12 @@ impl Settings {
 			.with(self.include)
 	}
 }
+
+/// # Default true.
+const fn default_true() -> bool { true }
+
+/// # Default false.
+const fn default_false() -> bool { false }
 
 
 

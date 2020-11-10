@@ -1,10 +1,11 @@
 [package]
 name = "adbyss"
-version = "0.1.7"
+version = "0.1.8"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "Adbyss is a DNS blacklist manager for Linux."
+repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [package.metadata.deb]
@@ -51,14 +52,14 @@ long = "--stdout"
 description = "Print compiled hostfile to STDOUT."
 
 [[package.metadata.bashman.switches]]
-short = "-y"
-long = "--yes"
-description = "Non-interactive mode; answer \"yes\" to all prompts."
-
-[[package.metadata.bashman.switches]]
 short = "-V"
 long = "--version"
 description = "Print program version."
+
+[[package.metadata.bashman.switches]]
+short = "-y"
+long = "--yes"
+description = "Non-interactive mode; answer \"yes\" to all prompts."
 
 [[package.metadata.bashman.options]]
 short = "-c"
@@ -99,7 +100,3 @@ branch = "master"
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
-
-[features]
-default = []
-man = []

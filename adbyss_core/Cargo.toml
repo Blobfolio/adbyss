@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.1.7"
+version = "0.1.8"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 chrono = "0.4.*"
+idna = "0.2.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"
 regex = "1.4.*"

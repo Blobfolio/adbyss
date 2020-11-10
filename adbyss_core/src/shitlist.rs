@@ -9,7 +9,10 @@ use fyi_msg::{
 use rayon::prelude::*;
 use regex::Regex;
 use std::{
-	collections::HashSet,
+	collections::{
+		HashMap,
+		HashSet,
+	},
 	ffi::OsStr,
 	fmt,
 	fs::File,
@@ -57,19 +60,31 @@ pub const FLAG_YOYO: u8        = 0b0000_1000;
 /// first.
 pub const FLAG_BACKUP: u8      = 0b0001_0000;
 
-/// # Flag: Fresh Start.
+/// # Flag: Backup Before Writing.
+///
+/// When writing to an existing file, a backup of the original will be made
+/// first.
+pub const FLAG_COMPACT: u8     = 0b0010_0000;
+
+/// # Flag: Skip Hostfile.
 ///
 /// This flag excludes existing user host entries (instead of merging them with
 /// the shitlist).
 ///
 /// You almost certainly do not want to enable this when writing to /etc/hosts
 /// as it will effectively erase any custom entries you've manually added.
-pub const FLAG_FRESH: u8       = 0b0010_0000;
+pub const FLAG_SKIP_HOSTS: u8  = 0b0100_0000;
 
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b0100_0000;
+pub const FLAG_Y: u8           = 0b1000_0000;
+
+/// # Maximum Host Line.
+///
+/// The true limit is `256`; this adds a little padding for `0.0.0.0` and
+/// whitespace.
+const MAX_LINE: usize = 245;
 
 /// # Shitlist Mark.
 ///
@@ -128,12 +143,35 @@ impl ShitlistSource {
 	///
 	/// Fetch and parse the raw source data.
 	fn parse(self) -> Result<HashSet<String>, String> {
-		let data: String = self.raw()?;
-
 		Ok(match self {
-			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&data),
-			Self::Adbyss => parse_list(&data),
-			Self::StevenBlack => parse_etc_hosts(&data),
+			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&self.raw()?),
+			Self::Adbyss => {
+				let mut hs: HashSet<String> = HashSet::with_capacity(20);
+
+				hs.insert(String::from("api.triptease.io"));
+				hs.insert(String::from("collect.snitcher.com"));
+				hs.insert(String::from("ct.pinterest.com"));
+				hs.insert(String::from("guest-experience.triptease.io"));
+				hs.insert(String::from("js.trendmd.com"));
+				hs.insert(String::from("medtargetsystem.com"));
+				hs.insert(String::from("onboard.triptease.io"));
+				hs.insert(String::from("rum-static.pingdom.net"));
+				hs.insert(String::from("s.pinimg.com"));
+				hs.insert(String::from("shareasale-analytics.com"));
+				hs.insert(String::from("snid.snitcher.com"));
+				hs.insert(String::from("snitcher.com"));
+				hs.insert(String::from("static-meta.triptease.io"));
+				hs.insert(String::from("static.triptease.io"));
+				hs.insert(String::from("trendmd.com"));
+				hs.insert(String::from("triptease.io"));
+				hs.insert(String::from("www.medtargetsystem.com"));
+				hs.insert(String::from("www.snitcher.com"));
+				hs.insert(String::from("www.trendmd.com"));
+				hs.insert(String::from("www.triptease.io"));
+
+				hs
+			},
+			Self::StevenBlack => parse_blackhole_hosts(&self.raw()?),
 		})
 	}
 
@@ -145,7 +183,7 @@ impl ShitlistSource {
 			Self::AdAway |
 			Self::StevenBlack |
 			Self::Yoyo => fetch_url(self.url()),
-			Self::Adbyss => Ok(include_str!("../skel/adbyss.shitlist").to_string()),
+			Self::Adbyss => Ok(String::new()),
 		}
 	}
 
@@ -216,7 +254,7 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_FRESH`]
+	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
 	/// will be added to the start of the output. If [`Shitlist::write`] is
 	/// called, output will be written to this same path.
@@ -282,7 +320,7 @@ impl Shitlist {
 	///
 	/// This method allows you to use a hostfile other than `/etc/hosts`.
 	///
-	/// This path may be used both for input and output. Unless [`FLAG_FRESH`]
+	/// This path may be used both for input and output. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, custom entries — anything prior to the `# ADBYSS #` block —
 	/// will be added to the start of the output. If [`Shitlist::write`] is
 	/// called, output will be written to this same path.
@@ -304,7 +342,6 @@ impl Shitlist {
 			extras.into_iter()
 				.filter_map(|x| crate::sanitize_domain(&x))
 		);
-		self.strip_excludes();
 		let _ = self.build_out().is_ok();
 	}
 
@@ -345,7 +382,6 @@ impl Shitlist {
 		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
 
 		// Post-processing.
-		self.strip_excludes();
 		self.build_out()?;
 
 		// We're done!
@@ -424,8 +460,7 @@ impl Shitlist {
 					.into_msg(&format!("Write {} hosts to {:?}?", NiceInt::from(self.len()).as_str(), dst))
 					.prompt()
 			{
-				MsgKind::Warning.into_msg("Operation aborted.").eprintln();
-				return Ok(());
+				return Err(String::from("Operation aborted."));
 			}
 
 			self.backup(&dst)?;
@@ -437,6 +472,34 @@ impl Shitlist {
 		}
 
 		Ok(())
+	}
+
+	/// # Add www.domain.com TLDs.
+	///
+	/// This assumes that if something with a `www.` prefix is being
+	/// blacklisted, it should also be blacklisted without the `www.`.
+	///
+	/// The reverse is not enforced as that would be madness!
+	fn add_www_tlds(&mut self) {
+		if self.found.is_empty() { return; }
+
+		let extra: HashSet<String> = self.found
+			.par_iter()
+			.filter_map(|x|
+				// Keep it if it starts with www., and there's something
+				// between that and the suffix.
+				if x.starts_with("www.") {
+					crate::domain_suffix(x)
+						.filter(|suffix| suffix.len() + 5 < x.len())
+						.map(|_| String::from(&x[4..]))
+				}
+				else { None }
+			)
+			.collect();
+
+		if ! extra.is_empty() {
+			self.found.par_extend(extra);
+		}
 	}
 
 	#[allow(trivial_casts)] // Triviality is required!
@@ -461,18 +524,18 @@ impl Shitlist {
 
 	/// # Compile Output.
 	///
-	/// This compiles a new hosts file using the data found. Unless [`FLAG_FRESH`]
+	/// This compiles a new hosts file using the data found. Unless [`FLAG_SKIP_HOSTS`]
 	/// is set, this will include the non-adbyss contents of the original
 	/// hostfile, followed by the shitlist.
 	///
 	/// If the original hostfile cannot be read, the program will print an error
 	/// and exit with a status code of `1`. This does not apply in cases where
-	/// [`FLAG_FRESH`] is set.
+	/// [`FLAG_SKIP_HOSTS`] is set.
 	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
 		// Load existing hosts.
-		if 0 == self.flags & FLAG_FRESH {
+		if 0 == self.flags & FLAG_SKIP_HOSTS {
 			let mut txt = std::fs::read_to_string(&self.hostfile)
 				.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
 
@@ -481,6 +544,10 @@ impl Shitlist {
 				txt.truncate(idx);
 			}
 
+			// Exclude these hosts from our blackhole results.
+			self.exclude.par_extend(parse_custom_hosts(&txt));
+
+			// But add the lines unaltered to the top of the response.
 			self.out.extend_from_slice(txt.trim().as_bytes());
 			self.out.push(b'\n');
 			self.out.push(b'\n');
@@ -489,9 +556,12 @@ impl Shitlist {
 		// Add marker.
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
-		// Add all of our results!
-		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
-		found.par_sort();
+		// Add our results!
+		self.add_www_tlds();
+		self.strip_excludes();
+		let found: Vec<String> =
+			if 0 == self.flags & FLAG_COMPACT { self.found_separate() }
+			else { self.found_compact() };
 
 		found.iter().for_each(|x| {
 			self.out.extend_from_slice(b"\n0.0.0.0 ");
@@ -511,6 +581,112 @@ impl Shitlist {
 		}
 
 		Ok(())
+	}
+
+	#[allow(clippy::comparison_chain)] // We're only matching two branches.
+	#[allow(clippy::filter_map)] // This is confusing.
+	/// # Found: Compact.
+	///
+	/// This merges TLDs and their subdomains together to reduce the number of
+	/// lines (and overall byte size), but without going overboard.
+	fn found_compact(&self) -> Vec<String> {
+		// Pass one: key a hashmap with all the possible TLDs.
+		let mut map: HashMap<u64, Vec<String>> = self.found
+			.iter()
+			.filter_map(|x| crate::domain_suffix(x).zip(Some(x)))
+			.fold(
+				HashMap::with_capacity(self.found.len()),
+				|mut acc, (suffix, host)| {
+					// This has sub-parts.
+					if let Some(idx) = host.as_bytes()
+						.iter()
+						.take(host.len() - suffix.len() - 1)
+						.rposition(|&byte| byte == b'.')
+					{
+						let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
+						acc.entry(hash).or_insert_with(Vec::new);
+					}
+					// It is all it is.
+					else {
+						let hash: u64 = fyi_msg::utility::hash64(host.as_bytes());
+						acc.entry(hash).or_insert_with(|| vec![String::from(host)]);
+					}
+
+					acc
+				}
+			);
+
+		// Pass two: add subdomains to the right TLD list. We can skip exact
+		// hits here as they're already included.
+		self.found
+			.iter()
+			.filter_map(|x|
+				crate::domain_suffix(x)
+					.zip(Some(x))
+					.and_then(|(a, b)|
+						b.as_bytes()
+							.iter()
+							.take(b.len() - a.len() - 1)
+							.rposition(|&byte| byte == b'.')
+							.map(|idx| (b, idx))
+					)
+				)
+			.for_each(|(host, idx)| {
+				let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
+				let entry = map.entry(hash).or_insert_with(Vec::new);
+				entry.push(host.clone());
+			});
+
+		// Produce a Vec we can sort and return!
+		let mut found: Vec<String> = map.drain()
+			.filter_map(|(_k, v)|
+				if v.is_empty() { None }
+				else { Some(v) }
+			)
+			.flat_map(|mut x| {
+				// We have to split this into multiple lines so it can
+				// fit.
+				let mut out: Vec<String> = Vec::new();
+				let mut line: String = x.remove(0);
+				x.sort();
+
+				// Split on whitespace.
+				x.iter().for_each(|x| {
+					if line.len() + 1 + x.len() <= MAX_LINE {
+						line.push(' ');
+						line.push_str(x);
+					}
+					else if ! line.is_empty() {
+						out.push(line.clone());
+						line.truncate(0);
+						if x.len() <= MAX_LINE {
+							line.push_str(x);
+						}
+					}
+				});
+
+				// Add the remainder, if any.
+				if ! line.is_empty() {
+					out.push(line);
+				}
+
+				out
+			})
+			.collect();
+		found.par_sort();
+		found
+	}
+
+	/// # Found: Straight Sort.
+	///
+	/// This delivers each host, one per line.
+	fn found_separate(&self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.par_iter()
+			.filter(|x| x.len() <= MAX_LINE)
+			.cloned()
+			.collect();
+		found.par_sort();
+		found
 	}
 
 	/// # Strip Ignores.
@@ -536,14 +712,97 @@ impl Shitlist {
 	}
 }
 
+/// # Cache Path From URL.
+fn cache_path(url: &str) -> Option<PathBuf> {
+	let file: &str = match url {
+		"https://adaway.org/hosts.txt" => "_adbyss-adaway.tmp",
+		"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" => "_adbyss-sb.tmp",
+		"https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" => "_adbyss-yoyo.tmp",
+		_ => return None,
+	};
+
+	let mut out: PathBuf = std::env::temp_dir();
+	if out.is_dir() {
+		out.push(file);
+		Some(out)
+	}
+	else { None }
+}
+
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
 fn fetch_url(url: &str) -> Result<String, String> {
-	ureq::get(url)
-		.call()
-		.into_string()
-		.map_err(|e| e.to_string())
+	match cache_path(url) {
+		Some(cache) => {
+			// If this raw data was fetched less than an hour ago, simply read
+			// and return that instead of asking the Internet for a new copy.
+			if cache.is_file() {
+				// It takes an epic mapping journey to arrive at the answer
+				// without nesting a million if/let statements. Haha.
+				if let Some(x) = std::fs::metadata(&cache)
+					.ok()
+					.and_then(|meta| meta.modified().ok())
+					.and_then(|time| time.elapsed().ok())
+					.and_then(|secs|
+						if 3600 > secs.as_secs() { Some(true) }
+						else { None }
+					)
+					.and_then(|_| std::fs::read_to_string(&cache).ok())
+				{
+					return Ok(x);
+				}
+			}
+
+			// Download and cache for next time.
+			match ureq::get(url).call().into_string().map_err(|e| e.to_string()) {
+				Ok(x) => {
+					// We don't care about the write status here; if caching
+					// fails, we should still return the raw response.
+					let _ = write_nonatomic_to_file(&cache, x.as_bytes()).is_ok();
+					Ok(x)
+				},
+				Err(e) => Err(e),
+			}
+		},
+		None => ureq::get(url)
+			.call()
+			.into_string()
+			.map_err(|e| e.to_string())
+	}
+}
+
+/// # Parse Custom Hosts.
+///
+/// This is used to parse custom hosts out of the user's `/etc/hosts` file.
+/// We'll want to exclude these from the blackhole list to prevent duplicates,
+/// however unlikely that may be.
+fn parse_custom_hosts(raw: &str) -> HashSet<String> {
+	lazy_static::lazy_static! {
+		// Match comments.
+		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
+		// Match IPs. Man, IPv6 is *dramatic*!
+		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
+	}
+
+	raw.lines()
+		.par_bridge()
+		.filter_map(|x| {
+			let line = RE1.replace_all(x.trim(), "");
+
+			if RE2.is_match(&line) {
+				Some(
+					line.split_whitespace()
+						.skip(1)
+						.map(String::from)
+						.collect::<Vec<String>>()
+				).filter(|x| ! x.is_empty())
+			}
+			else { None }
+		})
+		.flatten()
+		.filter_map(|x| crate::sanitize_domain(x.as_str()))
+		.collect()
 }
 
 /// # Parse Hosts Format.
@@ -553,15 +812,21 @@ fn fetch_url(url: &str) -> Result<String, String> {
 ///
 /// This extracts the hosts from such lines, ignoring comments and the like, as
 /// well as entries with other IPs assigned to them.
-fn parse_etc_hosts(raw: &str) -> HashSet<String> {
+fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
 	lazy_static::lazy_static! {
 		static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
 	}
 
 	raw.lines()
+		.par_bridge()
 		.filter_map(|x|
 			if x.trim().starts_with("0.0.0.0 ") {
-				Some(RE.replace_all(x, "").split_whitespace().map(String::from).collect::<Vec<String>>())
+				Some(
+					RE.replace_all(x, "")
+						.split_whitespace()
+						.map(String::from)
+						.collect::<Vec<String>>()
+				).filter(|x| ! x.is_empty())
 			}
 			else { None }
 		)
@@ -574,27 +839,12 @@ fn parse_etc_hosts(raw: &str) -> HashSet<String> {
 ///
 /// The `AdAway` sources send targets to `127.0.0.1` instead of `0.0.0.0`; this
 /// just quickly patches such data so that it can then be parsed using
-/// [`parse_etc_hosts`].
+/// [`parse_blackhole_hosts`].
 fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 	lazy_static::lazy_static! {
 		static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
 	}
-	parse_etc_hosts(&RE.replace_all(raw, "0.0.0.0 "))
-}
-
-
-/// # Parse List.
-///
-/// This is essentially just a big ol' list of domains.
-fn parse_list(raw: &str) -> HashSet<String> {
-	raw.lines()
-		.filter_map(|x|
-			if ! x.is_empty() && ! x.starts_with('#') {
-				crate::sanitize_domain(x)
-			}
-			else { None }
-		)
-		.collect()
+	parse_blackhole_hosts(&RE.replace_all(raw, "0.0.0.0 "))
 }
 
 /// # Atomic Write Helper.
@@ -669,8 +919,8 @@ mod tests {
 0.0.0.0 api.1mobile.com";
 
 	#[test]
-	fn t_parse_host_fmt() {
-		let mut test: Vec<String> = parse_etc_hosts(STUB).into_iter().collect();
+	fn t_parse_blackhole_hosts() {
+		let mut test: Vec<String> = parse_blackhole_hosts(STUB).into_iter().collect();
 		test.sort();
 
 		assert_eq!(
@@ -682,6 +932,51 @@ mod tests {
 				String::from("crash.163.com"),
 				String::from("crashlytics.163.com"),
 				String::from("iad.g.163.com"),
+			]
+		);
+	}
+
+	#[test]
+	fn t_parse_custom_hosts() {
+		let mut test: Vec<String> = parse_custom_hosts(r#"#############
+# Localhost #
+#############
+
+127.0.0.1 localhost
+127.0.1.1 Computer
+127.0.0.1 my-dev.loc some-other.loc
+172.19.0.2 docker-mysql
+
+##################
+# Manual Records #
+##################
+
+140.82.113.4 github.com www.github.com
+100.100.100.1 0.nextyourcontent.com
+2600:3c00::f03c:91ff:feae:ff2 blobfolio.com
+
+########
+# IPv6 #
+########
+
+::1     ip6-localhost ip6-loopback domain.com www.domain.com
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters"#).into_iter().collect();
+		test.sort();
+
+		assert_eq!(
+			test,
+			vec![
+				String::from("0.nextyourcontent.com"),
+				String::from("blobfolio.com"),
+				String::from("domain.com"),
+				String::from("github.com"),
+				String::from("my-dev.loc"),
+				String::from("some-other.loc"),
+				String::from("www.domain.com"),
+				String::from("www.github.com"),
 			]
 		);
 	}

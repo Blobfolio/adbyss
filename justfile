@@ -29,37 +29,6 @@ rustflags   := "-C link-arg=-s"
 
 
 
-# Benchmark Rust functions.
-bench BENCH="" FILTER="":
-	#!/usr/bin/env bash
-
-	clear
-
-	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-
-	if [ -z "{{ BENCH }}" ]; then
-		cargo bench \
-			-q \
-			--workspace \
-			--all-features \
-			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
-	else
-		cargo bench \
-			-q \
-			--bench "{{ BENCH }}" \
-			--workspace \
-			--all-features \
-			--target x86_64-unknown-linux-gnu \
-			--target-dir "{{ cargo_dir }}" -- "{{ FILTER }}"
-	fi
-
-	ls -l "{{ justfile_directory() }}/test/assets"
-	find "{{ justfile_directory() }}/test/assets" \( -iname "*.br" -o -iname "*.gz" \) -type f -delete
-
-	exit 0
-
-
 # Build Release!
 @build: clean
 	# First let's build the Rust bit.
@@ -144,6 +113,11 @@ bench BENCH="" FILTER="":
 @_pull-suffixes:
 	[ ! -f "{{ pkg_dir2 }}/skel/public_suffix_list.dat" ] || rm "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
 	wget -O "{{ pkg_dir2 }}/skel/public_suffix_list.dat" "https://publicsuffix.org/list/public_suffix_list.dat"
+
+	sd -f mi '^// [a-z0-9].*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	sd -f mi '^\s*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	sed -i '/^$/d' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+
 	just _fix-chown "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
 
 
