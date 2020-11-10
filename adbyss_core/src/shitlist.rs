@@ -459,6 +459,30 @@ impl Shitlist {
 		Ok(())
 	}
 
+	/// # Add www.domain.com TLDs.
+	///
+	/// This assumes that if something with a `www.` prefix is being
+	/// blacklisted, it should also be blacklisted without the `www.`.
+	///
+	/// The reverse is not enforced as that would be madness!
+	fn add_www_tlds(&mut self) {
+		if self.found.is_empty() { return; }
+
+		let extra: HashSet<String> = self.found
+			.par_iter()
+			.filter_map(|x|
+				if x.starts_with("www.") && bytecount::count(x[4..].as_bytes(), b'.') > 0 {
+					Some(String::from(&x[4..]))
+				}
+				else { None }
+			)
+			.collect();
+
+		if ! extra.is_empty() {
+			self.found.par_extend(extra);
+		}
+	}
+
 	#[allow(trivial_casts)] // Triviality is required!
 	/// # Backup.
 	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
@@ -513,7 +537,8 @@ impl Shitlist {
 		// Add marker.
 		self.out.extend_from_slice(include_bytes!("../skel/marker.txt"));
 
-		// Add all of our results!
+		// Add our results!
+		self.add_www_tlds();
 		self.strip_excludes();
 		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
 		found.par_sort();

@@ -70,6 +70,7 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 | Library | License | Author |
 | ---- | ---- | ---- |
 | [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
+| [bytecount](https://crates.io/crates/bytecount) | Apache-2.0 OR MIT | Andre Bogus, Joshua Landau |
 | [chrono](https://crates.io/crates/chrono) | Apache-2.0 OR MIT | Kang Seonghoon, Brandon W Maister |
 | [idna](https://crates.io/crates/idna) | Apache-2.0 OR MIT | The `rust-url` Developers |
 | [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
