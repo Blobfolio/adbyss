@@ -177,11 +177,26 @@ fn main() {
 		Ok(shitlist) =>
 			// Just list the results.
 			if args.switch("--show") {
-				shitlist.into_vec().iter().for_each(|x| println!("{}", x));
+				use std::io::Write;
+
+				let raw: String = shitlist.into_vec().join("\n");
+				let writer = std::io::stdout();
+				let mut handle = writer.lock();
+				let _ = handle.write_all(raw.as_bytes())
+					.and_then(|_| handle.write_all(b"\n"))
+					.and_then(|_| handle.flush())
+					.is_ok();
 			}
 			// Output to STDOUT?
 			else if args.switch("--stdout") {
-				println!("{}", shitlist.as_str());
+				use std::io::Write;
+
+				let writer = std::io::stdout();
+				let mut handle = writer.lock();
+				let _ = handle.write_all(shitlist.as_bytes())
+					.and_then(|_| handle.write_all(b"\n"))
+					.and_then(|_| handle.flush())
+					.is_ok();
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {
