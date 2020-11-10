@@ -104,17 +104,15 @@ impl Settings {
 		// start with it in place and `main()` will subtract if needed.
 		let mut flags: u8 = FLAG_BACKUP | FLAG_ALL;
 
+		// Other settings.
+		if ! self.backup { flags &= ! FLAG_BACKUP }
+		if self.compact { flags |= FLAG_COMPACT; }
+
 		// Remove any disabled sources.
 		if ! self.source_adbyss { flags &= ! FLAG_ADBYSS; }
 		if ! self.source_adaway { flags &= ! FLAG_ADAWAY; }
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
-
-		// Compact the output?
-		if self.compact { flags |= FLAG_COMPACT; }
-
-		// Disable backups?
-		if ! self.backup { flags &= ! FLAG_BACKUP }
 
 		// And build!
 		Shitlist::default()
