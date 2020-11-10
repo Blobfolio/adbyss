@@ -663,18 +663,17 @@ impl Shitlist {
 				// We have to split this into multiple lines so it can
 				// fit.
 				let mut out: Vec<String> = Vec::new();
-				let mut line: String = x.remove(0);
-				x.sort();
+				let mut line: String = String::new();
 
 				// Split on whitespace.
+				x.sort();
 				x.iter().for_each(|x| {
 					if line.len() + 1 + x.len() <= MAX_LINE {
 						line.push(' ');
 						line.push_str(x);
 					}
 					else if ! line.is_empty() {
-						out.push(line.clone());
-						line.truncate(0);
+						out.push(line.split_off(0));
 						if x.len() <= MAX_LINE {
 							line.push_str(x);
 						}
