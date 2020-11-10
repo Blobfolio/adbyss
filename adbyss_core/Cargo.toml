@@ -8,7 +8,6 @@ description = "Adbyss is a DNS blacklist manager for Linux."
 publish = false
 
 [dependencies]
-bytecount = "0.6.*"
 chrono = "0.4.*"
 idna = "0.2.*"
 lazy_static = "1.4.*"

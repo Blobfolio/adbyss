@@ -39,28 +39,26 @@ pub use shitlist::{
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
 	FLAG_BACKUP,
+	FLAG_COMPACT,
 	FLAG_SKIP_HOSTS,
 	FLAG_Y,
 };
 
 
 
+lazy_static::lazy_static! {
+	// Load the Public Suffix List only once.
+	static ref PSL: publicsuffix::List = publicsuffix::List::from_str(
+		include_str!("../skel/public_suffix_list.dat")
+	).expect("Unable to load Public Suffix list.");
+}
+
 #[must_use]
 /// # Sanitize Domain.
 ///
 /// This ensures the domain is correctly formatted and has a recognized TLD.
 pub fn sanitize_domain(dom: &str) -> Option<String> {
-	use publicsuffix::{
-		Host,
-		List,
-	};
-
-	lazy_static::lazy_static! {
-		// Load the Public Suffix List only once.
-		static ref PSL: List = List::from_str(
-			include_str!("../skel/public_suffix_list.dat")
-		).expect("Unable to load Public Suffix list.");
-	}
+	use publicsuffix::Host;
 
 	// Look for the domain any which way it happens to be.
 	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
@@ -78,6 +76,23 @@ pub fn sanitize_domain(dom: &str) -> Option<String> {
 	}
 
 	None
+}
+
+#[must_use]
+/// # Domain Suffix.
+///
+/// This extracts the domain's suffix, if any.
+pub(crate) fn domain_suffix(dom: &str) -> Option<String> {
+	use publicsuffix::Host;
+
+	// Look for the domain any which way it happens to be.
+	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
+		if dom.has_known_suffix() {
+			dom.suffix().filter(|x| x.is_ascii()).map(String::from)
+		}
+		else { None }
+	}
+	else { None }
 }
 
 

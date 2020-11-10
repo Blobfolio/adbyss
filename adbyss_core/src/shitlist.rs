@@ -9,7 +9,10 @@ use fyi_msg::{
 use rayon::prelude::*;
 use regex::Regex;
 use std::{
-	collections::HashSet,
+	collections::{
+		HashMap,
+		HashSet,
+	},
 	ffi::OsStr,
 	fmt,
 	fs::File,
@@ -57,6 +60,12 @@ pub const FLAG_YOYO: u8        = 0b0000_1000;
 /// first.
 pub const FLAG_BACKUP: u8      = 0b0001_0000;
 
+/// # Flag: Backup Before Writing.
+///
+/// When writing to an existing file, a backup of the original will be made
+/// first.
+pub const FLAG_COMPACT: u8     = 0b0010_0000;
+
 /// # Flag: Skip Hostfile.
 ///
 /// This flag excludes existing user host entries (instead of merging them with
@@ -64,12 +73,18 @@ pub const FLAG_BACKUP: u8      = 0b0001_0000;
 ///
 /// You almost certainly do not want to enable this when writing to /etc/hosts
 /// as it will effectively erase any custom entries you've manually added.
-pub const FLAG_SKIP_HOSTS: u8  = 0b0010_0000;
+pub const FLAG_SKIP_HOSTS: u8  = 0b0100_0000;
 
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b0100_0000;
+pub const FLAG_Y: u8           = 0b1000_0000;
+
+/// # Maximum Host Line.
+///
+/// The true limit is `256`; this adds a little padding for `0.0.0.0` and
+/// whitespace.
+const MAX_LINE: usize = 245;
 
 /// # Shitlist Mark.
 ///
@@ -471,8 +486,12 @@ impl Shitlist {
 		let extra: HashSet<String> = self.found
 			.par_iter()
 			.filter_map(|x|
-				if x.starts_with("www.") && x[4..].as_bytes().contains(&b'.') {
-					Some(String::from(&x[4..]))
+				// Keep it if it starts with www., and there's something
+				// between that and the suffix.
+				if x.starts_with("www.") {
+					crate::domain_suffix(x)
+						.filter(|suffix| suffix.len() + 5 < x.len())
+						.map(|_| String::from(&x[4..]))
 				}
 				else { None }
 			)
@@ -540,8 +559,9 @@ impl Shitlist {
 		// Add our results!
 		self.add_www_tlds();
 		self.strip_excludes();
-		let mut found: Vec<String> = self.found.par_iter().cloned().collect();
-		found.par_sort();
+		let found: Vec<String> =
+			if 0 == self.flags & FLAG_COMPACT { self.found_separate() }
+			else { self.found_compact() };
 
 		found.iter().for_each(|x| {
 			self.out.extend_from_slice(b"\n0.0.0.0 ");
@@ -561,6 +581,112 @@ impl Shitlist {
 		}
 
 		Ok(())
+	}
+
+	#[allow(clippy::comparison_chain)] // We're only matching two branches.
+	#[allow(clippy::filter_map)] // This is confusing.
+	/// # Found: Compact.
+	///
+	/// This merges TLDs and their subdomains together to reduce the number of
+	/// lines (and overall byte size), but without going overboard.
+	fn found_compact(&self) -> Vec<String> {
+		// Pass one: key a hashmap with all the possible TLDs.
+		let mut map: HashMap<u64, Vec<String>> = self.found
+			.iter()
+			.filter_map(|x| crate::domain_suffix(x).zip(Some(x)))
+			.fold(
+				HashMap::with_capacity(self.found.len()),
+				|mut acc, (suffix, host)| {
+					// This has sub-parts.
+					if let Some(idx) = host.as_bytes()
+						.iter()
+						.take(host.len() - suffix.len() - 1)
+						.rposition(|&byte| byte == b'.')
+					{
+						let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
+						acc.entry(hash).or_insert_with(Vec::new);
+					}
+					// It is all it is.
+					else {
+						let hash: u64 = fyi_msg::utility::hash64(host.as_bytes());
+						acc.entry(hash).or_insert_with(|| vec![String::from(host)]);
+					}
+
+					acc
+				}
+			);
+
+		// Pass two: add subdomains to the right TLD list. We can skip exact
+		// hits here as they're already included.
+		self.found
+			.iter()
+			.filter_map(|x|
+				crate::domain_suffix(x)
+					.zip(Some(x))
+					.and_then(|(a, b)|
+						b.as_bytes()
+							.iter()
+							.take(b.len() - a.len() - 1)
+							.rposition(|&byte| byte == b'.')
+							.map(|idx| (b, idx))
+					)
+				)
+			.for_each(|(host, idx)| {
+				let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
+				let entry = map.entry(hash).or_insert_with(Vec::new);
+				entry.push(host.clone());
+			});
+
+		// Produce a Vec we can sort and return!
+		let mut found: Vec<String> = map.drain()
+			.filter_map(|(_k, v)|
+				if v.is_empty() { None }
+				else { Some(v) }
+			)
+			.flat_map(|mut x| {
+				// We have to split this into multiple lines so it can
+				// fit.
+				let mut out: Vec<String> = Vec::new();
+				let mut line: String = x.remove(0);
+				x.sort();
+
+				// Split on whitespace.
+				x.iter().for_each(|x| {
+					if line.len() + 1 + x.len() <= MAX_LINE {
+						line.push(' ');
+						line.push_str(x);
+					}
+					else if ! line.is_empty() {
+						out.push(line.clone());
+						line.truncate(0);
+						if x.len() <= MAX_LINE {
+							line.push_str(x);
+						}
+					}
+				});
+
+				// Add the remainder, if any.
+				if ! line.is_empty() {
+					out.push(line);
+				}
+
+				out
+			})
+			.collect();
+		found.par_sort();
+		found
+	}
+
+	/// # Found: Straight Sort.
+	///
+	/// This delivers each host, one per line.
+	fn found_separate(&self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.par_iter()
+			.filter(|x| x.len() <= MAX_LINE)
+			.cloned()
+			.collect();
+		found.par_sort();
+		found
 	}
 
 	/// # Strip Ignores.
