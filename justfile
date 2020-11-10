@@ -188,6 +188,7 @@ version:
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
 	cargo update
+	cargo outdated -w
 
 
 # Fix file/directory permissions.
