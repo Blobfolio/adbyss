@@ -144,17 +144,17 @@ mod tests {
 			.into_shitlist()
 			.build()
 			.unwrap();
-		let res = shitlist.as_str();
+		let res = shitlist.into_vec();
 
 		// Our includes should be present.
-		assert!(res.contains("batman.com"));
-		assert!(res.contains("spiderman.com"));
+		assert!(res.contains(&String::from("batman.com")));
+		assert!(res.contains(&String::from("spiderman.com")));
 
 		// Our excludes should not be present.
-		assert!(! res.contains("collect.snitcher.com"));
-		assert!(! res.contains("triptease.io"));
+		assert!(! res.contains(&String::from("collect.snitcher.com")));
+		assert!(! res.contains(&String::from("triptease.io")));
 
 		// Adbyss' other entries should still be there.
-		assert!(res.contains("www.snitcher.com"));
+		assert!(res.contains(&String::from("www.snitcher.com")));
 	}
 }

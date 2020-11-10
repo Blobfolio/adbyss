@@ -3,7 +3,7 @@
 ##
 
 hostfile: "/etc/hosts"
-backup: true
+backup: false
 compact: false
 
 source_adaway: false
