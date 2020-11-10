@@ -126,6 +126,7 @@ use adbyss_core::{
 	FLAG_Y,
 };
 use settings::Settings;
+use std::path::PathBuf;
 use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
@@ -151,11 +152,21 @@ fn main() {
 		.with_help(helper);
 
 	// Load configuration.
-	let mut shitlist = Settings::from(
-		args.option2("-c", "--config")
-			.and_then(|x| std::fs::canonicalize(x).ok())
-			.unwrap_or_else(Settings::config)
-	).into_shitlist();
+	let mut shitlist = args.option2("-c", "--config")
+		.map(PathBuf::from)
+		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
+		.map_or(
+			Settings::default(),
+			|x|
+				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
+				else {
+					MsgKind::Error
+						.into_msg("Missing configuration.")
+						.eprintln();
+					std::process::exit(1);
+				}
+		)
+		.into_shitlist();
 
 	// Handle runtime flags.
 	if args.switch("--no-backup") {
