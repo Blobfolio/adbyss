@@ -138,7 +138,7 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let shitlist = Settings::from(PathBuf::from("./misc/test.yaml"))
+		let shitlist = Settings::from(PathBuf::from("./skel/test.yaml"))
 			.into_shitlist()
 			.build()
 			.unwrap();
