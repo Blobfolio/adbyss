@@ -386,6 +386,12 @@ impl Shitlist {
 	}
 
 	#[must_use]
+	/// # As Str.
+	///
+	/// Return the output as a string slice.
+	pub fn as_bytes(&self) -> &[u8] { &self.out }
+
+	#[must_use]
 	/// # Take Found
 	///
 	/// Consume the struct and return a sorted vector of the qualifying
