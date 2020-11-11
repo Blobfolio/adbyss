@@ -83,7 +83,7 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 | [sudo](https://crates.io/crates/sudo) | Apache-2.0 OR MIT | Stefan Schindler |
 | [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
 | [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
-| [Yoyo](https://pgl.yoyo.org/adservers/) || Peter Lowe |
+| [Yoyo](https://pgl.yoyo.org/adservers/) | MCRAE GENERAL PUBLIC LICENSE (v4.r53) | Peter Lowe |
 
 
 
