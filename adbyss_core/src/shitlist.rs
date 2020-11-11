@@ -623,60 +623,33 @@ impl Shitlist {
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
 	fn found_compact(&self) -> Vec<String> {
-		// Pass one: key a hashmap with all the possible TLDs.
-		let mut map: HashMap<u64, Vec<String>> = self.found
+		// Start by building up a map keyed by root domain...
+		let mut found: Vec<String> = self.found
 			.iter()
 			.filter_map(|x| crate::domain_suffix(x).zip(Some(x)))
 			.fold(
-				HashMap::with_capacity(self.found.len()),
+				HashMap::<u64, Vec<String>>::with_capacity(self.found.len()),
 				|mut acc, (suffix, host)| {
-					// This has sub-parts.
-					if let Some(idx) = host.as_bytes()
+					let hash: u64 = host.as_bytes()
 						.iter()
 						.take(host.len() - suffix.len() - 1)
 						.rposition(|&byte| byte == b'.')
-					{
-						let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
-						acc.entry(hash).or_insert_with(Vec::new);
-					}
-					// It is all it is.
-					else {
-						let hash: u64 = fyi_msg::utility::hash64(host.as_bytes());
-						acc.entry(hash).or_insert_with(|| vec![String::from(host)]);
-					}
+						.map_or(
+							fyi_msg::utility::hash64(host.as_bytes()),
+							|idx| fyi_msg::utility::hash64(host[idx + 1..].as_bytes())
+						);
+
+					acc.entry(hash)
+						.or_insert_with(Vec::new)
+						.push(host.clone());
 
 					acc
 				}
-			);
-
-		// Pass two: add subdomains to the right TLD list. We can skip exact
-		// hits here as they're already included.
-		self.found
-			.iter()
-			.filter_map(|x|
-				crate::domain_suffix(x)
-					.zip(Some(x))
-					.and_then(|(a, b)|
-						b.as_bytes()
-							.iter()
-							.take(b.len() - a.len() - 1)
-							.rposition(|&byte| byte == b'.')
-							.map(|idx| (b, idx))
-					)
-				)
-			.for_each(|(host, idx)| {
-				let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
-				let entry = map.entry(hash).or_insert_with(Vec::new);
-				entry.push(host.clone());
-			});
-
-		// Produce a Vec we can sort and return!
-		let mut found: Vec<String> = map.drain()
-			.filter_map(|(_k, v)|
-				if v.is_empty() { None }
-				else { Some(v) }
 			)
-			.flat_map(|mut x| {
+			// Now run through each set to build out the lines.
+			.par_drain()
+			.filter(|(_k, v)| ! v.is_empty())
+			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
 				let mut out: Vec<String> = Vec::new();
