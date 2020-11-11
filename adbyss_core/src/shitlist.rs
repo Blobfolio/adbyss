@@ -477,12 +477,10 @@ impl Shitlist {
 
 		// Does it already exist?
 		if dst.exists() {
-			dst = dst.canonicalize().map_err(|e| e.to_string())?;
-
-			// Can't be a directory.
-			if dst.is_dir() {
-				return Err(format!("Hostfile cannot be a directory: {:?}", dst));
-			}
+			dst = dst.canonicalize()
+				.ok()
+				.filter(|x| ! x.is_dir())
+				.ok_or_else(|| String::from("Hostfile cannot be a directory."))?;
 
 			// Prompt about writing it?
 			if
@@ -544,10 +542,14 @@ impl Shitlist {
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
-			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
-				return Err(format!("Unable to backup hostfile: {:?}", dst2));
-			}
+			std::fs::read_to_string(&dst)
+				.ok()
+				.and_then(|txt|
+					write_to_file(&dst2, txt.as_bytes())
+						.ok()
+						.or_else(|| write_nonatomic_to_file(&dst2, txt.as_bytes()).ok())
+				)
+				.ok_or_else(|| format!("Unable to backup hostfile: {:?}", dst2))?;
 		}
 
 		Ok(())
@@ -785,15 +787,13 @@ fn fetch_url(url: &str) -> Result<String, String> {
 			}
 
 			// Download and cache for next time.
-			match ureq::get(url).call().into_string().map_err(|e| e.to_string()) {
-				Ok(x) => {
-					// We don't care about the write status here; if caching
-					// fails, we should still return the raw response.
+			ureq::get(url).call()
+				.into_string()
+				.map(|x| {
 					let _ = write_nonatomic_to_file(&cache, x.as_bytes()).is_ok();
-					Ok(x)
-				},
-				Err(e) => Err(e),
-			}
+					x
+				})
+				.map_err(|e| e.to_string())
 		},
 		None => ureq::get(url)
 			.call()
@@ -886,8 +886,9 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
 	let mut file = tempfile_fast::Sponge::new_for(path).map_err(|_| ())?;
-	file.write_all(data).map_err(|_| ())?;
-	file.commit().map_err(|_| ())?;
+	file.write_all(data)
+		.and_then(|_| file.commit())
+		.map_err(|_| ())?;
 
 	Ok(())
 }
@@ -902,8 +903,9 @@ fn write_nonatomic_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
 	let mut file = File::create(path).map_err(|_| ())?;
-	file.write_all(data).map_err(|_| ())?;
-	file.flush().map_err(|_| ())?;
+	file.write_all(data)
+		.and_then(|_| file.flush())
+		.map_err(|_| ())?;
 
 	Ok(())
 }
