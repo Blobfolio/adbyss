@@ -585,18 +585,19 @@ impl Shitlist {
 	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
+			// Tack ".adbyss.bak" onto the original path.
 			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
 				unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
 				b".adbyss.bak"
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			std::fs::read_to_string(&dst)
+			std::fs::read(&dst)
 				.ok()
 				.and_then(|txt|
-					write_to_file(&dst2, txt.as_bytes())
+					write_to_file(&dst2, &txt)
+						.or_else(|_| write_nonatomic_to_file(&dst2, &txt))
 						.ok()
-						.or_else(|| write_nonatomic_to_file(&dst2, txt.as_bytes()).ok())
 				)
 				.ok_or_else(|| format!("Unable to backup hostfile: {:?}", dst2))?;
 		}
