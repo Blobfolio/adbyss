@@ -416,6 +416,29 @@ impl Shitlist {
 	/// Return the number of entries found.
 	pub fn len(&self) -> usize { self.found.len() }
 
+	/// # Stub.
+	///
+	/// Return the user portion of the specified hostfile.
+	pub fn hostfile_stub(&self) -> Result<String, String> {
+		// Load existing hosts.
+		let mut txt = std::fs::read_to_string(&self.hostfile)
+			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
+
+		// If the watermark already exists, remove it and all following.
+		if let Some(idx) = txt.find(WATERMARK) {
+			txt.truncate(idx);
+		}
+
+		let trim = txt.trim_end().len();
+		if trim < txt.len() {
+			txt.truncate(trim);
+		}
+
+		txt.push('\n');
+
+		Ok(txt)
+	}
+
 	/// # Write Changes to Hostfile.
 	///
 	/// Write the changes to the input hostfile. This method first tries an
@@ -542,26 +565,18 @@ impl Shitlist {
 	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
-		// Load existing hosts.
-		let mut txt = std::fs::read_to_string(&self.hostfile)
-			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
+		// Pull the stub of the current host, and add any hosts to the
+		// exclude list.
+		self.out.extend_from_slice({
+			let mut txt = self.hostfile_stub()?;
+			self.exclude.par_extend(parse_custom_hosts(&txt));
+			txt.push('\n');
+			txt
+		}.as_bytes());
 
-		// If the watermark already exists, remove it and all following.
-		if let Some(idx) = txt.find(WATERMARK) {
-			txt.truncate(idx);
-		}
-
-		// Exclude these hosts from our blackhole results.
-		self.exclude.par_extend(parse_custom_hosts(&txt));
-
-		// While we're here, let's clean up the found list.
+		// Re-clean the found list according to the current excludey bits.
 		self.add_www_tlds();
 		self.strip_excludes();
-
-		// But add the lines unaltered to the top of the response.
-		self.out.extend_from_slice(txt.trim().as_bytes());
-		self.out.push(b'\n');
-		self.out.push(b'\n');
 
 		// Add marker.
 		self.out.extend_from_slice(format!(
