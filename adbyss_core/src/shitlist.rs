@@ -77,13 +77,49 @@ pub const FLAG_Y: u8           = 0b0100_0000;
 /// whitespace.
 const MAX_LINE: usize = 245;
 
-/// # Shitlist Mark.
+
+
+#[derive(Clone, Copy, PartialEq)]
+/// Watermark.
 ///
-/// This is used to divide Adbyss' compiled host shitlist from the user's own
-/// entries. (This mitigates clobbering.)
-const WATERMARK: &str = r"##########
-# ADBYSS #
-##########";
+/// This is used to match the boundary between the custom hostfile entries and
+/// Adbyss' contributions.
+enum Watermark {
+	Zero,
+	One,
+	Two,
+	Three,
+}
+
+impl Watermark {
+	/// The Next Entry.
+	const fn next(self) -> Self {
+		match self {
+			Self::Zero => Self::One,
+			Self::One => Self::Two,
+			Self::Two | Self::Three => Self::Three,
+		}
+	}
+
+	/// The Line.
+	const fn as_str(self) -> &'static str {
+		match self {
+			Self::Zero => "",
+			Self::One | Self::Three => "##########",
+			Self::Two => "# ADBYSS #",
+		}
+	}
+
+	/// Match the Watermark.
+	///
+	/// If it matches the next expected text, the next step is returned,
+	/// otherwise it resets to zero.
+	fn is_match(self, line: &str) -> Self {
+		let next = self.next();
+		if line == next.as_str() { next }
+		else { Self::Zero }
+	}
+}
 
 
 
@@ -420,21 +456,34 @@ impl Shitlist {
 	///
 	/// Return the user portion of the specified hostfile.
 	pub fn hostfile_stub(&self) -> Result<String, String> {
+		use std::io::{
+			BufRead,
+			BufReader,
+		};
+
 		// Load existing hosts.
-		let mut txt = std::fs::read_to_string(&self.hostfile)
-			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
+		let mut txt: String = String::with_capacity(512);
+		let mut watermark: Watermark = Watermark::Zero;
 
-		// If the watermark already exists, remove it and all following.
-		if let Some(idx) = txt.find(WATERMARK) {
-			txt.truncate(idx);
+		for line in File::open(&self.hostfile)
+			.map(BufReader::new)
+			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?
+			.lines()
+			.filter_map(std::result::Result::ok)
+		{
+			// We'll want to stop once we have absorbed the watermark.
+			watermark = watermark.is_match(&line);
+			if Watermark::Three == watermark {
+				// Erase the two lines we've already written, and trim the
+				// end once more for good measure.
+				txt.truncate(txt[..txt.len()-23].trim_end().len());
+				txt.push('\n');
+				break;
+			}
+
+			txt.push_str(line.trim());
+			txt.push('\n');
 		}
-
-		let trim = txt.trim_end().len();
-		if trim < txt.len() {
-			txt.truncate(trim);
-		}
-
-		txt.push('\n');
 
 		Ok(txt)
 	}
