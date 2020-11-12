@@ -488,6 +488,33 @@ impl Shitlist {
 		Ok(txt)
 	}
 
+	/// # Uninstall Adbyss Rules
+	///
+	/// This will remove all of Adbyss' blackhole entries from the given
+	/// hostfile.
+	pub fn unwrite(&self) -> Result<(), String> {
+		// Prompt about writing it?
+		if
+			0 == self.flags & FLAG_Y &&
+			! MsgKind::Confirm
+				.into_msg(&format!(
+					"Remove all Adbyss blackhole entries from {:?}?",
+					&self.hostfile
+				))
+				.prompt()
+		{
+			return Err(String::from("Operation aborted."));
+		}
+
+		// Try to write atomically, fall back to clobbering, or report error.
+		self.hostfile_stub()
+			.and_then(|stub| {
+				write_to_file(&self.hostfile, stub.as_bytes())
+					.or_else(|_| write_nonatomic_to_file(&self.hostfile, stub.as_bytes()))
+					.map_err(|_| format!("Unable to write to hostfile: {:?}", &self.hostfile))
+			})
+	}
+
 	/// # Write Changes to Hostfile.
 	///
 	/// Write the changes to the input hostfile. This method first tries an

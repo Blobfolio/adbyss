@@ -31,6 +31,10 @@ bash-dir = "../release/completions"
 man-dir = "../release/man"
 
 [[package.metadata.bashman.switches]]
+long = "--disable"
+description = "Remove *all* Adbyss entries from the hostfile."
+
+[[package.metadata.bashman.switches]]
 short = "-h"
 long = "--help"
 description = "Print help information."
