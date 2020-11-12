@@ -535,7 +535,11 @@ impl Shitlist {
 			if
 				0 == self.flags & FLAG_Y &&
 				! MsgKind::Confirm
-					.into_msg(&format!("Write {} hosts to {:?}?", NiceInt::from(self.len()).as_str(), dst))
+					.into_msg(&format!(
+						"Write {} hosts to {:?}?",
+						NiceInt::from(self.len()).as_str(),
+						dst
+					))
 					.prompt()
 			{
 				return Err(String::from("Operation aborted."));
@@ -545,11 +549,9 @@ impl Shitlist {
 		}
 
 		// Try to write atomically, fall back to clobbering, or report error.
-		if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
-			return Err(format!("Unable to write to hostfile: {:?}", dst));
-		}
-
-		Ok(())
+		write_to_file(&dst, &self.out)
+			.or_else(|_| write_nonatomic_to_file(&dst, &self.out))
+			.map_err(|_| format!("Unable to write to hostfile: {:?}", dst))
 	}
 
 	/// # Add www.domain.com TLDs.
