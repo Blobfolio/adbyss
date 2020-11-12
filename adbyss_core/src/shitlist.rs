@@ -77,13 +77,49 @@ pub const FLAG_Y: u8           = 0b0100_0000;
 /// whitespace.
 const MAX_LINE: usize = 245;
 
-/// # Shitlist Mark.
+
+
+#[derive(Clone, Copy, PartialEq)]
+/// Watermark.
 ///
-/// This is used to divide Adbyss' compiled host shitlist from the user's own
-/// entries. (This mitigates clobbering.)
-const WATERMARK: &str = r"##########
-# ADBYSS #
-##########";
+/// This is used to match the boundary between the custom hostfile entries and
+/// Adbyss' contributions.
+enum Watermark {
+	Zero,
+	One,
+	Two,
+	Three,
+}
+
+impl Watermark {
+	/// The Next Entry.
+	const fn next(self) -> Self {
+		match self {
+			Self::Zero => Self::One,
+			Self::One => Self::Two,
+			Self::Two | Self::Three => Self::Three,
+		}
+	}
+
+	/// The Line.
+	const fn as_str(self) -> &'static str {
+		match self {
+			Self::Zero => "",
+			Self::One | Self::Three => "##########",
+			Self::Two => "# ADBYSS #",
+		}
+	}
+
+	/// Match the Watermark.
+	///
+	/// If it matches the next expected text, the next step is returned,
+	/// otherwise it resets to zero.
+	fn is_match(self, line: &str) -> Self {
+		let next = self.next();
+		if line == next.as_str() { next }
+		else { Self::Zero }
+	}
+}
 
 
 
@@ -397,7 +433,7 @@ impl Shitlist {
 	/// Consume the struct and return a sorted vector of the qualifying
 	/// blackholeable hosts.
 	pub fn into_vec(mut self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.drain()
+		let mut found: Vec<String> = self.found.par_drain()
 			.filter(|x| x.len() <= MAX_LINE)
 			.collect();
 		found.par_sort();
@@ -415,6 +451,69 @@ impl Shitlist {
 	///
 	/// Return the number of entries found.
 	pub fn len(&self) -> usize { self.found.len() }
+
+	/// # Stub.
+	///
+	/// Return the user portion of the specified hostfile.
+	pub fn hostfile_stub(&self) -> Result<String, String> {
+		use std::io::{
+			BufRead,
+			BufReader,
+		};
+
+		// Load existing hosts.
+		let mut txt: String = String::with_capacity(512);
+		let mut watermark: Watermark = Watermark::Zero;
+
+		for line in File::open(&self.hostfile)
+			.map(BufReader::new)
+			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?
+			.lines()
+			.filter_map(std::result::Result::ok)
+		{
+			// We'll want to stop once we have absorbed the watermark.
+			watermark = watermark.is_match(&line);
+			if Watermark::Three == watermark {
+				// Erase the two lines we've already written, and trim the
+				// end once more for good measure.
+				txt.truncate(txt[..txt.len()-23].trim_end().len());
+				txt.push('\n');
+				break;
+			}
+
+			txt.push_str(line.trim());
+			txt.push('\n');
+		}
+
+		Ok(txt)
+	}
+
+	/// # Uninstall Adbyss Rules
+	///
+	/// This will remove all of Adbyss' blackhole entries from the given
+	/// hostfile.
+	pub fn unwrite(&self) -> Result<(), String> {
+		// Prompt about writing it?
+		if
+			0 == self.flags & FLAG_Y &&
+			! MsgKind::Confirm
+				.into_msg(&format!(
+					"Remove all Adbyss blackhole entries from {:?}?",
+					&self.hostfile
+				))
+				.prompt()
+		{
+			return Err(String::from("Operation aborted."));
+		}
+
+		// Try to write atomically, fall back to clobbering, or report error.
+		self.hostfile_stub()
+			.and_then(|stub| {
+				write_to_file(&self.hostfile, stub.as_bytes())
+					.or_else(|_| write_nonatomic_to_file(&self.hostfile, stub.as_bytes()))
+					.map_err(|_| format!("Unable to write to hostfile: {:?}", &self.hostfile))
+			})
+	}
 
 	/// # Write Changes to Hostfile.
 	///
@@ -454,18 +553,20 @@ impl Shitlist {
 
 		// Does it already exist?
 		if dst.exists() {
-			dst = dst.canonicalize().map_err(|e| e.to_string())?;
-
-			// Can't be a directory.
-			if dst.is_dir() {
-				return Err(format!("Hostfile cannot be a directory: {:?}", dst));
-			}
+			dst = dst.canonicalize()
+				.ok()
+				.filter(|x| ! x.is_dir())
+				.ok_or_else(|| String::from("Hostfile cannot be a directory."))?;
 
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
 				! MsgKind::Confirm
-					.into_msg(&format!("Write {} hosts to {:?}?", NiceInt::from(self.len()).as_str(), dst))
+					.into_msg(&format!(
+						"Write {} hosts to {:?}?",
+						NiceInt::from(self.len()).as_str(),
+						dst
+					))
 					.prompt()
 			{
 				return Err(String::from("Operation aborted."));
@@ -475,11 +576,9 @@ impl Shitlist {
 		}
 
 		// Try to write atomically, fall back to clobbering, or report error.
-		if write_to_file(&dst, &self.out).is_err() && write_nonatomic_to_file(&dst, &self.out).is_err() {
-			return Err(format!("Unable to write to hostfile: {:?}", dst));
-		}
-
-		Ok(())
+		write_to_file(&dst, &self.out)
+			.or_else(|_| write_nonatomic_to_file(&dst, &self.out))
+			.map_err(|_| format!("Unable to write to hostfile: {:?}", dst))
 	}
 
 	/// # Add www.domain.com TLDs.
@@ -515,16 +614,21 @@ impl Shitlist {
 	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
+			// Tack ".adbyss.bak" onto the original path.
 			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
 				unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
 				b".adbyss.bak"
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			let txt = std::fs::read_to_string(&dst).map_err(|_| format!("Unable to read {:?}", dst2))?;
-			if write_to_file(&dst2, txt.as_bytes()).is_err() && write_nonatomic_to_file(&dst2, txt.as_bytes()).is_err() {
-				return Err(format!("Unable to backup hostfile: {:?}", dst2));
-			}
+			std::fs::read(&dst)
+				.ok()
+				.and_then(|txt|
+					write_to_file(&dst2, &txt)
+						.or_else(|_| write_nonatomic_to_file(&dst2, &txt))
+						.ok()
+				)
+				.ok_or_else(|| format!("Unable to backup hostfile: {:?}", dst2))?;
 		}
 
 		Ok(())
@@ -542,26 +646,18 @@ impl Shitlist {
 	fn build_out(&mut self) -> Result<(), String> {
 		self.out.clear();
 
-		// Load existing hosts.
-		let mut txt = std::fs::read_to_string(&self.hostfile)
-			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?;
+		// Pull the stub of the current host, and add any hosts to the
+		// exclude list.
+		self.out.extend_from_slice({
+			let mut txt = self.hostfile_stub()?;
+			self.exclude.par_extend(parse_custom_hosts(&txt));
+			txt.push('\n');
+			txt
+		}.as_bytes());
 
-		// If the watermark already exists, remove it and all following.
-		if let Some(idx) = txt.find(WATERMARK) {
-			txt.truncate(idx);
-		}
-
-		// Exclude these hosts from our blackhole results.
-		self.exclude.par_extend(parse_custom_hosts(&txt));
-
-		// While we're here, let's clean up the found list.
+		// Re-clean the found list according to the current excludey bits.
 		self.add_www_tlds();
 		self.strip_excludes();
-
-		// But add the lines unaltered to the top of the response.
-		self.out.extend_from_slice(txt.trim().as_bytes());
-		self.out.push(b'\n');
-		self.out.push(b'\n');
 
 		// Add marker.
 		self.out.extend_from_slice(format!(
@@ -606,75 +702,47 @@ impl Shitlist {
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
 	fn found_compact(&self) -> Vec<String> {
-		// Pass one: key a hashmap with all the possible TLDs.
-		let mut map: HashMap<u64, Vec<String>> = self.found
+		// Start by building up a map keyed by root domain...
+		let mut found: Vec<String> = self.found
 			.iter()
 			.filter_map(|x| crate::domain_suffix(x).zip(Some(x)))
 			.fold(
-				HashMap::with_capacity(self.found.len()),
+				HashMap::<u64, Vec<String>>::with_capacity(self.found.len()),
 				|mut acc, (suffix, host)| {
-					// This has sub-parts.
-					if let Some(idx) = host.as_bytes()
+					let hash: u64 = host.as_bytes()
 						.iter()
 						.take(host.len() - suffix.len() - 1)
 						.rposition(|&byte| byte == b'.')
-					{
-						let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
-						acc.entry(hash).or_insert_with(Vec::new);
-					}
-					// It is all it is.
-					else {
-						let hash: u64 = fyi_msg::utility::hash64(host.as_bytes());
-						acc.entry(hash).or_insert_with(|| vec![String::from(host)]);
-					}
+						.map_or(
+							fyi_msg::utility::hash64(host.as_bytes()),
+							|idx| fyi_msg::utility::hash64(host[idx + 1..].as_bytes())
+						);
+
+					acc.entry(hash)
+						.or_insert_with(Vec::new)
+						.push(host.clone());
 
 					acc
 				}
-			);
-
-		// Pass two: add subdomains to the right TLD list. We can skip exact
-		// hits here as they're already included.
-		self.found
-			.iter()
-			.filter_map(|x|
-				crate::domain_suffix(x)
-					.zip(Some(x))
-					.and_then(|(a, b)|
-						b.as_bytes()
-							.iter()
-							.take(b.len() - a.len() - 1)
-							.rposition(|&byte| byte == b'.')
-							.map(|idx| (b, idx))
-					)
-				)
-			.for_each(|(host, idx)| {
-				let hash: u64 = fyi_msg::utility::hash64(host[idx + 1..].as_bytes());
-				let entry = map.entry(hash).or_insert_with(Vec::new);
-				entry.push(host.clone());
-			});
-
-		// Produce a Vec we can sort and return!
-		let mut found: Vec<String> = map.drain()
-			.filter_map(|(_k, v)|
-				if v.is_empty() { None }
-				else { Some(v) }
 			)
-			.flat_map(|mut x| {
+			// Now run through each set to build out the lines.
+			.par_drain()
+			.filter(|(_k, v)| ! v.is_empty())
+			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
 				let mut out: Vec<String> = Vec::new();
-				let mut line: String = x.remove(0);
-				x.sort();
+				let mut line: String = String::new();
 
 				// Split on whitespace.
+				x.sort();
 				x.iter().for_each(|x| {
 					if line.len() + 1 + x.len() <= MAX_LINE {
 						line.push(' ');
 						line.push_str(x);
 					}
 					else if ! line.is_empty() {
-						out.push(line.clone());
-						line.truncate(0);
+						out.push(line.split_off(0));
 						if x.len() <= MAX_LINE {
 							line.push_str(x);
 						}
@@ -771,15 +839,13 @@ fn fetch_url(url: &str) -> Result<String, String> {
 			}
 
 			// Download and cache for next time.
-			match ureq::get(url).call().into_string().map_err(|e| e.to_string()) {
-				Ok(x) => {
-					// We don't care about the write status here; if caching
-					// fails, we should still return the raw response.
+			ureq::get(url).call()
+				.into_string()
+				.map(|x| {
 					let _ = write_nonatomic_to_file(&cache, x.as_bytes()).is_ok();
-					Ok(x)
-				},
-				Err(e) => Err(e),
-			}
+					x
+				})
+				.map_err(|e| e.to_string())
 		},
 		None => ureq::get(url)
 			.call()
@@ -872,8 +938,9 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
 	let mut file = tempfile_fast::Sponge::new_for(path).map_err(|_| ())?;
-	file.write_all(data).map_err(|_| ())?;
-	file.commit().map_err(|_| ())?;
+	file.write_all(data)
+		.and_then(|_| file.commit())
+		.map_err(|_| ())?;
 
 	Ok(())
 }
@@ -888,8 +955,9 @@ fn write_nonatomic_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
 	let mut file = File::create(path).map_err(|_| ())?;
-	file.write_all(data).map_err(|_| ())?;
-	file.flush().map_err(|_| ())?;
+	file.write_all(data)
+		.and_then(|_| file.flush())
+		.map_err(|_| ())?;
 
 	Ok(())
 }

@@ -34,6 +34,7 @@ Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
 ```bash
+    --disable       Remove *all* Adbyss entries from the hostfile.
 -h, --help          Prints help information.
 -q, --quiet         Do *not* summarize changes after write.
     --show          Print a sorted blackholable hosts list to STDOUT, one per
@@ -61,7 +62,9 @@ It is important to remember that scammers and capitalists birth new schemes all 
 
 ## Removal
 
-To remove all Adbyss rules from your hosts file, simply open the hosts file in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and everything following it. Save, reboot, and you're back to normal.
+To remove all Adbyss rules from your hosts file, either run `adbyss --disable`, or open the hostfile in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and all subsequent lines.
+
+Save, reboot, and you're back to normal.
 
 
 
@@ -83,7 +86,7 @@ To remove all Adbyss rules from your hosts file, simply open the hosts file in a
 | [sudo](https://crates.io/crates/sudo) | Apache-2.0 OR MIT | Stefan Schindler |
 | [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
 | [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
-| [Yoyo](https://pgl.yoyo.org/adservers/) || Peter Lowe |
+| [Yoyo](https://pgl.yoyo.org/adservers/) | MCRAE GENERAL PUBLIC LICENSE (v4.r53) | Peter Lowe |
 
 
 
