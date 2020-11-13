@@ -157,8 +157,8 @@ fn main() {
 	let mut shitlist = args.option2("-c", "--config")
 		.map(PathBuf::from)
 		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
-		.map_or(
-			Settings::default(),
+		.map_or_else(
+			Settings::default,
 			|x|
 				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
 				else {

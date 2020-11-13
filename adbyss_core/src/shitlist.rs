@@ -713,8 +713,8 @@ impl Shitlist {
 						.iter()
 						.take(host.len() - suffix.len() - 1)
 						.rposition(|&byte| byte == b'.')
-						.map_or(
-							fyi_msg::utility::hash64(host.as_bytes()),
+						.map_or_else(
+							|| fyi_msg::utility::hash64(host.as_bytes()),
 							|idx| fyi_msg::utility::hash64(host[idx + 1..].as_bytes())
 						);
 
