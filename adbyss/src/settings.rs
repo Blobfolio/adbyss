@@ -74,10 +74,11 @@ impl Default for Settings {
 impl From<PathBuf> for Settings {
 	fn from(src: PathBuf) -> Self {
 		if src.is_file() {
-			if let Ok(txt) = std::fs::read_to_string(&src) {
-				if let Ok(tmp) = serde_yaml::from_str::<Self>(&txt) {
-					return tmp;
-				}
+			if let Some(out) = std::fs::read_to_string(&src)
+				.ok()
+				.and_then(|txt| serde_yaml::from_str::<Self>(&txt).ok())
+			{
+				return out;
 			}
 
 			MsgKind::Error

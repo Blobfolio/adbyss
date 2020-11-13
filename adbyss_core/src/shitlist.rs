@@ -367,7 +367,7 @@ impl Shitlist {
 			extras.into_iter()
 				.filter_map(|x| crate::sanitize_domain(&x))
 		);
-		let _ = self.build_out().is_ok();
+		let _ = self.build_out();
 	}
 
 	/// # Exclude Entries.
@@ -789,9 +789,8 @@ impl Shitlist {
 				)
 				.cloned()
 				.collect::<HashSet<String>>()
-					.iter().for_each(|x| {
-						self.found.remove(x);
-					});
+					.iter()
+					.for_each(|x| { self.found.remove(x); });
 		}
 	}
 }
@@ -825,8 +824,8 @@ fn fetch_url(url: &str) -> Result<String, String> {
 				// It takes an epic mapping journey to arrive at the answer
 				// without nesting a million if/let statements. Haha.
 				if let Some(x) = std::fs::metadata(&cache)
+					.and_then(|meta| meta.modified())
 					.ok()
-					.and_then(|meta| meta.modified().ok())
 					.and_then(|time| time.elapsed().ok())
 					.and_then(|secs|
 						if 3600 > secs.as_secs() { Some(true) }
@@ -842,7 +841,7 @@ fn fetch_url(url: &str) -> Result<String, String> {
 			ureq::get(url).call()
 				.into_string()
 				.map(|x| {
-					let _ = write_nonatomic_to_file(&cache, x.as_bytes()).is_ok();
+					let _ = write_nonatomic_to_file(&cache, x.as_bytes());
 					x
 				})
 				.map_err(|e| e.to_string())
@@ -935,9 +934,8 @@ fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
-	let mut file = tempfile_fast::Sponge::new_for(path).map_err(|_| ())?;
-	file.write_all(data)
-		.and_then(|_| file.commit())
+	tempfile_fast::Sponge::new_for(path)
+		.and_then(|mut file| file.write_all(data).and_then(|_| file.commit()))
 		.map_err(|_| ())?;
 
 	Ok(())
@@ -952,9 +950,8 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 fn write_nonatomic_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
 	use std::io::Write;
 
-	let mut file = File::create(path).map_err(|_| ())?;
-	file.write_all(data)
-		.and_then(|_| file.flush())
+	File::create(path)
+		.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
 		.map_err(|_| ())?;
 
 	Ok(())
