@@ -508,11 +508,7 @@ impl Shitlist {
 
 		// Try to write atomically, fall back to clobbering, or report error.
 		self.hostfile_stub()
-			.and_then(|stub| {
-				write_to_file(&self.hostfile, stub.as_bytes())
-					.or_else(|_| write_nonatomic_to_file(&self.hostfile, stub.as_bytes()))
-					.map_err(|_| format!("Unable to write to hostfile: {:?}", &self.hostfile))
-			})
+			.and_then(|stub| write_to_file(&self.hostfile, stub.as_bytes()))
 	}
 
 	/// # Write Changes to Hostfile.
@@ -577,8 +573,6 @@ impl Shitlist {
 
 		// Try to write atomically, fall back to clobbering, or report error.
 		write_to_file(&dst, &self.out)
-			.or_else(|_| write_nonatomic_to_file(&dst, &self.out))
-			.map_err(|_| format!("Unable to write to hostfile: {:?}", dst))
 	}
 
 	/// # Add www.domain.com TLDs.
@@ -835,7 +829,7 @@ fn fetch_url(url: &str) -> Result<String, String> {
 			ureq::get(url).call()
 				.into_string()
 				.map(|x| {
-					let _ = write_nonatomic_to_file(&cache, x.as_bytes());
+					let _ = write_to_file(&cache, x.as_bytes());
 					x
 				})
 				.map_err(|e| e.to_string())
@@ -920,35 +914,21 @@ fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 	parse_blackhole_hosts(&RE.replace_all(raw, "0.0.0.0 "))
 }
 
-/// # Atomic Write Helper.
-///
-/// This method writes data to a temporary file, then replaces the target with
-/// it. This is safer than writing data directly to the target as it (mostly)
-/// moots the risk of panic-related partial writes.
-fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
-	use std::io::Write;
-
-	tempfile_fast::Sponge::new_for(path)
-		.and_then(|mut file| file.write_all(data).and_then(|_| file.commit()))
-		.map_err(|_| ())?;
-
-	Ok(())
-}
-
 /// # Write Helper.
 ///
-/// This is a fallback writer that writes data directly to the destination.
-///
-/// It is often needed for special system files like `/etc/hosts` that may not
-/// allow atomic-style rename-replacing.
-fn write_nonatomic_to_file(path: &PathBuf, data: &[u8]) -> Result<(), ()> {
+/// This method will first attempt an atomic write using `tempfile`, but if
+/// that fails — as is common with `/etc/hosts` — it will try a nonatomic write
+/// instead.
+fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), String> {
 	use std::io::Write;
 
-	File::create(path)
-		.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
-		.map_err(|_| ())?;
-
-	Ok(())
+	// Try an atomic write first.
+	tempfile_fast::Sponge::new_for(path)
+		.and_then(|mut file| file.write_all(data).and_then(|_| file.commit()))
+		.or_else(|_| File::create(path)
+			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
+		)
+		.map_err(|_| format!("Unable to write to hostfile: {:?}", path))
 }
 
 
