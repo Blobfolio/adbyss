@@ -726,7 +726,9 @@ impl Shitlist {
 				x.sort();
 				x.iter().for_each(|x| {
 					if line.len() + 1 + x.len() <= MAX_LINE {
-						line.push(' ');
+						if ! line.is_empty() {
+							line.push(' ');
+						}
 						line.push_str(x);
 					}
 					else if ! line.is_empty() {
