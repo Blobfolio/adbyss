@@ -621,14 +621,8 @@ impl Shitlist {
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			std::fs::read(&dst)
-				.ok()
-				.and_then(|txt|
-					write_to_file(&dst2, &txt)
-						.or_else(|_| write_nonatomic_to_file(&dst2, &txt))
-						.ok()
-				)
-				.ok_or_else(|| format!("Unable to backup hostfile: {:?}", dst2))?;
+			std::fs::copy(&dst, &dst2)
+				.map_err(|_| format!("Unable to backup hostfile: {:?}", dst2))?;
 		}
 
 		Ok(())
