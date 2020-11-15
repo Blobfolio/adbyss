@@ -36,15 +36,18 @@ backup: true
 ##
 # Compact Output
 #
-# When `true`, subdomains will be grouped by their top-level domain, reducing
-# the total number of lines written to the hostfile (as well as its overall
-# disk size).
+# When `true`, subdomains will be grouped by their top-level domain. This
+# reduces both the line count and overall hostfile disk size (by about 15%),
+# and should result in (ever so slightly) faster DNS lookup times.
 #
-# This defaults to false as it changes the sort order, making it less
-# efficient to read or parse.
+# Individual hostfile lines cannot exceed 256 characters. Large groups will
+# be split up as necessary to ensure they fit.
+#
+# If you prefer to instead keep each entry on its own line, set this value to
+# false.
 ##
 
-compact: false
+compact: true
 
 
 ##
