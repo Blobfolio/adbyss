@@ -2,6 +2,7 @@
 # `Adbyss`: Block Lists
 */
 
+use adbyss_psl::Domain;
 use fyi_msg::{
 	MsgKind,
 	NiceInt,
@@ -363,10 +364,7 @@ impl Shitlist {
 	/// sources don't know about.
 	pub fn include<I>(&mut self, extras: I)
 	where I: IntoIterator<Item=String> {
-		self.found.extend(
-			extras.into_iter()
-				.filter_map(|x| crate::sanitize_domain(&x))
-		);
+		self.found.extend(extras.into_iter().filter_map(crate::sanitize_domain));
 		let _ = self.build_out();
 	}
 
@@ -580,21 +578,19 @@ impl Shitlist {
 	/// This assumes that if something with a `www.` prefix is being
 	/// blacklisted, it should also be blacklisted without the `www.`.
 	///
-	/// The reverse is not enforced as that would be madness!
+	/// Note: The reverse is not enforced as that would be madness!
 	fn add_www_tlds(&mut self) {
 		if self.found.is_empty() { return; }
 
 		let extra: HashSet<String> = self.found
 			.par_iter()
+			.filter(|x| x.starts_with("www."))
 			.filter_map(|x|
-				// Keep it if it starts with www., and there's something
-				// between that and the suffix.
-				if x.starts_with("www.") {
-					crate::domain_suffix(x)
-						.filter(|suffix| suffix.len() + 5 < x.len())
-						.map(|_| String::from(&x[4..]))
-				}
-				else { None }
+				Domain::parse(x)
+					.and_then(|mut x|
+						if x.strip_www() { Some(x.take()) }
+						else { None }
+					)
 			)
 			.collect();
 
@@ -693,29 +689,21 @@ impl Shitlist {
 		// Start by building up a map keyed by root domain...
 		let mut found: Vec<String> = self.found
 			.iter()
-			.filter_map(|x| crate::domain_suffix(x).zip(Some(x)))
+			.filter_map(Domain::parse)
 			.fold(
 				HashMap::<u64, Vec<String>>::with_capacity(self.found.len()),
-				|mut acc, (suffix, host)| {
-					let hash: u64 = host.as_bytes()
-						.iter()
-						.take(host.len() - suffix.len() - 1)
-						.rposition(|&byte| byte == b'.')
-						.map_or_else(
-							|| fyi_msg::utility::hash64(host.as_bytes()),
-							|idx| fyi_msg::utility::hash64(host[idx + 1..].as_bytes())
-						);
+				|mut acc, dom| {
+					let hash: u64 = fyi_msg::utility::hash64(dom.tld().as_bytes());
 
 					acc.entry(hash)
 						.or_insert_with(Vec::new)
-						.push(host.clone());
+						.push(dom.take());
 
 					acc
 				}
 			)
 			// Now run through each set to build out the lines.
 			.par_drain()
-			.filter(|(_k, v)| ! v.is_empty())
 			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
@@ -871,7 +859,7 @@ fn parse_custom_hosts(raw: &str) -> HashSet<String> {
 			else { None }
 		})
 		.flatten()
-		.filter_map(|x| crate::sanitize_domain(x.as_str()))
+		.filter_map(crate::sanitize_domain)
 		.collect()
 }
 
@@ -900,7 +888,7 @@ fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
 			else { None }
 		)
 		.flatten()
-		.filter_map(|x| crate::sanitize_domain(x.as_str()))
+		.filter_map(crate::sanitize_domain)
 		.collect()
 }
 
@@ -1028,8 +1016,6 @@ ff02::2 ip6-allrouters"#).into_iter().collect();
 				String::from("blobfolio.com"),
 				String::from("domain.com"),
 				String::from("github.com"),
-				String::from("my-dev.loc"),
-				String::from("some-other.loc"),
 				String::from("www.domain.com"),
 				String::from("www.github.com"),
 			]

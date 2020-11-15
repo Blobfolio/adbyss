@@ -2,6 +2,7 @@
 members = [
     "adbyss",
     "adbyss_core",
+    "adbyss_psl",
 ]
 
 [profile.release]

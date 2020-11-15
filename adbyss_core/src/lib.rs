@@ -31,6 +31,7 @@
 
 
 mod shitlist;
+use adbyss_psl::Domain;
 pub use shitlist::{
 	Shitlist,
 	FLAG_ALL,
@@ -45,53 +46,13 @@ pub use shitlist::{
 
 
 
-lazy_static::lazy_static! {
-	// Load the Public Suffix List only once.
-	static ref PSL: publicsuffix::List = publicsuffix::List::from_str(
-		include_str!("../skel/public_suffix_list.dat")
-	).expect("Unable to load Public Suffix list.");
-}
-
 #[must_use]
 /// # Sanitize Domain.
 ///
 /// This ensures the domain is correctly formatted and has a recognized TLD.
-pub fn sanitize_domain(dom: &str) -> Option<String> {
-	use publicsuffix::Host;
-
-	// Look for the domain any which way it happens to be.
-	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
-		// It should have a root and a suffix.
-		if
-			dom.is_icann() &&
-			dom.suffix().is_some() &&
-			dom.has_known_suffix() &&
-			dom.root().is_some()
-		{
-			return idna::domain_to_ascii_strict(dom.full())
-				.ok()
-				.filter(|x| ! x.is_empty());
-		}
-	}
-
-	None
-}
-
-#[must_use]
-/// # Domain Suffix.
-///
-/// This extracts the domain's suffix, if any.
-pub(crate) fn domain_suffix(dom: &str) -> Option<String> {
-	use publicsuffix::Host;
-
-	// Look for the domain any which way it happens to be.
-	if let Ok(Host::Domain(dom)) = PSL.parse_str(dom.trim()) {
-		if dom.has_known_suffix() {
-			dom.suffix().filter(|x| x.is_ascii()).map(String::from)
-		}
-		else { None }
-	}
-	else { None }
+pub fn sanitize_domain<S>(dom: S) -> Option<String>
+where S: AsRef<str> {
+	Domain::parse(dom).map(adbyss_psl::Domain::take)
 }
 
 
@@ -106,7 +67,7 @@ mod tests {
 			("Blobfolio.com", Some(String::from("blobfolio.com"))),
 			("www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
 			(" www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
-			("http://www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
+			("http://www.Blobfolio.com", None),
 			("hello", None),
 			("localhost", None),
 			("☺.com", Some(String::from("xn--74h.com"))),
