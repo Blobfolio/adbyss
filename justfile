@@ -41,7 +41,7 @@ rustflags   := "-C link-arg=-s"
 
 
 # Build Debian package!
-@build-deb: build
+@build-deb: psl build
 	# Do completions/man.
 	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
 
