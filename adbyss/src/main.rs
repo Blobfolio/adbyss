@@ -157,8 +157,8 @@ fn main() {
 	let mut shitlist = args.option2("-c", "--config")
 		.map(PathBuf::from)
 		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
-		.map_or(
-			Settings::default(),
+		.map_or_else(
+			Settings::default,
 			|x|
 				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
 				else {
@@ -196,8 +196,7 @@ fn main() {
 				let mut handle = writer.lock();
 				let _ = handle.write_all(raw.as_bytes())
 					.and_then(|_| handle.write_all(b"\n"))
-					.and_then(|_| handle.flush())
-					.is_ok();
+					.and_then(|_| handle.flush());
 			}
 			// Output to STDOUT?
 			else if args.switch("--stdout") {
@@ -207,8 +206,7 @@ fn main() {
 				let mut handle = writer.lock();
 				let _ = handle.write_all(shitlist.as_bytes())
 					.and_then(|_| handle.write_all(b"\n"))
-					.and_then(|_| handle.flush())
-					.is_ok();
+					.and_then(|_| handle.flush());
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {

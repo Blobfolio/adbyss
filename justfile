@@ -19,6 +19,7 @@ pkg_id      := "adbyss"
 pkg_name    := "Adbyss"
 pkg_dir1    := justfile_directory() + "/adbyss"
 pkg_dir2    := justfile_directory() + "/adbyss_core"
+pkg_dir3    := justfile_directory() + "/adbyss_psl"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
@@ -40,7 +41,7 @@ rustflags   := "-C link-arg=-s"
 
 
 # Build Debian package!
-@build-deb: build
+@build-deb: psl build
 	# Do completions/man.
 	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
 
@@ -77,6 +78,7 @@ rustflags   := "-C link-arg=-s"
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
 	[ ! -d "{{ pkg_dir2 }}/target" ] || rm -rf "{{ pkg_dir2 }}/target"
+	[ ! -d "{{ pkg_dir3 }}/target" ] || rm -rf "{{ pkg_dir3 }}/target"
 
 
 # Clippy.
@@ -110,15 +112,15 @@ rustflags   := "-C link-arg=-s"
 
 
 # Pull Public Suffix list.
-@_pull-suffixes:
-	[ ! -f "{{ pkg_dir2 }}/skel/public_suffix_list.dat" ] || rm "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
-	wget -O "{{ pkg_dir2 }}/skel/public_suffix_list.dat" "https://publicsuffix.org/list/public_suffix_list.dat"
+@psl:
+	[ ! -f "{{ pkg_dir3 }}/skel/public_suffix_list.dat" ] || rm "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
+	wget -O "{{ pkg_dir3 }}/skel/public_suffix_list.dat" "https://publicsuffix.org/list/public_suffix_list.dat"
 
-	sd -f mi '^// [a-z0-9].*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
-	sd -f mi '^\s*$' '' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
-	sed -i '/^$/d' "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	sd -f mi '^// [a-z0-9].*$' '' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
+	sd -f mi '^\s*$' '' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
+	sed -i '/^$/d' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
 
-	just _fix-chown "{{ pkg_dir2 }}/skel/public_suffix_list.dat"
+	just _fix-chown "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
 
 
 # Test Run.
@@ -172,6 +174,7 @@ version:
 	# Set the release version!
 	just _version "{{ pkg_dir1 }}" "$_ver2"
 	just _version "{{ pkg_dir2 }}" "$_ver2"
+	just _version "{{ pkg_dir3 }}" "$_ver2"
 
 
 # Set version for real.

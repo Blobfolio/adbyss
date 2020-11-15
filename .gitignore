@@ -1,6 +1,7 @@
 **.br
 **.gz
 **/target/
+/adbyss_psl/skel/public_suffix_list.rs
 /Cargo.lock
 /doc/
 /release/man/adbyss.1.gz

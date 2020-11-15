@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.2.0"
+version = "0.2.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -9,7 +9,6 @@ publish = false
 
 [dependencies]
 chrono = "0.4.*"
-idna = "0.2.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"
 regex = "1.4.*"
@@ -19,9 +18,8 @@ tempfile-fast = "0.3.*"
 git = "https://github.com/Blobfolio/fyi.git"
 branch = "master"
 
-[dependencies.publicsuffix]
-version = "1.5.*"
-default-features = false
+[dependencies.adbyss_psl]
+path = "../adbyss_psl"
 
 [dependencies.strum]
 version = "0.19.*"
