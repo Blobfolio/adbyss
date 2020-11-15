@@ -5,7 +5,11 @@ This crate provides a very simple interface for checking hosts against the
 [Public Suffix List](https://publicsuffix.org/list/).
 
 This is a judgey library; hosts with unknown or missing suffixes are not
-parsed. For hosts that are parsed, the values are normalized to lower ASCII.
+parsed. No distinction is made between ICANN and private entries. Rules must be
+followed! Haha.
+
+For hosts that do get parsed, their values will be normalized to lowercase
+ASCII.
 
 Note: The master suffix data is baked into this crate at build time. This reduces the
 runtime overhead of parsing all that data out, but can also cause implementing
@@ -277,6 +281,9 @@ mod tests {
 	use super::*;
 
 	#[test]
+	/// # Test TLD Parsing.
+	///
+	/// These tests are adopted from the PSL [test data](https://raw.githubusercontent.com/publicsuffix/list/master/tests/test_psl.txt).
 	fn t_tld() {
 		// Mixed case.
 		t_tld_assert("COM", None);
@@ -358,6 +365,9 @@ mod tests {
 		t_tld_assert("中国", None);
 	}
 
+	/// # Handle TLD Assertions.
+	///
+	/// The list is so big, it's easier to handle the testing in one place.
 	fn t_tld_assert(a: &str, b: Option<&str>) {
 		// The test should fail.
 		if b.is_none() {
@@ -383,6 +393,9 @@ mod tests {
 	}
 
 	#[test]
+	/// # Test Chunks.
+	///
+	/// This makes sure that the individual host components line up correctly.
 	fn t_chunks() {
 		let mut dom = Domain::parse("abc.www.食狮.中国").unwrap();
 		assert_eq!(dom.subdomain(), Some("abc.www"));

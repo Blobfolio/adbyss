@@ -1,5 +1,5 @@
 /*!
-# `Adbyss PSL`: Build
+# Adbyss: Public Suffix - Build
 */
 
 use ahash::{
@@ -14,6 +14,11 @@ use std::io::{
 
 
 /// # Build Suffix RS.
+///
+/// This parses the raw lines of `public_suffix_list.dat` to build out valid
+/// Rust code that can be included in `lib.rs`.
+///
+/// It's a bit ugly, but saves having to do this at runtime!
 pub fn main() {
 	println!("cargo:rerun-if-changed=skel/public_suffix_list.dat");
 
