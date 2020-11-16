@@ -124,13 +124,16 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 mod settings;
 
 use adbyss_core::FLAG_Y;
-use settings::Settings;
-use std::path::PathBuf;
 use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
 	MsgKind,
 	NiceInt,
+};
+use settings::Settings;
+use std::{
+	path::PathBuf,
+	process::Command,
 };
 
 
@@ -138,7 +141,7 @@ use fyi_msg::{
 /// Main.
 fn main() {
 	// We need root!
-	if sudo::escalate_if_needed().is_err() {
+	if require_root().is_err() {
 		MsgKind::Error
 			.into_msg("Adbyss requires root privileges.")
 			.eprintln();
@@ -238,36 +241,36 @@ fn helper(_: Option<&str>) {
  .--,       .--,
 ( (  \.---./  ) )
  '.__/o   o\__.'
-    (=  ^  =)       {}{}{}
-     >  -  <        Block ads, trackers, malware, and
-    /       \       other garbage sites in /etc/hosts.
+	(=  ^  =)       {}{}{}
+	 >  -  <        Block ads, trackers, malware, and
+	/       \       other garbage sites in /etc/hosts.
    //       \\
   //|   .   |\\
   "'\       /'"_.-~^`'-.
-     \  _  /--'         `
+	 \  _  /--'         `
    ___)( )(___
 
 USAGE:
-    adbyss [FLAGS] [OPTIONS]
+	adbyss [FLAGS] [OPTIONS]
 
 FLAGS:
-        --disable      Remove *all* Adbyss entries from the hostfile.
-    -h, --help         Prints help information.
-    -q, --quiet        Do *not* summarize changes after write.
-        --show         Print a sorted blackholable hosts list to STDOUT, one per
-                       line.
-        --stdout       Print the would-be hostfile to STDOUT instead of writing
-                       it to disk.
-    -V, --version      Prints version information.
-    -y, --yes          Non-interactive mode; answer "yes" to all prompts.
+		--disable      Remove *all* Adbyss entries from the hostfile.
+	-h, --help         Prints help information.
+	-q, --quiet        Do *not* summarize changes after write.
+		--show         Print a sorted blackholable hosts list to STDOUT, one per
+					   line.
+		--stdout       Print the would-be hostfile to STDOUT instead of writing
+					   it to disk.
+	-V, --version      Prints version information.
+	-y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
 OPTIONS:
-    -c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
+	-c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
 
 SOURCES:
-    AdAway:       <https://adaway.org/>
-    Steven Black: <https://github.com/StevenBlack/hosts>
-    Yoyo:         <https://pgl.yoyo.org/adservers/>
+	AdAway:       <https://adaway.org/>
+	Steven Black: <https://github.com/StevenBlack/hosts>
+	Yoyo:         <https://pgl.yoyo.org/adservers/>
 
 Additional global settings are stored in /etc/adbyss.yaml.
 
@@ -276,4 +279,40 @@ Additional global settings are stored in /etc/adbyss.yaml.
 		env!("CARGO_PKG_VERSION"),
 		"\x1b[0m",
 	)).print()
+}
+
+#[allow(clippy::similar_names)] // There's just two variables; we'll be fine.
+/// # Require Root.
+///
+/// This will restart the command with root privileges if necessary, or fail
+/// if that doesn't work.
+pub fn require_root() -> Result<(), ()> {
+	// See what privileges we have.
+	let (uid, euid) = unsafe { (libc::getuid(), libc::geteuid()) };
+
+	// We're already root.
+	if uid == 0 && euid == 0 { Ok(()) }
+	// We just need to SETUID.
+	else if euid == 0 {
+		unsafe { libc::setuid(0); }
+		Ok(())
+	}
+	// We need to escalate!
+	else {
+		// Relaunch the command with sudo escalation.
+		let mut child = Command::new("/usr/bin/sudo")
+			.args(std::env::args())
+			.spawn()
+			.map_err(|_| ())?;
+
+		// Wait to see what happens.
+		let exit = child.wait()
+			.map_err(|_| ())?;
+
+		// Exit this (the old) instance with an appropriate code.
+		std::process::exit(
+			if exit.success() {0}
+			else { exit.code().unwrap_or(1) }
+		);
+	}
 }

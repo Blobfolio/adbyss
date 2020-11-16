@@ -80,7 +80,6 @@ Save, reboot, and you're back to normal.
 | [regex](https://crates.io/crates/regex) | Apache-2.0 OR MIT | The Rust Project Developers |
 | [serde](https://crates.io/crates/serde) | Apache-2.0 OR MIT | David Tolnay, Erick Tryzelaar |
 | [serde_yaml](https://crates.io/crates/serde_yaml) | Apache-2.0 OR MIT | David Tolnay |
-| [sudo](https://crates.io/crates/sudo) | Apache-2.0 OR MIT | Stefan Schindler |
 | [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
 | [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
 

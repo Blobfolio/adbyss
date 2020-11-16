@@ -84,8 +84,8 @@ items = [
 ]
 
 [dependencies]
+libc = "0.2.*"
 serde_yaml = "0.8.*"
-sudo = "0.5.*"
 
 [dependencies.serde]
 version = "1.0.*"
