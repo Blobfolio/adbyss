@@ -23,10 +23,6 @@ use std::{
 		PathBuf,
 	},
 };
-use strum::{
-	IntoEnumIterator,
-	EnumIter,
-};
 
 
 
@@ -124,7 +120,7 @@ impl Watermark {
 
 
 
-#[derive(Debug, Copy, Clone, EnumIter, Hash, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 enum ShitlistSource {
 	/// AdAway.
 	AdAway,
@@ -165,6 +161,16 @@ impl ShitlistSource {
 		}
 
 		Ok(out)
+	}
+
+	/// # Iterate.
+	fn iter() -> std::slice::Iter<'static, Self> {
+		[
+			Self::AdAway,
+			Self::Adbyss,
+			Self::StevenBlack,
+			Self::Yoyo,
+		].iter()
 	}
 
 	/// # Parse Raw.

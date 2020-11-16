@@ -21,10 +21,6 @@ branch = "master"
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
 
-[dependencies.strum]
-version = "0.19.*"
-features = [ "derive" ]
-
 [dependencies.ureq]
 version = "1.5.*"
 default-features = false

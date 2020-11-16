@@ -72,20 +72,23 @@ Save, reboot, and you're back to normal.
 
 | Library | License | Author |
 | ---- | ---- | ---- |
-| [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
+| [ahash](https://crates.io/crates/ahash) | Apache-2.0 OR MIT | Tom Kaitchuck |
 | [chrono](https://crates.io/crates/chrono) | Apache-2.0 OR MIT | Kang Seonghoon, Brandon W Maister |
 | [idna](https://crates.io/crates/idna) | Apache-2.0 OR MIT | The `rust-url` Developers |
 | [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
-| [Public Suffix List](https://publicsuffix.org/list/) | MPL-2.0 | Mozilla Foundation |
 | [rayon](https://crates.io/crates/rayon) | Apache-2.0 OR MIT | Josh Stone, Niko Matsakis |
 | [regex](https://crates.io/crates/regex) | Apache-2.0 OR MIT | The Rust Project Developers |
 | [serde](https://crates.io/crates/serde) | Apache-2.0 OR MIT | David Tolnay, Erick Tryzelaar |
 | [serde_yaml](https://crates.io/crates/serde_yaml) | Apache-2.0 OR MIT | David Tolnay |
-| [Steven Black](https://github.com/StevenBlack/hosts) | MIT | Steven Black |
-| [strum](https://crates.io/crates/strum) | MIT | Peter Glotfelty |
 | [sudo](https://crates.io/crates/sudo) | Apache-2.0 OR MIT | Stefan Schindler |
 | [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
 | [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
+
+| Data | License | Author |
+| ---- | ---- | ---- |
+| [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
+| [Public Suffix List](https://publicsuffix.org/list/) | MPL-2.0 | Mozilla Foundation |
+| [Steven Black](https://github.com/StevenBlack/hosts) | MIT | Steven Black |
 | [Yoyo](https://pgl.yoyo.org/adservers/) | MCRAE GENERAL PUBLIC LICENSE (v4.r53) | Peter Lowe |
 
 
