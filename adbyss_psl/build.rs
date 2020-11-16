@@ -6,10 +6,7 @@ use ahash::{
 	AHashMap,
 	AHashSet,
 };
-use std::io::{
-	BufWriter,
-	Write,
-};
+use std::io::Write;
 
 
 
@@ -22,30 +19,19 @@ use std::io::{
 pub fn main() {
 	println!("cargo:rerun-if-changed=skel/public_suffix_list.dat");
 
-	// The folder holding our data.
-	let skel_dir = std::fs::canonicalize(env!("CARGO_MANIFEST_DIR"))
-		.map(|mut x| { x.push("skel"); x })
-		.ok()
-		.filter(|x| x.is_dir())
-		.expect("Missing skel directory.");
-
-	// The raw public suffix data file.
-	let mut raw_file = skel_dir.clone();
-	raw_file.push("public_suffix_list.dat");
-	assert!(raw_file.is_file(), "Missing public_suffix_list.dat.");
-
 	// Let's build the thing we'll be writing about building.
-	let mut psl_set: AHashSet<String> = AHashSet::new();
+	let mut psl_main: AHashSet<String> = AHashSet::new();
 	let mut psl_wild: AHashMap<String, Vec<String>> = AHashMap::new();
 
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
 
 	// Parse the raw data.
-	std::fs::read_to_string(&raw_file)
+	std::fs::canonicalize(env!("CARGO_MANIFEST_DIR"))
+		.map(|mut x| { x.push("skel/public_suffix_list.dat"); x })
+		.and_then(std::fs::read_to_string)
 		.expect("Unable to read public_suffix_list.dat")
 		.lines()
-		//.take_while(|&line| line != "// ===END ICANN DOMAINS===")
 		.filter(|line| ! line.is_empty() && ! line.starts_with("//"))
 		.filter_map(|mut line| {
 			let mut flags: u8 = 0;
@@ -87,73 +73,59 @@ pub fn main() {
 			}
 			// This is a normal suffix.
 			else {
-				psl_set.insert(host);
+				psl_main.insert(host);
 			}
 		);
 
 	// Our generated script will live here.
-	let mut script_file = skel_dir;
-	script_file.push("public_suffix_list.rs");
-	let mut file = BufWriter::new(
-		std::fs::File::create(&script_file)
-			.expect("Unable to create public_suffix_list.rs")
-	);
+	let mut file = std::fs::canonicalize(env!("CARGO_MANIFEST_DIR"))
+		.map(|mut x| { x.push("src/list.rs"); x })
+		.and_then(std::fs::File::create)
+		.expect("Unable to create public_suffix_list.rs");
 
-	file.write_all(b"lazy_static::lazy_static! {\n").unwrap();
+	let (main_len, main_inserts) = build_psl_main(psl_main);
+	let (wild_len, wild_inserts) = build_psl_wild(psl_wild);
+	write!(
+		&mut file,
+		include_str!("./skel/list.rs.txt"),
+		main_len = main_len,
+		main_inserts = main_inserts,
+		wild_len = wild_len,
+		wild_inserts = wild_inserts
+	)
+		.and_then(|_| file.flush())
+		.unwrap();
+}
 
-	// Handle the main set.
-	{
-		let mut tmp: Vec<String> = psl_set.drain().collect();
-		tmp.sort();
+/// # Build PSL_MAIN.
+fn build_psl_main(set: AHashSet<String>) -> (usize, String) {
+	let mut set: Vec<String> = set.iter()
+		.map(|x| format!("\t\tout.insert(\"{}\");\n", x))
+		.collect();
+	set.sort();
 
-		file.write_all(b"\t/// # Main Suffixes.\n").unwrap();
-		file.write_all(b"\tstatic ref PSL_MAIN: AHashSet<&'static str> = {\n").unwrap();
-		writeln!(
-			&mut file,
-			"\t\tlet mut out: AHashSet<&'static str> = AHashSet::with_capacity({});",
-			tmp.len()
-		).unwrap();
+	(
+		set.len(),
+		set.concat(),
+	)
+}
 
-		tmp.iter().for_each(|line| {
-			file.write_all(b"\t\tout.insert(\"").unwrap();
-			file.write_all(line.as_bytes()).unwrap();
-			file.write_all(b"\");\n").unwrap();
-		});
+/// # Build PSL_WILD.
+fn build_psl_wild(set: AHashMap<String, Vec<String>>) -> (usize, String) {
+	let mut set: Vec<String> = set.iter()
+		.map(|(k, v)| format!(
+			"\t\tout.insert(\"{}\", vec![{}]);\n",
+			k,
+			v.iter()
+				.map(|x| format!(r#""{}""#, x))
+				.collect::<Vec<String>>()
+				.join(", ")
+		))
+		.collect();
+	set.sort();
 
-		file.write_all(b"\t\tout\n\t};\n").unwrap();
-	}
-
-	// Handle the weird set.
-	{
-		let mut tmp: Vec<&str> = psl_wild.keys().map(String::as_str).collect();
-		tmp.sort_unstable();
-
-		file.write_all(b"\n\t/// # Weird Suffixes.\n").unwrap();
-		file.write_all(b"\tstatic ref PSL_WILD: AHashMap<&'static str, Vec<&'static str>> = {\n").unwrap();
-		writeln!(
-			&mut file,
-			"\t\tlet mut out: AHashMap<&'static str, Vec<&'static str>> = AHashMap::with_capacity({});",
-			tmp.len()
-		).unwrap();
-
-		tmp.iter().for_each(|&k| {
-			let mut v = psl_wild[k].clone();
-			v.sort();
-			writeln!(
-				&mut file,
-				r#"		out.insert("{}", vec![{}]);"#,
-				k,
-				v.iter()
-					.map(|x| format!(r#""{}""#, x))
-					.collect::<Vec<String>>()
-					.join(", ")
-			).unwrap();
-		});
-
-		file.write_all(b"\t\tout\n\t};\n").unwrap();
-	}
-
-	// Finish it off!
-	file.write_all(b"}\n").unwrap();
-	file.flush().unwrap();
+	(
+		set.len(),
+		set.concat(),
+	)
 }

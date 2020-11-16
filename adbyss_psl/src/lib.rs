@@ -63,21 +63,21 @@ host. You can also consume the object into an owned string with [`Domain::take`]
 
 
 
-use ahash::{
-	AHashMap,
-	AHashSet,
+mod list;
+use self::list::{
+	PSL_MAIN,
+	PSL_WILD,
 };
+
 use std::hash::{
 	Hash,
 	Hasher,
 };
-use std::ops::Deref;
-use std::ops::Range;
 
-
-
-// Lazy Static PSL.
-include!("../skel/public_suffix_list.rs");
+use std::ops::{
+	Deref,
+	Range,
+};
 
 
 
