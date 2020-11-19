@@ -58,26 +58,27 @@ host. You can also consume the object into an owned string with [`Domain::take`]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_sign_loss)]
+#![allow(clippy::map_err_ignore)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
 
 
 
-use ahash::{
-	AHashMap,
-	AHashSet,
+mod list;
+use self::list::{
+	PSL_MAIN,
+	PSL_WILD,
 };
+
 use std::hash::{
 	Hash,
 	Hasher,
 };
-use std::ops::Deref;
-use std::ops::Range;
 
-
-
-// Lazy Static PSL.
-include!("../skel/public_suffix_list.rs");
+use std::ops::{
+	Deref,
+	Range,
+};
 
 
 
@@ -231,17 +232,13 @@ impl Domain {
 /// If a match is found, the starting index of the suffix (after its dot) is
 /// returned.
 fn parse_suffix(host: &str) -> Option<usize> {
-	let bytes: &[u8] = host.as_bytes();
 	let len: usize = host.len();
 	if len < 3 || PSL_WILD.contains_key(host) || PSL_MAIN.contains(host) { return None; }
 
-	let mut idx: usize = 0;
+	let bytes: &[u8] = host.as_bytes();
 	let mut dot: usize = 0;
-	while idx < len {
-		if bytes[idx] != b'.' {
-			idx += 1;
-			continue;
-		}
+	for idx in 0..len {
+		if bytes[idx] != b'.' { continue; }
 
 		// This is a wild extension.
 		if let Some(exceptions) = PSL_WILD.get(&host[idx + 1..]) {
@@ -268,7 +265,6 @@ fn parse_suffix(host: &str) -> Option<usize> {
 		}
 
 		dot = idx;
-		idx += 1;
 	}
 
 	None

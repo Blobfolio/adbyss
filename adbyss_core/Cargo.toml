@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.2.1"
+version = "0.2.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -20,10 +20,6 @@ branch = "master"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
-
-[dependencies.strum]
-version = "0.19.*"
-features = [ "derive" ]
 
 [dependencies.ureq]
 version = "1.5.*"
