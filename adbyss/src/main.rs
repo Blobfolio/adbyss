@@ -242,36 +242,36 @@ fn helper(_: Option<&str>) {
  .--,       .--,
 ( (  \.---./  ) )
  '.__/o   o\__.'
-	(=  ^  =)       {}{}{}
-	 >  -  <        Block ads, trackers, malware, and
-	/       \       other garbage sites in /etc/hosts.
+    (=  ^  =)       {}{}{}
+     >  -  <        Block ads, trackers, malware, and
+    /       \       other garbage sites in /etc/hosts.
    //       \\
   //|   .   |\\
   "'\       /'"_.-~^`'-.
-	 \  _  /--'         `
+     \  _  /--'         `
    ___)( )(___
 
 USAGE:
-	adbyss [FLAGS] [OPTIONS]
+    adbyss [FLAGS] [OPTIONS]
 
 FLAGS:
-		--disable      Remove *all* Adbyss entries from the hostfile.
-	-h, --help         Prints help information.
-	-q, --quiet        Do *not* summarize changes after write.
-		--show         Print a sorted blackholable hosts list to STDOUT, one per
-					   line.
-		--stdout       Print the would-be hostfile to STDOUT instead of writing
-					   it to disk.
-	-V, --version      Prints version information.
-	-y, --yes          Non-interactive mode; answer "yes" to all prompts.
+        --disable      Remove *all* Adbyss entries from the hostfile.
+    -h, --help         Prints help information.
+    -q, --quiet        Do *not* summarize changes after write.
+        --show         Print a sorted blackholable hosts list to STDOUT, one per
+                       line.
+        --stdout       Print the would-be hostfile to STDOUT instead of writing
+                       it to disk.
+    -V, --version      Prints version information.
+    -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
 OPTIONS:
-	-c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
+    -c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
 
 SOURCES:
-	AdAway:       <https://adaway.org/>
-	Steven Black: <https://github.com/StevenBlack/hosts>
-	Yoyo:         <https://pgl.yoyo.org/adservers/>
+    AdAway:       <https://adaway.org/>
+    Steven Black: <https://github.com/StevenBlack/hosts>
+    Yoyo:         <https://pgl.yoyo.org/adservers/>
 
 Additional global settings are stored in /etc/adbyss.yaml.
 
