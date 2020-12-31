@@ -6358,7 +6358,6 @@ cba
 cbn
 cbre
 cbs
-ceb
 center
 ceo
 cern
@@ -6690,7 +6689,6 @@ iveco
 jaguar
 java
 jcb
-jcp
 jeep
 jetzt
 jewelry
@@ -6781,7 +6779,6 @@ lplfinancial
 ltd
 ltda
 lundbeck
-lupin
 luxe
 luxury
 macys
@@ -7059,7 +7056,6 @@ shopping
 shouji
 show
 showtime
-shriram
 silk
 sina
 singles
@@ -7629,12 +7625,15 @@ dyndns.dappnode.io
 builtwithdark.com
 edgestack.me
 debian.net
+deno.dev
+deno-staging.dev
 dedyn.io
 jozi.biz
 dnshome.de
 online.th
 shop.th
 drayddns.com
+shoparena.pl
 dreamhosters.com
 mydrobo.com
 drud.io
@@ -8122,7 +8121,6 @@ fastvps.host
 myfast.host
 fastvps.site
 myfast.space
-fhapp.xyz
 fedorainfracloud.org
 fedorapeople.org
 cloud.fedoraproject.org
@@ -8142,6 +8140,7 @@ filegear-ie.me
 filegear-jp.me
 filegear-sg.me
 firebaseapp.com
+flap.id
 fly.dev
 edgeapp.net
 shw.io
@@ -8276,6 +8275,8 @@ blogspot.ug
 blogspot.vn
 graphox.us
 awsmppl.com
+günstigbestellen.de
+günstigliefern.de
 fin.ci
 free.hr
 caa.li
@@ -8295,23 +8296,26 @@ ravendb.me
 development.run
 ravendb.run
 secaas.hk
-bpl.biz
 orx.biz
-ng.city
 biz.gl
-ng.ink
 col.ng
 firm.ng
 gen.ng
 ltd.ng
 ngo.ng
-ng.school
+edu.scot
 sch.so
+org.yt
 hostyhosting.io
 häkkinen.fi
 *.moonscale.io
 moonscale.net
 iki.fi
+smushcdn.com
+wphostedmail.com
+wpmucdn.com
+tempurl.host
+wpmudev.host
 dyn-berlin.de
 in-berlin.de
 in-brb.de
@@ -8361,7 +8365,6 @@ schulserver.de
 test-iserv.de
 iserv.dev
 iobb.net
-//Jelastic, Inc. : https://jelastic.com/
 mel.cloudlets.com.au
 cloud.interhostsolutions.be
 users.scale.virtualcloud.com.br
@@ -8375,6 +8378,9 @@ jele.cloud
 it1.eur.aruba.jenv-aruba.cloud
 it1.jenv-aruba.cloud
 it1-eur.jenv-arubabiz.cloud
+oxa.cloud
+tn.oxa.cloud
+uk.oxa.cloud
 primetel.cloud
 uk.primetel.cloud
 ca.reclaim.cloud
@@ -8445,6 +8451,7 @@ jelastic.regruhosting.ru
 enscaled.sg
 jele.site
 jelastic.team
+orangecloud.tn
 j.layershift.co.uk
 phx.enscaled.us
 mircloud.us
@@ -8466,6 +8473,8 @@ oya.to
 // .KRD : http://nic.krd/data/krd/Registration%20Policy.pdf
 co.krd
 edu.krd
+krellian.net
+webthings.io
 git-repos.de
 lcube-server.de
 svn-repos.de
@@ -8493,6 +8502,7 @@ loginline.dev
 loginline.io
 loginline.services
 loginline.site
+lohmus.me
 krasnik.pl
 leczna.pl
 lubartow.pl
@@ -8767,6 +8777,7 @@ omniwe.site
 nid.io
 opensocial.site
 opencraft.hosting
+orsites.com
 operaunite.com
 skygearapp.com
 outsystemscloud.com
@@ -9058,6 +9069,7 @@ toolforge.org
 wmcloud.org
 panel.gg
 daemon.panel.gg
+woltlab-demo.com
 myforum.community
 community-pro.de
 diskussionsbereich.de
@@ -9098,4 +9110,14 @@ js.wpenginepowered.com
 impertrixcdn.com
 impertrix.com
 gsj.bz
+биз.рус
+ком.рус
+крым.рус
+мир.рус
+мск.рус
+орг.рус
+самара.рус
+сочи.рус
+спб.рус
+я.рус
 // ===END PRIVATE DOMAINS===
