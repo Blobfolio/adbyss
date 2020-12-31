@@ -282,6 +282,7 @@ Additional global settings are stored in /etc/adbyss.yaml.
 	)).print()
 }
 
+#[allow(clippy::result_unit_err)] // We print an error and exit from the caller.
 #[allow(clippy::similar_names)] // There's just two variables; we'll be fine.
 /// # Require Root.
 ///
