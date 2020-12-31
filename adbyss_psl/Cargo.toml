@@ -8,10 +8,10 @@ description = "A minimal Public Suffix List hostname validator."
 publish = false
 
 [build-dependencies]
-ahash = "0.5.*"
+ahash = "0.6.*"
 idna = "0.2.*"
 
 [dependencies]
-ahash = "0.5.*"
+ahash = "0.6.*"
 idna = "0.2.*"
 lazy_static = "1.4.*"
