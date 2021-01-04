@@ -2,20 +2,16 @@
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
-While ad-blocking browser extensions are extremely useful, they only block
-unwatned content *in the browser*, and require read/write access to every
-page you visit, which adds overhead and potential security/privacy issues.
+While ad-blocking browser extensions are extremely useful, they only block unwatned content *in the browser*, and require read/write access to every page you visit, which adds overhead and potential security/privacy issues.
 
-Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
-file, preventing all spammy connection attempts system-wide. As this is just a
-text file, no special runtime scripts are required, and there is very little
-overhead.
+Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts` file, preventing all spammy connection attempts system-wide. As this is just a text file, no special runtime scripts are required, and there is very little overhead.
 
 
 
 ## Installation
 
 This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
+
 ```bash
 sudo cp adbyss/misc/adbyss.yaml /etc
 ```
@@ -33,6 +29,7 @@ Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
 Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
+
 ```bash
     --disable       Remove *all* Adbyss entries from the hostfile.
 -h, --help          Prints help information.
@@ -46,6 +43,7 @@ The following flags are available:
 ```
 
 And the following option is available:
+
 ```bash
 -c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
 ```
@@ -100,14 +98,14 @@ This work is free. You can redistribute it and/or modify it under the terms of t
 
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     Version 2, December 2004
-
+    
     Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
-
+    
     Everyone is permitted to copy and distribute verbatim or modified
     copies of this license document, and changing it is allowed as long
     as the name is changed.
-
+    
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
+    
     0. You just DO WHAT THE FUCK YOU WANT TO.

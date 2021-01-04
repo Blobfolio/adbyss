@@ -1,0 +1,16 @@
+accepted = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "WTFPL",
+]
+
+targets = [
+    "x86_64-unknown-linux-gnu",
+]
+
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
