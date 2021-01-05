@@ -75,10 +75,9 @@ rustflags   := "-C link-arg=-s"
 	cargo about \
 		-m "{{ pkg_dir1 }}/Cargo.toml" \
 		generate \
-		"{{ release_dir }}/credits/about.hbs" > "{{ justfile_directory() }}/CREDITS.html"
+		"{{ release_dir }}/credits/about.hbs" > "{{ justfile_directory() }}/CREDITS.md"
 
-	htminl "{{ justfile_directory() }}/CREDITS.html"
-	just _fix-chown "{{ justfile_directory() }}/CREDITS.html"
+	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
 
 
 @clean:
