@@ -823,7 +823,7 @@ fn fetch_url(url: &str) -> Result<String, String> {
 
 			// Download and cache for next time.
 			ureq::get(url).call()
-				.into_string()
+				.and_then(|r| r.into_string().map_err(|e| e.into()))
 				.map(|x| {
 					let _ = write_to_file(&cache, x.as_bytes());
 					x
@@ -832,7 +832,7 @@ fn fetch_url(url: &str) -> Result<String, String> {
 		},
 		None => ureq::get(url)
 			.call()
-			.into_string()
+			.and_then(|r| r.into_string().map_err(|e| e.into()))
 			.map_err(|e| e.to_string())
 	}
 }

@@ -41,7 +41,7 @@ rustflags   := "-C link-arg=-s"
 
 
 # Build Debian package!
-@build-deb: psl build
+@build-deb: credits psl build
 	# Do completions/man.
 	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
 
@@ -67,6 +67,17 @@ rustflags   := "-C link-arg=-s"
 		--release \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
+
+
+# Generate CREDITS.
+@credits:
+	# Update CREDITS.html.
+	cargo about \
+		-m "{{ pkg_dir1 }}/Cargo.toml" \
+		generate \
+		"{{ release_dir }}/credits/about.hbs" > "{{ justfile_directory() }}/CREDITS.md"
+
+	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
 
 
 @clean:

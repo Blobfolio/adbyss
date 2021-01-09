@@ -143,15 +143,12 @@ use std::{
 fn main() {
 	// We need root!
 	if require_root().is_err() {
-		MsgKind::Error
-			.into_msg("Adbyss requires root privileges.")
-			.eprintln();
-		std::process::exit(1);
+		Msg::error("Adbyss requires root privileges.").die(1);
 	}
 
 	// Parse CLI arguments.
-	let mut args = Argue::new(0)
-		.with_version(b"Adbyss", env!("CARGO_PKG_VERSION").as_bytes())
+	let args = Argue::new(0)
+		.with_version("Adbyss", env!("CARGO_PKG_VERSION"))
 		.with_help(helper);
 
 	// Load configuration. If the user specified one, go with that and print an
@@ -166,10 +163,8 @@ fn main() {
 			|x|
 				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
 				else {
-					MsgKind::Error
-						.into_msg("Missing configuration.")
-						.eprintln();
-					std::process::exit(1);
+					Msg::error("Missing configuration.").die(1);
+					unreachable!();
 				}
 		)
 		.into_shitlist();
@@ -182,8 +177,7 @@ fn main() {
 	// Are we just disabling it?
 	if args.switch("--disable") {
 		if let Err(e) = shitlist.unwrite() {
-			MsgKind::Error.into_msg(&e).eprintln();
-			std::process::exit(1);
+			Msg::error(e).die(1);
 		}
 		else { return; }
 	}
@@ -214,21 +208,22 @@ fn main() {
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {
-				MsgKind::Error.into_msg(&e).eprintln();
-				std::process::exit(1);
+				Msg::error(e).die(1);
 			}
 			// Summarize the results!
 			else if ! args.switch2("-q", "--quiet") {
-				MsgKind::Success
-					.into_msg(&format!(
+				Msg::new(
+					MsgKind::Success,
+					format!(
 						"{} unique hosts have been cast to a blackhole!",
 						NiceInt::from(shitlist.len()).as_str()
-					))
-					.println();
+					)
+				)
+					.with_newline(true)
+					.print();
 			},
 		Err(e) => {
-			MsgKind::Error.into_msg(&e).eprintln();
-			std::process::exit(1);
+			Msg::error(e).die(1);
 		}
 	}
 
@@ -237,7 +232,7 @@ fn main() {
 #[cold]
 /// Print Help.
 fn helper(_: Option<&str>) {
-	Msg::from(format!(
+	Msg::plain(format!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )

@@ -2,20 +2,16 @@
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
-While ad-blocking browser extensions are extremely useful, they only block
-unwatned content *in the browser*, and require read/write access to every
-page you visit, which adds overhead and potential security/privacy issues.
+While ad-blocking browser extensions are extremely useful, they only block unwatned content *in the browser*, and require read/write access to every page you visit, which adds overhead and potential security/privacy issues.
 
-Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
-file, preventing all spammy connection attempts system-wide. As this is just a
-text file, no special runtime scripts are required, and there is very little
-overhead.
+Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts` file, preventing all spammy connection attempts system-wide. As this is just a text file, no special runtime scripts are required, and there is very little overhead.
 
 
 
 ## Installation
 
 This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
+
 ```bash
 sudo cp adbyss/misc/adbyss.yaml /etc
 ```
@@ -33,6 +29,7 @@ Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
 Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
+
 ```bash
     --disable       Remove *all* Adbyss entries from the hostfile.
 -h, --help          Prints help information.
@@ -46,6 +43,7 @@ The following flags are available:
 ```
 
 And the following option is available:
+
 ```bash
 -c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
 ```
@@ -68,46 +66,24 @@ Save, reboot, and you're back to normal.
 
 
 
-## Credits
-
-| Library | License | Author |
-| ---- | ---- | ---- |
-| [ahash](https://crates.io/crates/ahash) | Apache-2.0 OR MIT | Tom Kaitchuck |
-| [chrono](https://crates.io/crates/chrono) | Apache-2.0 OR MIT | Kang Seonghoon, Brandon W Maister |
-| [idna](https://crates.io/crates/idna) | Apache-2.0 OR MIT | The `rust-url` Developers |
-| [lazy_static](https://crates.io/crates/lazy_static) | Apache-2.0 OR MIT | Marvin Löbel |
-| [rayon](https://crates.io/crates/rayon) | Apache-2.0 OR MIT | Josh Stone, Niko Matsakis |
-| [regex](https://crates.io/crates/regex) | Apache-2.0 OR MIT | The Rust Project Developers |
-| [serde](https://crates.io/crates/serde) | Apache-2.0 OR MIT | David Tolnay, Erick Tryzelaar |
-| [serde_yaml](https://crates.io/crates/serde_yaml) | Apache-2.0 OR MIT | David Tolnay |
-| [tempfile-fast](https://crates.io/crates/tempfile-fast) | MIT | Chris West (Faux) |
-| [ureq](https://crates.io/crates/ureq) | Apache-2.0 OR MIT | Martin Algesten |
-
-| Data | License | Author |
-| ---- | ---- | ---- |
-| [AdAway](https://adaway.org/) | GPLv3+ | AdAway |
-| [Public Suffix List](https://publicsuffix.org/list/) | MPL-2.0 | Mozilla Foundation |
-| [Steven Black](https://github.com/StevenBlack/hosts) | MIT | Steven Black |
-| [Yoyo](https://pgl.yoyo.org/adservers/) | MCRAE GENERAL PUBLIC LICENSE (v4.r53) | Peter Lowe |
-
-
-
 ## License
 
-Copyright © 2020 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
+See also: [CREDITS.md](CREDITS.md)
+
+Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
 
 This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2.
 
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     Version 2, December 2004
-
+    
     Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
-
+    
     Everyone is permitted to copy and distribute verbatim or modified
     copies of this license document, and changing it is allowed as long
     as the name is changed.
-
+    
     DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
     TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
+    
     0. You just DO WHAT THE FUCK YOU WANT TO.

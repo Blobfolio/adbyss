@@ -1,10 +1,11 @@
 [package]
 name = "adbyss_psl"
-version = "0.2.4"
+version = "0.2.5"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "A minimal Public Suffix List hostname validator."
+repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [build-dependencies]
