@@ -96,8 +96,8 @@ path = "../adbyss_core"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.4.2"
+tag = "v0.5.0"
 
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.4.2"
+tag = "v0.5.0"

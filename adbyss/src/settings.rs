@@ -12,7 +12,7 @@ use adbyss_core::{
 	FLAG_YOYO,
 	FLAG_COMPACT,
 };
-use fyi_msg::MsgKind;
+use fyi_msg::Msg;
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -81,17 +81,13 @@ impl From<PathBuf> for Settings {
 				return out;
 			}
 
-			MsgKind::Error
-				.into_msg(&format!("Unable to parse configuration: {:?}", src))
-				.eprintln();
+			Msg::error(format!("Unable to parse configuration: {:?}", src)).die(1);
 		}
 		else {
-			MsgKind::Error
-				.into_msg(&format!("Missing configuration: {:?}", src))
-				.eprintln();
+			Msg::error(format!("Missing configuration: {:?}", src)).die(1);
 		}
 
-		std::process::exit(1);
+		unreachable!();
 	}
 }
 
