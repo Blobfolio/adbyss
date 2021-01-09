@@ -19,7 +19,7 @@ License details for project dependencies are listed below.
 
 **Used By:**
 
-* [const_fn 0.4.4](https://github.com/taiki-e/const_fn)
+* [const_fn 0.4.5](https://github.com/taiki-e/const_fn)
 
 
 ```
@@ -645,7 +645,7 @@ limitations under the License.
 * [form_urlencoded 1.0.0](https://github.com/servo/rust-url)
 * [idna 0.2.0](https://github.com/servo/rust-url/)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.81](https://github.com/rust-lang/libc)
+* [libc 0.2.82](https://github.com/rust-lang/libc)
 * [num-integer 0.1.44](https://github.com/rust-num/num-integer)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
@@ -655,17 +655,16 @@ limitations under the License.
 * [quote 1.0.8](https://github.com/dtolnay/quote)
 * [rayon 1.5.0](https://github.com/rayon-rs/rayon)
 * [rayon-core 1.9.0](https://github.com/rayon-rs/rayon)
-* [regex 1.4.2](https://github.com/rust-lang/regex)
-* [regex-syntax 0.6.21](https://github.com/rust-lang/regex)
+* [regex 1.4.3](https://github.com/rust-lang/regex)
+* [regex-syntax 0.6.22](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [sct 0.6.0](https://github.com/ctz/sct.rs)
 * [serde 1.0.118](https://github.com/serde-rs/serde)
 * [serde_derive 1.0.118](https://github.com/serde-rs/serde)
 * [serde_yaml 0.8.15](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.57](https://github.com/dtolnay/syn)
+* [syn 1.0.58](https://github.com/dtolnay/syn)
 * [tempfile 3.1.0](https://github.com/Stebalien/tempfile)
-* [thread_local 1.0.1](https://github.com/Amanieu/thread_local-rs)
-* [time 0.1.44](https://github.com/time-rs/time)
+* [thread_local 1.1.0](https://github.com/Amanieu/thread_local-rs)
 * [unicode-bidi 0.3.4](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.16](https://github.com/unicode-rs/unicode-normalization)
 * [unicode-xid 0.2.1](https://github.com/unicode-rs/unicode-xid)
@@ -882,7 +881,7 @@ limitations under the License.
 
 **Used By:**
 
-* [linked-hash-map 0.5.3](https://github.com/contain-rs/linked-hash-map)
+* [linked-hash-map 0.5.4](https://github.com/contain-rs/linked-hash-map)
 
 
 ```
@@ -2780,9 +2779,11 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.2.4](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.2.4](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.2.4](https://github.com/Blobfolio/adbyss)
+* [adbyss 0.2.5](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.2.5](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.2.5](https://github.com/Blobfolio/adbyss)
+* [fyi_menu 0.5.0](https://github.com/Blobfolio/fyi)
+* [fyi_msg 0.5.0](https://github.com/Blobfolio/fyi)
 
 
 ```
