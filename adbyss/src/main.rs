@@ -129,8 +129,8 @@ use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
 	MsgKind,
-	NiceInt,
 };
+use fyi_num::NiceInt;
 use settings::Settings;
 use std::{
 	path::PathBuf,
@@ -177,7 +177,7 @@ fn main() {
 	// Are we just disabling it?
 	if args.switch("--disable") {
 		if let Err(e) = shitlist.unwrite() {
-			Msg::error(e).die(1);
+			Msg::error(e.to_string()).die(1);
 		}
 		else { return; }
 	}
@@ -208,7 +208,7 @@ fn main() {
 			}
 			// Write changes to file.
 			else if let Err(e) = shitlist.write() {
-				Msg::error(e).die(1);
+				Msg::error(e.to_string()).die(1);
 			}
 			// Summarize the results!
 			else if ! args.switch2("-q", "--quiet") {
@@ -223,7 +223,7 @@ fn main() {
 					.print();
 			},
 		Err(e) => {
-			Msg::error(e).die(1);
+			Msg::error(e.to_string()).die(1);
 		}
 	}
 

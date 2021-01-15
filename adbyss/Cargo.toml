@@ -87,17 +87,21 @@ items = [
 libc = "0.2.*"
 serde_yaml = "0.8.*"
 
-[dependencies.serde]
-version = "1.0.*"
-features = [ "derive" ]
-
 [dependencies.adbyss_core]
 path = "../adbyss_core"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.0"
+tag = "v0.5.1"
 
 [dependencies.fyi_menu]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.0"
+tag = "v0.5.1"
+
+[dependencies.fyi_num]
+git = "https://github.com/Blobfolio/fyi.git"
+tag = "v0.5.1"
+
+[dependencies.serde]
+version = "1.0.*"
+features = [ "derive" ]
