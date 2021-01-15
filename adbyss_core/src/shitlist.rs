@@ -160,28 +160,34 @@ impl ShitlistSource {
 	///
 	/// This fetches and returns a single host collection given the flags.
 	fn fetch(flags: u8) -> Result<HashSet<String>, AdbyssError> {
-		let mut out: HashSet<String> = HashSet::new();
+		// Fetch the remote sources in parallel to speed up downloads a bit.
+		let (tx, rx) = crossbeam_channel::bounded(3);
 
-		for x in Self::iter().filter(|x| 0 != flags & x.as_byte()) {
-			match x.parse() {
-				Ok(y) => {
-					out.par_extend(y);
-				},
-				Err(e) => return Err(e),
-			}
-		}
-
-		Ok(out)
-	}
-
-	/// # Iterate.
-	fn iter() -> std::slice::Iter<'static, Self> {
 		[
 			Self::AdAway,
-			Self::Adbyss,
 			Self::StevenBlack,
 			Self::Yoyo,
-		].iter()
+		].par_iter()
+			.filter(|x| 0 != flags & x.as_byte())
+			.for_each(|x| {
+				tx.send(x.parse()).unwrap();
+			});
+
+		drop(tx);
+
+		// Merge the results! We'll start with the infallible Adbyss set —
+		// which doesn't have to be downloaded — if that source is enabled,
+		// otherwise we'll start with an empty HashSet.
+		let mut set: HashSet<String> =
+			if 0 == flags & Self::Adbyss.as_byte() { HashSet::new() }
+			else { Self::Adbyss.parse().unwrap() };
+
+		rx.iter().try_for_each(|x| {
+			set.par_extend(x?);
+			Ok(())
+		})?;
+
+		Ok(set)
 	}
 
 	/// # Parse Raw.
