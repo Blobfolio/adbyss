@@ -31,10 +31,15 @@
 
 
 
+mod error;
 mod shitlist;
+
 use adbyss_psl::Domain;
+
+pub use error::AdbyssError;
 pub use shitlist::{
 	Shitlist,
+	ShitlistSource,
 	FLAG_ALL,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,

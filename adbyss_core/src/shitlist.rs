@@ -3,10 +3,9 @@
 */
 
 use adbyss_psl::Domain;
-use fyi_msg::{
-	MsgKind,
-	NiceInt,
-};
+use crate::AdbyssError;
+use fyi_msg::MsgKind;
+use fyi_num::NiceInt;
 use rayon::prelude::*;
 use regex::Regex;
 use std::{
@@ -121,7 +120,8 @@ impl Watermark {
 
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-enum ShitlistSource {
+/// # Shitlist Sources.
+pub enum ShitlistSource {
 	/// AdAway.
 	AdAway,
 	/// Adbyss.
@@ -145,38 +145,55 @@ impl ShitlistSource {
 		}
 	}
 
+	#[must_use]
+	/// # As Str.
+	pub const fn as_str(self) -> &'static str {
+		match self {
+			Self::AdAway => "AdAway",
+			Self::Adbyss => "Adbyss",
+			Self::StevenBlack => "Steven Black",
+			Self::Yoyo => "Yoyo",
+		}
+	}
+
 	/// # Fetch by Flag.
 	///
 	/// This fetches and returns a single host collection given the flags.
-	fn fetch(flags: u8) -> Result<HashSet<String>, String> {
-		let mut out: HashSet<String> = HashSet::new();
+	fn fetch(flags: u8) -> Result<HashSet<String>, AdbyssError> {
+		// Fetch the remote sources in parallel to speed up downloads a bit.
+		let (tx, rx) = crossbeam_channel::bounded(3);
 
-		for x in Self::iter().filter(|x| 0 != flags & x.as_byte()) {
-			match x.parse() {
-				Ok(y) => {
-					out.par_extend(y);
-				},
-				Err(e) => return Err(e),
-			}
-		}
-
-		Ok(out)
-	}
-
-	/// # Iterate.
-	fn iter() -> std::slice::Iter<'static, Self> {
 		[
 			Self::AdAway,
-			Self::Adbyss,
 			Self::StevenBlack,
 			Self::Yoyo,
-		].iter()
+		].par_iter()
+			.filter(|x| 0 != flags & x.as_byte())
+			.for_each(|x| {
+				tx.send(x.parse()).unwrap();
+			});
+
+		drop(tx);
+
+		// Merge the results! We'll start with the infallible Adbyss set —
+		// which doesn't have to be downloaded — if that source is enabled,
+		// otherwise we'll start with an empty HashSet.
+		let mut set: HashSet<String> =
+			if 0 == flags & Self::Adbyss.as_byte() { HashSet::new() }
+			else { Self::Adbyss.parse().unwrap() };
+
+		rx.iter().try_for_each(|x| {
+			set.par_extend(x?);
+			Ok(())
+		})?;
+
+		Ok(set)
 	}
 
 	/// # Parse Raw.
 	///
 	/// Fetch and parse the raw source data.
-	fn parse(self) -> Result<HashSet<String>, String> {
+	fn parse(self) -> Result<HashSet<String>, AdbyssError> {
 		Ok(match self {
 			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&self.raw()?),
 			Self::Adbyss => {
@@ -212,11 +229,11 @@ impl ShitlistSource {
 	/// # Fetch Raw.
 	///
 	/// This fetches and returns the raw, remote data for a given source.
-	fn raw(self) -> Result<String, String> {
+	fn raw(self) -> Result<String, AdbyssError> {
 		match self {
 			Self::AdAway |
 			Self::StevenBlack |
-			Self::Yoyo => fetch_url(self.url()),
+			Self::Yoyo => fetch_url(self.url(), self),
 			Self::Adbyss => Ok(String::new()),
 		}
 	}
@@ -407,7 +424,7 @@ impl Shitlist {
 	/// This method does not output anything. See [`Shitlist::as_str`],
 	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
 	/// something with the results.
-	pub fn build(mut self) -> Result<Self, String> {
+	pub fn build(mut self) -> Result<Self, AdbyssError> {
 		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
 
 		// Post-processing.
@@ -459,7 +476,7 @@ impl Shitlist {
 	/// # Stub.
 	///
 	/// Return the user portion of the specified hostfile.
-	pub fn hostfile_stub(&self) -> Result<String, String> {
+	pub fn hostfile_stub(&self) -> Result<String, AdbyssError> {
 		use std::io::{
 			BufRead,
 			BufReader,
@@ -471,7 +488,7 @@ impl Shitlist {
 
 		for line in File::open(&self.hostfile)
 			.map(BufReader::new)
-			.map_err(|_| format!("Unable to read hostfile: {:?}", self.hostfile))?
+			.map_err(|_| AdbyssError::HostsRead(self.hostfile.clone()))?
 			.lines()
 			.filter_map(std::result::Result::ok)
 		{
@@ -496,7 +513,7 @@ impl Shitlist {
 	///
 	/// This will remove all of Adbyss' blackhole entries from the given
 	/// hostfile.
-	pub fn unwrite(&self) -> Result<(), String> {
+	pub fn unwrite(&self) -> Result<(), AdbyssError> {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
@@ -507,7 +524,7 @@ impl Shitlist {
 				))
 				.prompt()
 		{
-			return Err(String::from("Operation aborted."));
+			return Err(AdbyssError::Aborted);
 		}
 
 		// Try to write atomically, fall back to clobbering, or report error.
@@ -527,7 +544,7 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
-	pub fn write(&self) -> Result<(), String> {
+	pub fn write(&self) -> Result<(), AdbyssError> {
 		self.write_to(&self.hostfile)
 	}
 
@@ -547,7 +564,7 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
-	pub fn write_to<P>(&self, dst: P) -> Result<(), String>
+	pub fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
 	where P: AsRef<Path> {
 		let mut dst: PathBuf = dst.as_ref().to_path_buf();
 
@@ -556,7 +573,7 @@ impl Shitlist {
 			dst = dst.canonicalize()
 				.ok()
 				.filter(|x| ! x.is_dir())
-				.ok_or_else(|| String::from("Hostfile cannot be a directory."))?;
+				.ok_or(AdbyssError::HostsInvalid(dst))?;
 
 			// Prompt about writing it?
 			if
@@ -569,7 +586,7 @@ impl Shitlist {
 					))
 					.prompt()
 			{
-				return Err(String::from("Operation aborted."));
+				return Err(AdbyssError::Aborted);
 			}
 
 			self.backup(&dst)?;
@@ -607,7 +624,7 @@ impl Shitlist {
 
 	#[allow(trivial_casts)] // Triviality is required!
 	/// # Backup.
-	fn backup(&self, dst: &PathBuf) -> Result<(), String> {
+	fn backup(&self, dst: &PathBuf) -> Result<(), AdbyssError> {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
@@ -618,7 +635,7 @@ impl Shitlist {
 
 			// Copy the original, clobbering only as a fallback.
 			std::fs::copy(&dst, &dst2)
-				.map_err(|_| format!("Unable to backup hostfile: {:?}", dst2))?;
+				.map_err(|_| AdbyssError::BackupWrite(dst2))?;
 		}
 
 		Ok(())
@@ -633,7 +650,7 @@ impl Shitlist {
 	///
 	/// If the original hostfile cannot be read, the program will print an error
 	/// and exit with a status code of `1`.
-	fn build_out(&mut self) -> Result<(), String> {
+	fn build_out(&mut self) -> Result<(), AdbyssError> {
 		self.out.clear();
 
 		// Pull the stub of the current host, and add any hosts to the
@@ -699,7 +716,7 @@ impl Shitlist {
 			.fold(
 				HashMap::<u64, Vec<String>>::with_capacity(self.found.len()),
 				|mut acc, dom| {
-					let hash: u64 = fyi_msg::utility::hash64(dom.tld().as_bytes());
+					let hash: u64 = hash64(dom.tld().as_bytes());
 
 					acc.entry(hash)
 						.or_insert_with(Vec::new)
@@ -799,7 +816,7 @@ fn cache_path(url: &str) -> Option<PathBuf> {
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
-fn fetch_url(url: &str) -> Result<String, String> {
+fn fetch_url(url: &str, kind: ShitlistSource) -> Result<String, AdbyssError> {
 	match cache_path(url) {
 		Some(cache) => {
 			// If this raw data was fetched less than an hour ago, simply read
@@ -828,13 +845,27 @@ fn fetch_url(url: &str) -> Result<String, String> {
 					let _ = write_to_file(&cache, x.as_bytes());
 					x
 				})
-				.map_err(|e| e.to_string())
+				.map_err(|_| AdbyssError::SourceFetch(kind))
 		},
 		None => ureq::get(url)
 			.call()
 			.and_then(|r| r.into_string().map_err(|e| e.into()))
-			.map_err(|e| e.to_string())
+			.map_err(|_| AdbyssError::SourceFetch(kind))
 	}
+}
+
+#[must_use]
+#[inline]
+/// # `AHash` Byte Hash.
+///
+/// This is a convenience method for quickly hashing bytes using the
+/// [`AHash`](https://crates.io/crates/ahash) crate. Check out that project's
+/// home page for more details. Otherwise, TL;DR it is very fast.
+fn hash64(src: &[u8]) -> u64 {
+	use std::hash::Hasher;
+	let mut hasher = ahash::AHasher::default();
+	hasher.write(src);
+	hasher.finish()
 }
 
 /// # Parse Custom Hosts.
@@ -915,7 +946,7 @@ fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
 /// This method will first attempt an atomic write using `tempfile`, but if
 /// that fails — as is common with `/etc/hosts` — it will try a nonatomic write
 /// instead.
-fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), String> {
+fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), AdbyssError> {
 	use std::io::Write;
 
 	// Try an atomic write first.
@@ -924,7 +955,7 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), String> {
 		.or_else(|_| File::create(path)
 			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
 		)
-		.map_err(|_| format!("Unable to write to hostfile: {:?}", path))
+		.map_err(|_| AdbyssError::HostsWrite(path.clone()))
 }
 
 
