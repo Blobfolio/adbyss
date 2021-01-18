@@ -70,29 +70,6 @@ It is important to remember that scammers and capitalists birth new schemes all 
 To remove all Adbyss rules from your hosts file, either run `adbyss --disable`, or open the hostfile in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and all subsequent lines.
 
 Save, reboot, and you're back to normal.
-
-
-
-## License
-
-Copyright © 2020 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;
-
-This work is free. You can redistribute it and/or modify it under the terms of the Do What The Fuck You Want To Public License, Version 2.
-
-    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-    Version 2, December 2004
-
-    Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
-
-    Everyone is permitted to copy and distribute verbatim or modified
-    copies of this license document, and changing it is allowed as long
-    as the name is changed.
-
-    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
-
-    0. You just DO WHAT THE FUCK YOU WANT TO.
-
 */
 
 #![warn(clippy::filetype_is_file)]
@@ -231,8 +208,8 @@ fn main() {
 
 #[cold]
 /// Print Help.
-fn helper(_: Option<&str>) {
-	Msg::plain(format!(
+fn helper() -> String {
+	format!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )
@@ -274,7 +251,7 @@ Additional global settings are stored in /etc/adbyss.yaml.
 		"\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v",
 		env!("CARGO_PKG_VERSION"),
 		"\x1b[0m",
-	)).print()
+	)
 }
 
 #[allow(clippy::result_unit_err)] // We print an error and exit from the caller.
