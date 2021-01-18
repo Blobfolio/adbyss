@@ -208,13 +208,13 @@ fn main() {
 
 #[cold]
 /// Print Help.
-fn helper() -> String {
-	format!(
+const fn helper() -> &'static str {
+	concat!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )
  '.__/o   o\__.'
-    (=  ^  =)       {}{}{}
+    (=  ^  =)       "#, "\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
      >  -  <        Block ads, trackers, malware, and
     /       \       other garbage sites in /etc/hosts.
    //       \\
@@ -246,11 +246,7 @@ SOURCES:
     Yoyo:         <https://pgl.yoyo.org/adservers/>
 
 Additional global settings are stored in /etc/adbyss.yaml.
-
-"#,
-		"\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v",
-		env!("CARGO_PKG_VERSION"),
-		"\x1b[0m",
+"#
 	)
 }
 
