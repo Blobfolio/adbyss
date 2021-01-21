@@ -133,6 +133,7 @@ pub enum ShitlistSource {
 	Yoyo,
 }
 
+/// # Conversion.
 impl ShitlistSource {
 	/// # As Byte (Flag).
 	///
@@ -156,39 +157,22 @@ impl ShitlistSource {
 			Self::Yoyo => "Yoyo",
 		}
 	}
+}
 
-	/// # Fetch by Flag.
-	///
-	/// This fetches and returns a single host collection given the flags.
-	fn fetch(flags: u8) -> Result<HashSet<String>, AdbyssError> {
-		// Fetch the remote sources in parallel to speed up downloads a bit.
-		let (tx, rx) = crossbeam_channel::bounded(3);
-
-		[
-			Self::AdAway,
-			Self::StevenBlack,
-			Self::Yoyo,
-		].par_iter()
-			.filter(|x| 0 != flags & x.as_byte())
-			.for_each(|x| {
-				tx.send(x.parse()).unwrap();
-			});
-
-		drop(tx);
-
-		// Merge the results! We'll start with the infallible Adbyss set —
-		// which doesn't have to be downloaded — if that source is enabled,
-		// otherwise we'll start with an empty HashSet.
-		let mut set: HashSet<String> =
-			if 0 == flags & Self::Adbyss.as_byte() { HashSet::new() }
-			else { Self::Adbyss.parse().unwrap() };
-
-		rx.iter().try_for_each(|x| {
-			set.par_extend(x?);
-			Ok(())
-		})?;
-
-		Ok(set)
+/// # Getters.
+impl ShitlistSource {
+	/// # Cache path.
+	fn cache_path(self) -> PathBuf {
+		let mut out: PathBuf = std::env::temp_dir();
+		out.push(
+			match self {
+				Self::AdAway => "_adbyss-adaway.tmp",
+				Self::Adbyss => "_adbyss.tmp",
+				Self::StevenBlack => "_adbyss-sb.tmp",
+				Self::Yoyo => "_adbyss-yoyo.tmp",
+			}
+		);
+		out
 	}
 
 	/// # Parse Raw.
@@ -196,7 +180,7 @@ impl ShitlistSource {
 	/// Fetch and parse the raw source data.
 	fn parse(self) -> Result<HashSet<String>, AdbyssError> {
 		Ok(match self {
-			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&self.raw()?),
+			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&fetch_url(self)?),
 			Self::Adbyss => {
 				let mut hs: HashSet<String> = HashSet::with_capacity(20);
 
@@ -223,20 +207,8 @@ impl ShitlistSource {
 
 				hs
 			},
-			Self::StevenBlack => parse_blackhole_hosts(&self.raw()?),
+			Self::StevenBlack => parse_blackhole_hosts(&fetch_url(self)?),
 		})
-	}
-
-	/// # Fetch Raw.
-	///
-	/// This fetches and returns the raw, remote data for a given source.
-	fn raw(self) -> Result<String, AdbyssError> {
-		match self {
-			Self::AdAway |
-			Self::StevenBlack |
-			Self::Yoyo => fetch_url(self.url(), self),
-			Self::Adbyss => Ok(String::new()),
-		}
 	}
 
 	/// # Source URL.
@@ -291,6 +263,7 @@ impl fmt::Display for Shitlist {
 	}
 }
 
+/// # Builder methods.
 impl Shitlist {
 	#[must_use]
 	/// # With Flags.
@@ -353,6 +326,28 @@ impl Shitlist {
 		self
 	}
 
+	/// # Build.
+	///
+	/// This method can be called after all of the settings have been set to
+	/// fetch and parse the shitlist results from the selected sources. The
+	/// number of new records added is returned.
+	///
+	/// This method does not output anything. See [`Shitlist::as_str`],
+	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
+	/// something with the results.
+	pub fn build(mut self) -> Result<Self, AdbyssError> {
+		self.found.par_extend(fetch_sources(self.flags)?);
+
+		// Post-processing.
+		self.build_out()?;
+
+		// We're done!
+		Ok(self)
+	}
+}
+
+/// # Setters.
+impl Shitlist {
 	/// # Disable Flags.
 	///
 	/// Disable one or more flags. See the module documentation for details.
@@ -415,26 +410,10 @@ impl Shitlist {
 				self.regexclude.push(x);
 			});
 	}
+}
 
-	/// # Build.
-	///
-	/// This method can be called after all of the settings have been set to
-	/// fetch and parse the shitlist results from the selected sources. The
-	/// number of new records added is returned.
-	///
-	/// This method does not output anything. See [`Shitlist::as_str`],
-	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
-	/// something with the results.
-	pub fn build(mut self) -> Result<Self, AdbyssError> {
-		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
-
-		// Post-processing.
-		self.build_out()?;
-
-		// We're done!
-		Ok(self)
-	}
-
+/// # Conversion.
+impl Shitlist {
 	#[must_use]
 	/// # As Str.
 	///
@@ -461,7 +440,10 @@ impl Shitlist {
 		found.par_sort();
 		found
 	}
+}
 
+/// # Details.
+impl Shitlist {
 	#[must_use]
 	/// # Is Empty.
 	///
@@ -473,7 +455,10 @@ impl Shitlist {
 	///
 	/// Return the number of entries found.
 	pub fn len(&self) -> usize { self.found.len() }
+}
 
+/// # Misc.
+impl Shitlist {
 	/// # Stub.
 	///
 	/// Return the user portion of the specified hostfile.
@@ -832,62 +817,80 @@ impl Shitlist {
 	}
 }
 
-/// # Cache Path From URL.
-fn cache_path(url: &str) -> Option<PathBuf> {
-	let file: &str = match url {
-		"https://adaway.org/hosts.txt" => "_adbyss-adaway.tmp",
-		"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" => "_adbyss-sb.tmp",
-		"https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" => "_adbyss-yoyo.tmp",
-		_ => return None,
-	};
 
-	let mut out: PathBuf = std::env::temp_dir();
-	if out.is_dir() {
-		out.push(file);
-		Some(out)
-	}
-	else { None }
+
+/// # Download URL.
+fn download_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
+	reqwest::blocking::ClientBuilder::new()
+		.user_agent("Mozilla/5.0")
+		.gzip(true)
+		.https_only(true)
+		.build()
+		.and_then(|c| c.get(kind.url()).send())
+		.and_then(reqwest::blocking::Response::text)
+		.map_err(|_| AdbyssError::SourceFetch(kind))
+}
+
+/// # Fetch Sources by Flag.
+///
+/// This fetches and returns a single host collection given the flags.
+fn fetch_sources(flags: u8) -> Result<HashSet<String>, AdbyssError> {
+	// Fetch the remote sources in parallel to speed up downloads a bit.
+	let (tx, rx) = crossbeam_channel::bounded(3);
+
+	[
+		ShitlistSource::AdAway,
+		ShitlistSource::StevenBlack,
+		ShitlistSource::Yoyo,
+	].par_iter()
+		.filter(|x| 0 != flags & x.as_byte())
+		.for_each(|x| {
+			tx.send(x.parse()).unwrap();
+		});
+
+	drop(tx);
+
+	// Merge the results! We'll start with the infallible Adbyss set —
+	// which doesn't have to be downloaded — if that source is enabled,
+	// otherwise we'll start with an empty HashSet.
+	let mut set: HashSet<String> =
+		if 0 == flags & ShitlistSource::Adbyss.as_byte() { HashSet::new() }
+		else { ShitlistSource::Adbyss.parse().unwrap() };
+
+	rx.iter().try_for_each(|x| {
+		set.par_extend(x?);
+		Ok(())
+	})?;
+
+	Ok(set)
 }
 
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
-fn fetch_url(url: &str, kind: ShitlistSource) -> Result<String, AdbyssError> {
-	match cache_path(url) {
-		Some(cache) => {
-			// If this raw data was fetched less than an hour ago, simply read
-			// and return that instead of asking the Internet for a new copy.
-			if cache.is_file() {
-				// It takes an epic mapping journey to arrive at the answer
-				// without nesting a million if/let statements. Haha.
-				if let Some(x) = std::fs::metadata(&cache)
-					.and_then(|meta| meta.modified())
-					.ok()
-					.and_then(|time| time.elapsed().ok())
-					.and_then(|secs|
-						if 3600 > secs.as_secs() { Some(true) }
-						else { None }
-					)
-					.and_then(|_| std::fs::read_to_string(&cache).ok())
-				{
-					return Ok(x);
-				}
-			}
-
-			// Download and cache for next time.
-			ureq::get(url).call()
-				.and_then(|r| r.into_string().map_err(|e| e.into()))
-				.map(|x| {
-					let _ = write_to_file(&cache, x.as_bytes());
-					x
-				})
-				.map_err(|_| AdbyssError::SourceFetch(kind))
-		},
-		None => ureq::get(url)
-			.call()
-			.and_then(|r| r.into_string().map_err(|e| e.into()))
-			.map_err(|_| AdbyssError::SourceFetch(kind))
+fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
+	// Check the cache first. If the source was downloaded less than an hour
+	// ago, we can use that instead of asking the Internet for a new copy.
+	let cache = kind.cache_path();
+	if let Some(x) = std::fs::metadata(&cache)
+		.ok()
+		.filter(std::fs::Metadata::is_file)
+		.and_then(|meta| meta.modified().ok())
+		.and_then(|time| time.elapsed()
+			.ok()
+			.filter(|secs| 3600 > secs.as_secs())
+		)
+		.and_then(|_| std::fs::read_to_string(&cache).ok())
+	{
+		return Ok(x);
 	}
+
+	// Download and cache for next time.
+	download_url(kind)
+		.map(|x| {
+			let _ = write_to_file(&cache, x.as_bytes());
+			x
+		})
 }
 
 #[must_use]
