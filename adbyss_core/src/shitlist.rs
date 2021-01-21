@@ -9,6 +9,7 @@ use fyi_num::NiceInt;
 use rayon::prelude::*;
 use regex::Regex;
 use std::{
+	cmp::Ordering,
 	collections::{
 		HashMap,
 		HashSet,
@@ -774,20 +775,55 @@ impl Shitlist {
 		found
 	}
 
+	/// # Strip Ignores: Static Filter
+	///
+	/// Because this filter could run 60K times or more, it is worth taking
+	/// a moment to optimize the matcher.
+	fn strip_cb_static(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
+		match 1.cmp(&self.exclude.len()) {
+			Ordering::Greater => None,
+			Ordering::Equal => {
+				let val = self.exclude.iter().next().unwrap().clone();
+				Some(Box::new(move |x| x == &&val))
+			},
+			Ordering::Less => {
+				let ex = self.exclude.clone();
+				Some(Box::new(move |x| ex.contains(x.as_str())))
+			},
+		}
+	}
+
+	/// # Strip Ignores: Regex Filter
+	///
+	/// Because this filter could run 60K times or more, it is worth taking
+	/// a moment to optimize the matcher.
+	fn strip_cb_regex(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
+		match 1.cmp(&self.regexclude.len()) {
+			Ordering::Greater => None,
+			Ordering::Equal => {
+				let val = self.regexclude[0].clone();
+				Some(Box::new(move |x| val.is_match(x)))
+			},
+			Ordering::Less => {
+				let ex = self.regexclude.clone();
+				Some(Box::new(move |x| ex.iter().any(|r| r.is_match(x))))
+			},
+		}
+	}
+
 	/// # Strip Ignores.
 	///
 	/// This removes any excluded domains from the results.
 	fn strip_excludes(&mut self) {
-		if
-			! self.found.is_empty() &&
-			(! self.exclude.is_empty() || ! self.regexclude.is_empty())
-		{
+		if ! self.found.is_empty() {
+			let cb: Box<dyn Fn(&&String) -> bool + Send + Sync> = match (self.strip_cb_static(), self.strip_cb_regex()) {
+				(Some(one), Some(two)) => Box::new(move |x| one(x) || two(x)),
+				(Some(cb), None) | (None, Some(cb)) => cb,
+				_ => { return; },
+			};
+
 			self.found.par_iter()
-				.filter(
-					|x|
-					self.exclude.contains(x.as_str()) ||
-					self.regexclude.iter().any(|r| r.is_match(x))
-				)
+				.filter(cb)
 				.cloned()
 				.collect::<HashSet<String>>()
 					.iter()
