@@ -7,7 +7,10 @@ use crate::AdbyssError;
 use fyi_msg::MsgKind;
 use fyi_num::NiceInt;
 use rayon::prelude::*;
-use regex::Regex;
+use regex::{
+	Regex,
+	RegexSet,
+};
 use std::{
 	cmp::Ordering,
 	collections::{
@@ -239,7 +242,7 @@ pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
 	exclude: HashSet<String>,
-	regexclude: Vec<Regex>,
+	regexclude: Option<RegexSet>,
 	found: HashSet<String>,
 	out: Vec<u8>,
 }
@@ -250,7 +253,7 @@ impl Default for Shitlist {
 			hostfile: PathBuf::from("/etc/hosts"),
 			flags: 0,
 			exclude: HashSet::new(),
-			regexclude: Vec::new(),
+			regexclude: None,
 			found: HashSet::with_capacity(60000),
 			out: Vec::with_capacity(60000),
 		}
@@ -320,6 +323,9 @@ impl Shitlist {
 	///
 	/// Note, all domains are normalized to lowercase, so your expressions can
 	/// focus on that without having to use an `(?i)` flag.
+	///
+	/// Also note that all regular expressions must be passed in a single call.
+	/// This method always replaces what was there before.
 	pub fn without_regex<I>(mut self, excludes: I) -> Self
 	where I: IntoIterator<Item=String> {
 		self.regexclude(excludes);
@@ -403,12 +409,9 @@ impl Shitlist {
 	/// expressions.
 	pub fn regexclude<I>(&mut self, excludes: I)
 	where I: IntoIterator<Item=String> {
-		// Add them if we can.
-		excludes.into_iter()
-			.filter_map(|x| Regex::new(&x).ok())
-			.for_each(|x| {
-				self.regexclude.push(x);
-			});
+		self.regexclude = RegexSet::new(excludes)
+			.ok()
+			.filter(|re| ! re.is_empty());
 	}
 }
 
@@ -764,34 +767,36 @@ impl Shitlist {
 	///
 	/// Because this filter could run 60K times or more, it is worth taking
 	/// a moment to optimize the matcher.
-	fn strip_cb_static(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
-		match 1.cmp(&self.exclude.len()) {
-			Ordering::Greater => None,
-			Ordering::Equal => {
+	fn strip_excludes_cb(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
+		match (&self.regexclude, 1.cmp(&self.exclude.len())) {
+			// Neither.
+			(None, Ordering::Greater) => None,
+			// Only regexclude.
+			(Some(re), Ordering::Greater) => {
+				let re = re.clone();
+				Some(Box::new(move |x| re.is_match(x)))
+			},
+			// Both, optimized static.
+			(Some(re), Ordering::Equal) => {
+				let re = re.clone();
+				let val = self.exclude.iter().next().unwrap().clone();
+				Some(Box::new(move |x| x == &&val || re.is_match(x)))
+			},
+			// Optimized static.
+			(None, Ordering::Equal) => {
 				let val = self.exclude.iter().next().unwrap().clone();
 				Some(Box::new(move |x| x == &&val))
 			},
-			Ordering::Less => {
+			// Both, many statics.
+			(Some(re), Ordering::Less) => {
+				let re = re.clone();
+				let ex = self.exclude.clone();
+				Some(Box::new(move |x| re.is_match(x) || ex.contains(x.as_str())))
+			},
+			// Many statics.
+			(None, Ordering::Less) => {
 				let ex = self.exclude.clone();
 				Some(Box::new(move |x| ex.contains(x.as_str())))
-			},
-		}
-	}
-
-	/// # Strip Ignores: Regex Filter
-	///
-	/// Because this filter could run 60K times or more, it is worth taking
-	/// a moment to optimize the matcher.
-	fn strip_cb_regex(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
-		match 1.cmp(&self.regexclude.len()) {
-			Ordering::Greater => None,
-			Ordering::Equal => {
-				let val = self.regexclude[0].clone();
-				Some(Box::new(move |x| val.is_match(x)))
-			},
-			Ordering::Less => {
-				let ex = self.regexclude.clone();
-				Some(Box::new(move |x| ex.iter().any(|r| r.is_match(x))))
 			},
 		}
 	}
@@ -800,13 +805,11 @@ impl Shitlist {
 	///
 	/// This removes any excluded domains from the results.
 	fn strip_excludes(&mut self) {
-		if ! self.found.is_empty() {
-			let cb: Box<dyn Fn(&&String) -> bool + Send + Sync> = match (self.strip_cb_static(), self.strip_cb_regex()) {
-				(Some(one), Some(two)) => Box::new(move |x| one(x) || two(x)),
-				(Some(cb), None) | (None, Some(cb)) => cb,
-				_ => { return; },
-			};
+		if self.found.is_empty() {
+			return;
+		}
 
+		if let Some(cb) = self.strip_excludes_cb() {
 			self.found.par_iter()
 				.filter(cb)
 				.cloned()
@@ -904,7 +907,6 @@ fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
 		})
 }
 
-#[must_use]
 #[inline]
 /// # `AHash` Byte Hash.
 ///
