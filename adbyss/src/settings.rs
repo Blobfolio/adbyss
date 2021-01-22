@@ -3,6 +3,7 @@
 */
 
 use adbyss_core::{
+	AdbyssError,
 	Shitlist,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
@@ -12,17 +13,18 @@ use adbyss_core::{
 	FLAG_YOYO,
 	FLAG_COMPACT,
 };
-use fyi_msg::Msg;
 use serde::Deserialize;
-use std::path::PathBuf;
+use std::{
+	convert::TryFrom,
+	path::PathBuf,
+};
 
 
 
-#[allow(clippy::redundant_pub_crate)] // Clippy is confused.
 #[allow(clippy::struct_excessive_bools)] // This is coming from Yaml.
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Deserialize)]
 /// # Settings.
-pub(crate) struct Settings {
+pub(super) struct Settings {
 	#[serde(default = "Settings::config")]
 	hostfile: PathBuf,
 
@@ -71,32 +73,24 @@ impl Default for Settings {
 	}
 }
 
-impl From<PathBuf> for Settings {
-	fn from(src: PathBuf) -> Self {
-		if src.is_file() {
-			if let Some(out) = std::fs::read_to_string(&src)
-				.ok()
-				.and_then(|txt| serde_yaml::from_str::<Self>(&txt).ok())
-			{
-				return out;
-			}
+impl TryFrom<PathBuf> for Settings {
+	type Error = AdbyssError;
 
-			Msg::error(format!("Unable to parse configuration: {:?}", src)).die(1);
-		}
-		else {
-			Msg::error(format!("Missing configuration: {:?}", src)).die(1);
-		}
-
-		unreachable!();
+	fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+		std::fs::canonicalize(&path)
+			.and_then(std::fs::read_to_string)
+			.ok()
+			.and_then(|x| serde_yaml::from_str::<Self>(&x).ok())
+			.ok_or(AdbyssError::Config(path))
 	}
 }
 
 impl Settings {
 	/// # Configuration Path.
-	pub(crate) fn config() -> PathBuf { PathBuf::from("/etc/adbyss.yaml") }
+	pub(super) fn config() -> PathBuf { PathBuf::from("/etc/adbyss.yaml") }
 
 	/// # Into Shitlist.
-	pub(crate) fn into_shitlist(self) -> Shitlist {
+	pub(super) fn into_shitlist(self) -> Shitlist {
 		// Note: the backup CLI flag is the opposite of the constant, so we'll
 		// start with it in place and `main()` will subtract if needed.
 		let mut flags: u8 = FLAG_BACKUP | FLAG_ALL;
@@ -135,7 +129,8 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let shitlist = Settings::from(PathBuf::from("./skel/test.yaml"))
+		let shitlist = Settings::try_from(PathBuf::from("./skel/test.yaml"))
+			.expect("Missing settings.")
 			.into_shitlist()
 			.build()
 			.unwrap();
