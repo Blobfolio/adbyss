@@ -6140,7 +6140,13 @@ yt
 укр
 اليمن
 xxx
-*.ye
+ye
+com.ye
+edu.ye
+gov.ye
+net.ye
+mil.ye
+org.ye
 ac.za
 agric.za
 alt.za
@@ -8154,6 +8160,7 @@ fbxos.fr
 freebox-os.fr
 freeboxos.fr
 freedesktop.org
+freemyip.com
 wien.funkfeuer.at
 *.futurecms.at
 *.ex.futurecms.at
@@ -8903,6 +8910,7 @@ bounty-full.com
 alpha.bounty-full.com
 beta.bounty-full.com
 small-web.org
+try-snowplow.com
 stackhero-network.com
 static.land
 dev.static.land
@@ -8918,8 +8926,6 @@ utwente.io
 soc.srcf.net
 user.srcf.net
 temp-dns.com
-applicationcloud.io
-scapp.io
 *.s5y.io
 *.sensiosite.cloud
 syncloud.it

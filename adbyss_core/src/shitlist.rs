@@ -4,11 +4,18 @@
 
 use adbyss_psl::Domain;
 use crate::AdbyssError;
-use fyi_msg::MsgKind;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+};
 use fyi_num::NiceInt;
 use rayon::prelude::*;
-use regex::Regex;
+use regex::{
+	Regex,
+	RegexSet,
+};
 use std::{
+	cmp::Ordering,
 	collections::{
 		HashMap,
 		HashSet,
@@ -132,6 +139,7 @@ pub enum ShitlistSource {
 	Yoyo,
 }
 
+/// # Conversion.
 impl ShitlistSource {
 	/// # As Byte (Flag).
 	///
@@ -155,39 +163,22 @@ impl ShitlistSource {
 			Self::Yoyo => "Yoyo",
 		}
 	}
+}
 
-	/// # Fetch by Flag.
-	///
-	/// This fetches and returns a single host collection given the flags.
-	fn fetch(flags: u8) -> Result<HashSet<String>, AdbyssError> {
-		// Fetch the remote sources in parallel to speed up downloads a bit.
-		let (tx, rx) = crossbeam_channel::bounded(3);
-
-		[
-			Self::AdAway,
-			Self::StevenBlack,
-			Self::Yoyo,
-		].par_iter()
-			.filter(|x| 0 != flags & x.as_byte())
-			.for_each(|x| {
-				tx.send(x.parse()).unwrap();
-			});
-
-		drop(tx);
-
-		// Merge the results! We'll start with the infallible Adbyss set —
-		// which doesn't have to be downloaded — if that source is enabled,
-		// otherwise we'll start with an empty HashSet.
-		let mut set: HashSet<String> =
-			if 0 == flags & Self::Adbyss.as_byte() { HashSet::new() }
-			else { Self::Adbyss.parse().unwrap() };
-
-		rx.iter().try_for_each(|x| {
-			set.par_extend(x?);
-			Ok(())
-		})?;
-
-		Ok(set)
+/// # Getters.
+impl ShitlistSource {
+	/// # Cache path.
+	fn cache_path(self) -> PathBuf {
+		let mut out: PathBuf = std::env::temp_dir();
+		out.push(
+			match self {
+				Self::AdAway => "_adbyss-adaway.tmp",
+				Self::Adbyss => "_adbyss.tmp",
+				Self::StevenBlack => "_adbyss-sb.tmp",
+				Self::Yoyo => "_adbyss-yoyo.tmp",
+			}
+		);
+		out
 	}
 
 	/// # Parse Raw.
@@ -195,7 +186,7 @@ impl ShitlistSource {
 	/// Fetch and parse the raw source data.
 	fn parse(self) -> Result<HashSet<String>, AdbyssError> {
 		Ok(match self {
-			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&self.raw()?),
+			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&fetch_url(self)?),
 			Self::Adbyss => {
 				let mut hs: HashSet<String> = HashSet::with_capacity(20);
 
@@ -222,20 +213,8 @@ impl ShitlistSource {
 
 				hs
 			},
-			Self::StevenBlack => parse_blackhole_hosts(&self.raw()?),
+			Self::StevenBlack => parse_blackhole_hosts(&fetch_url(self)?),
 		})
-	}
-
-	/// # Fetch Raw.
-	///
-	/// This fetches and returns the raw, remote data for a given source.
-	fn raw(self) -> Result<String, AdbyssError> {
-		match self {
-			Self::AdAway |
-			Self::StevenBlack |
-			Self::Yoyo => fetch_url(self.url(), self),
-			Self::Adbyss => Ok(String::new()),
-		}
 	}
 
 	/// # Source URL.
@@ -266,7 +245,7 @@ pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
 	exclude: HashSet<String>,
-	regexclude: Vec<Regex>,
+	regexclude: Option<RegexSet>,
 	found: HashSet<String>,
 	out: Vec<u8>,
 }
@@ -277,7 +256,7 @@ impl Default for Shitlist {
 			hostfile: PathBuf::from("/etc/hosts"),
 			flags: 0,
 			exclude: HashSet::new(),
-			regexclude: Vec::new(),
+			regexclude: None,
 			found: HashSet::with_capacity(60000),
 			out: Vec::with_capacity(60000),
 		}
@@ -290,6 +269,7 @@ impl fmt::Display for Shitlist {
 	}
 }
 
+/// # Builder methods.
 impl Shitlist {
 	#[must_use]
 	/// # With Flags.
@@ -346,12 +326,37 @@ impl Shitlist {
 	///
 	/// Note, all domains are normalized to lowercase, so your expressions can
 	/// focus on that without having to use an `(?i)` flag.
+	///
+	/// Also note that all regular expressions must be passed in a single call.
+	/// This method always replaces what was there before.
 	pub fn without_regex<I>(mut self, excludes: I) -> Self
 	where I: IntoIterator<Item=String> {
 		self.regexclude(excludes);
 		self
 	}
 
+	/// # Build.
+	///
+	/// This method can be called after all of the settings have been set to
+	/// fetch and parse the shitlist results from the selected sources. The
+	/// number of new records added is returned.
+	///
+	/// This method does not output anything. See [`Shitlist::as_str`],
+	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
+	/// something with the results.
+	pub fn build(mut self) -> Result<Self, AdbyssError> {
+		self.found.par_extend(fetch_sources(self.flags)?);
+
+		// Post-processing.
+		self.build_out()?;
+
+		// We're done!
+		Ok(self)
+	}
+}
+
+/// # Setters.
+impl Shitlist {
 	/// # Disable Flags.
 	///
 	/// Disable one or more flags. See the module documentation for details.
@@ -407,33 +412,14 @@ impl Shitlist {
 	/// expressions.
 	pub fn regexclude<I>(&mut self, excludes: I)
 	where I: IntoIterator<Item=String> {
-		// Add them if we can.
-		excludes.into_iter()
-			.filter_map(|x| Regex::new(&x).ok())
-			.for_each(|x| {
-				self.regexclude.push(x);
-			});
+		self.regexclude = RegexSet::new(excludes)
+			.ok()
+			.filter(|re| ! re.is_empty());
 	}
+}
 
-	/// # Build.
-	///
-	/// This method can be called after all of the settings have been set to
-	/// fetch and parse the shitlist results from the selected sources. The
-	/// number of new records added is returned.
-	///
-	/// This method does not output anything. See [`Shitlist::as_str`],
-	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
-	/// something with the results.
-	pub fn build(mut self) -> Result<Self, AdbyssError> {
-		self.found.par_extend(ShitlistSource::fetch(self.flags)?);
-
-		// Post-processing.
-		self.build_out()?;
-
-		// We're done!
-		Ok(self)
-	}
-
+/// # Conversion.
+impl Shitlist {
 	#[must_use]
 	/// # As Str.
 	///
@@ -460,7 +446,10 @@ impl Shitlist {
 		found.par_sort();
 		found
 	}
+}
 
+/// # Details.
+impl Shitlist {
 	#[must_use]
 	/// # Is Empty.
 	///
@@ -472,7 +461,10 @@ impl Shitlist {
 	///
 	/// Return the number of entries found.
 	pub fn len(&self) -> usize { self.found.len() }
+}
 
+/// # Misc.
+impl Shitlist {
 	/// # Stub.
 	///
 	/// Return the user portion of the specified hostfile.
@@ -517,12 +509,13 @@ impl Shitlist {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
-			! MsgKind::Confirm
-				.into_msg(&format!(
+			! Msg::new(
+				MsgKind::Confirm,
+				format!(
 					"Remove all Adbyss blackhole entries from {:?}?",
 					&self.hostfile
-				))
-				.prompt()
+				)
+			).prompt()
 		{
 			return Err(AdbyssError::Aborted);
 		}
@@ -578,13 +571,14 @@ impl Shitlist {
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
-				! MsgKind::Confirm
-					.into_msg(&format!(
+				! Msg::new(
+					MsgKind::Confirm,
+					format!(
 						"Write {} hosts to {:?}?",
 						NiceInt::from(self.len()).as_str(),
 						dst
-					))
-					.prompt()
+					)
+				).prompt()
 			{
 				return Err(AdbyssError::Aborted);
 			}
@@ -605,21 +599,19 @@ impl Shitlist {
 	fn add_www_tlds(&mut self) {
 		if self.found.is_empty() { return; }
 
-		let extra: HashSet<String> = self.found
-			.par_iter()
-			.filter(|x| x.starts_with("www."))
-			.filter_map(|x|
-				Domain::parse(x)
-					.and_then(|mut x|
-						if x.strip_www() { Some(x.take()) }
-						else { None }
-					)
-			)
-			.collect();
-
-		if ! extra.is_empty() {
-			self.found.par_extend(extra);
-		}
+		self.found.par_extend(
+			self.found
+				.par_iter()
+				.filter(|x| x.starts_with("www."))
+				.filter_map(|x|
+					Domain::parse(x)
+						.and_then(|mut x|
+							if x.strip_www() { Some(x.take()) }
+							else { None }
+						)
+				)
+				.collect::<Vec<String>>()
+		);
 	}
 
 	#[allow(trivial_casts)] // Triviality is required!
@@ -774,20 +766,55 @@ impl Shitlist {
 		found
 	}
 
+	/// # Strip Ignores: Static Filter
+	///
+	/// Because this filter could run 60K times or more, it is worth taking
+	/// a moment to optimize the matcher.
+	fn strip_excludes_cb(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
+		match (&self.regexclude, 1.cmp(&self.exclude.len())) {
+			// Neither.
+			(None, Ordering::Greater) => None,
+			// Only regexclude.
+			(Some(re), Ordering::Greater) => {
+				let re = re.clone();
+				Some(Box::new(move |x| re.is_match(x)))
+			},
+			// Both, optimized static.
+			(Some(re), Ordering::Equal) => {
+				let re = re.clone();
+				let val = self.exclude.iter().next().unwrap().clone();
+				Some(Box::new(move |x| x == &&val || re.is_match(x)))
+			},
+			// Optimized static.
+			(None, Ordering::Equal) => {
+				let val = self.exclude.iter().next().unwrap().clone();
+				Some(Box::new(move |x| x == &&val))
+			},
+			// Both, many statics.
+			(Some(re), Ordering::Less) => {
+				let re = re.clone();
+				let ex = self.exclude.clone();
+				Some(Box::new(move |x| re.is_match(x) || ex.contains(x.as_str())))
+			},
+			// Many statics.
+			(None, Ordering::Less) => {
+				let ex = self.exclude.clone();
+				Some(Box::new(move |x| ex.contains(x.as_str())))
+			},
+		}
+	}
+
 	/// # Strip Ignores.
 	///
 	/// This removes any excluded domains from the results.
 	fn strip_excludes(&mut self) {
-		if
-			! self.found.is_empty() &&
-			(! self.exclude.is_empty() || ! self.regexclude.is_empty())
-		{
+		if self.found.is_empty() {
+			return;
+		}
+
+		if let Some(cb) = self.strip_excludes_cb() {
 			self.found.par_iter()
-				.filter(
-					|x|
-					self.exclude.contains(x.as_str()) ||
-					self.regexclude.iter().any(|r| r.is_match(x))
-				)
+				.filter(cb)
 				.cloned()
 				.collect::<HashSet<String>>()
 					.iter()
@@ -796,65 +823,93 @@ impl Shitlist {
 	}
 }
 
-/// # Cache Path From URL.
-fn cache_path(url: &str) -> Option<PathBuf> {
-	let file: &str = match url {
-		"https://adaway.org/hosts.txt" => "_adbyss-adaway.tmp",
-		"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" => "_adbyss-sb.tmp",
-		"https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" => "_adbyss-yoyo.tmp",
-		_ => return None,
-	};
 
-	let mut out: PathBuf = std::env::temp_dir();
-	if out.is_dir() {
-		out.push(file);
-		Some(out)
-	}
-	else { None }
+
+/// # Download URL.
+fn download_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
+	use flate2::read::GzDecoder;
+	use std::io::Read;
+
+	ureq::get(kind.url())
+		.set("user-agent", "Mozilla/5.0")
+		.set("accept-encoding", "gzip")
+		.call()
+		.and_then(|r|
+			if is_gzip(&r) {
+				let mut gz = GzDecoder::new(r.into_reader());
+				let mut s = String::new();
+				gz.read_to_string(&mut s)?;
+				Ok(s)
+			}
+			else {
+				r.into_string().map_err(|e| e.into())
+			}
+		)
+		.map_err(|_| AdbyssError::SourceFetch(kind))
+}
+
+/// # Fetch Sources by Flag.
+///
+/// This fetches and returns a single host collection given the flags.
+fn fetch_sources(flags: u8) -> Result<HashSet<String>, AdbyssError> {
+	// Fetch the remote sources in parallel to speed up downloads a bit.
+	let (tx, rx) = crossbeam_channel::bounded(3);
+
+	[
+		ShitlistSource::AdAway,
+		ShitlistSource::StevenBlack,
+		ShitlistSource::Yoyo,
+	].par_iter()
+		.filter(|x| 0 != flags & x.as_byte())
+		.for_each(|x| {
+			tx.send(x.parse()).unwrap();
+		});
+
+	drop(tx);
+
+	// Merge the results! We'll start with the infallible Adbyss set —
+	// which doesn't have to be downloaded — if that source is enabled,
+	// otherwise we'll start with an empty HashSet.
+	let mut set: HashSet<String> =
+		if 0 == flags & ShitlistSource::Adbyss.as_byte() { HashSet::new() }
+		else { ShitlistSource::Adbyss.parse().unwrap() };
+
+	rx.iter().try_for_each(|x| {
+		set.par_extend(x?);
+		Ok(())
+	})?;
+
+	Ok(set)
 }
 
 /// # Fetch URL.
 ///
 /// This is just a GET wrapper that returns the response as a string.
-fn fetch_url(url: &str, kind: ShitlistSource) -> Result<String, AdbyssError> {
-	match cache_path(url) {
-		Some(cache) => {
-			// If this raw data was fetched less than an hour ago, simply read
-			// and return that instead of asking the Internet for a new copy.
-			if cache.is_file() {
-				// It takes an epic mapping journey to arrive at the answer
-				// without nesting a million if/let statements. Haha.
-				if let Some(x) = std::fs::metadata(&cache)
-					.and_then(|meta| meta.modified())
-					.ok()
-					.and_then(|time| time.elapsed().ok())
-					.and_then(|secs|
-						if 3600 > secs.as_secs() { Some(true) }
-						else { None }
-					)
-					.and_then(|_| std::fs::read_to_string(&cache).ok())
-				{
-					return Ok(x);
-				}
-			}
-
-			// Download and cache for next time.
-			ureq::get(url).call()
-				.and_then(|r| r.into_string().map_err(|e| e.into()))
-				.map(|x| {
-					let _ = write_to_file(&cache, x.as_bytes());
-					x
-				})
-				.map_err(|_| AdbyssError::SourceFetch(kind))
-		},
-		None => ureq::get(url)
-			.call()
-			.and_then(|r| r.into_string().map_err(|e| e.into()))
-			.map_err(|_| AdbyssError::SourceFetch(kind))
+fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
+	// Check the cache first. If the source was downloaded less than an hour
+	// ago, we can use that instead of asking the Internet for a new copy.
+	let cache = kind.cache_path();
+	if let Some(x) = std::fs::metadata(&cache)
+		.ok()
+		.filter(std::fs::Metadata::is_file)
+		.and_then(|meta| meta.modified().ok())
+		.and_then(|time| time.elapsed()
+			.ok()
+			.filter(|secs| 3600 > secs.as_secs())
+		)
+		.and_then(|_| std::fs::read_to_string(&cache).ok())
+	{
+		return Ok(x);
 	}
+
+	// Download and cache for next time.
+	download_url(kind)
+		.map(|x| {
+			let _ = write_to_file(&cache, x.as_bytes());
+			x
+		})
 }
 
-#[must_use]
 #[inline]
 /// # `AHash` Byte Hash.
 ///
@@ -866,6 +921,18 @@ fn hash64(src: &[u8]) -> u64 {
 	let mut hasher = ahash::AHasher::default();
 	hasher.write(src);
 	hasher.finish()
+}
+
+/// # Look for Gzip.
+///
+/// We're asking for Gzipped content, so trust that the response is Gzipped if
+/// either the content-encoding or transfer-encoding flags are set.
+fn is_gzip(res: &ureq::Response) -> bool {
+	match res.header("content-encoding") {
+		Some("gzip") => true,
+		Some(h) => h.contains("gzip"),
+		None => false,
+	}
 }
 
 /// # Parse Custom Hosts.
@@ -913,16 +980,14 @@ fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
 	}
 
 	raw.par_lines()
+		.filter(|x| x.starts_with("0.0.0.0 "))
 		.filter_map(|x|
-			if x.trim().starts_with("0.0.0.0 ") {
-				Some(
-					RE.replace_all(x, "")
-						.split_whitespace()
-						.map(String::from)
-						.collect::<Vec<String>>()
-				).filter(|x| ! x.is_empty())
-			}
-			else { None }
+			Some(RE.replace_all(x, "")
+				.split_whitespace()
+				.map(String::from)
+				.collect::<Vec<String>>()
+			)
+			.filter(|x| ! x.is_empty())
 		)
 		.flatten()
 		.filter_map(crate::sanitize_domain)

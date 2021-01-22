@@ -101,7 +101,10 @@ Save, reboot, and you're back to normal.
 
 mod settings;
 
-use adbyss_core::FLAG_Y;
+use adbyss_core::{
+	AdbyssError,
+	FLAG_Y,
+};
 use fyi_menu::Argue;
 use fyi_msg::{
 	Msg,
@@ -110,6 +113,7 @@ use fyi_msg::{
 use fyi_num::NiceInt;
 use settings::Settings;
 use std::{
+	convert::TryFrom,
 	path::PathBuf,
 	process::Command,
 };
@@ -119,8 +123,8 @@ use std::{
 /// Main.
 fn main() {
 	// We need root!
-	if require_root().is_err() {
-		Msg::error("Adbyss requires root privileges.").die(1);
+	if let Err(e) = require_root() {
+		Msg::error(e.to_string()).die(1);
 	}
 
 	// Parse CLI arguments.
@@ -137,12 +141,13 @@ fn main() {
 		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
 		.map_or_else(
 			Settings::default,
-			|x|
-				if let Ok(y) = std::fs::canonicalize(x) { Settings::from(y) }
-				else {
-					Msg::error("Missing configuration.").die(1);
+			|x| match Settings::try_from(x) {
+				Ok(y) => y,
+				Err(e) => {
+					Msg::error(e.to_string()).die(1);
 					unreachable!();
 				}
+			}
 		)
 		.into_shitlist();
 
@@ -208,13 +213,13 @@ fn main() {
 
 #[cold]
 /// Print Help.
-fn helper() -> String {
-	format!(
+const fn helper() -> &'static str {
+	concat!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )
  '.__/o   o\__.'
-    (=  ^  =)       {}{}{}
+    (=  ^  =)       "#, "\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
      >  -  <        Block ads, trackers, malware, and
     /       \       other garbage sites in /etc/hosts.
    //       \\
@@ -246,21 +251,16 @@ SOURCES:
     Yoyo:         <https://pgl.yoyo.org/adservers/>
 
 Additional global settings are stored in /etc/adbyss.yaml.
-
-"#,
-		"\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v",
-		env!("CARGO_PKG_VERSION"),
-		"\x1b[0m",
+"#
 	)
 }
 
-#[allow(clippy::result_unit_err)] // We print an error and exit from the caller.
 #[allow(clippy::similar_names)] // There's just two variables; we'll be fine.
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail
 /// if that doesn't work.
-pub fn require_root() -> Result<(), ()> {
+pub fn require_root() -> Result<(), AdbyssError> {
 	// See what privileges we have.
 	let (uid, euid) = unsafe { (libc::getuid(), libc::geteuid()) };
 
@@ -277,15 +277,15 @@ pub fn require_root() -> Result<(), ()> {
 		let mut child = Command::new("/usr/bin/sudo")
 			.args(std::env::args())
 			.spawn()
-			.map_err(|_| ())?;
+			.map_err(|_| AdbyssError::Root)?;
 
 		// Wait to see what happens.
 		let exit = child.wait()
-			.map_err(|_| ())?;
+			.map_err(|_| AdbyssError::Root)?;
 
 		// Exit this (the old) instance with an appropriate code.
 		std::process::exit(
-			if exit.success() {0}
+			if exit.success() { 0 }
 			else { exit.code().unwrap_or(1) }
 		);
 	}
