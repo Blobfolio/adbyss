@@ -977,16 +977,14 @@ fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
 	}
 
 	raw.par_lines()
+		.filter(|x| x.starts_with("0.0.0.0 "))
 		.filter_map(|x|
-			if x.trim().starts_with("0.0.0.0 ") {
-				Some(
-					RE.replace_all(x, "")
-						.split_whitespace()
-						.map(String::from)
-						.collect::<Vec<String>>()
-				).filter(|x| ! x.is_empty())
-			}
-			else { None }
+			Some(RE.replace_all(x, "")
+				.split_whitespace()
+				.map(String::from)
+				.collect::<Vec<String>>()
+			)
+			.filter(|x| ! x.is_empty())
 		)
 		.flatten()
 		.filter_map(crate::sanitize_domain)
