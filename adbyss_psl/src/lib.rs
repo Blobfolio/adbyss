@@ -114,6 +114,18 @@ impl PartialEq<String> for Domain {
 	fn eq(&self, other: &String) -> bool { self.host.eq(other) }
 }
 
+/// # Main.
+impl Domain {
+	#[must_use]
+	/// # Is Empty.
+	pub fn is_empty(&self) -> bool { self.host.is_empty() }
+
+	#[must_use]
+	/// # Length.
+	pub fn len(&self) -> usize { self.host.len() }
+}
+
+/// # Setters.
 impl Domain {
 	#[allow(clippy::option_if_let_else)] // Strings aren't `Copy`.
 	/// # Parse Host.
@@ -168,14 +180,20 @@ impl Domain {
 		}
 		else { false }
 	}
+}
 
+/// # Conversion.
+impl Domain {
 	#[allow(clippy::missing_const_for_fn)] // Doesn't work.
 	#[must_use]
 	/// # Into String.
 	///
 	/// Consume the struct, returning the sanitized host as an owned string.
 	pub fn take(self) -> String { self.host }
+}
 
+/// # Getters.
+impl Domain {
 	#[must_use]
 	/// # Host.
 	///
