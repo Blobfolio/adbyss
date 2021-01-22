@@ -4,7 +4,10 @@
 
 use adbyss_psl::Domain;
 use crate::AdbyssError;
-use fyi_msg::MsgKind;
+use fyi_msg::{
+	Msg,
+	MsgKind,
+};
 use fyi_num::NiceInt;
 use rayon::prelude::*;
 use regex::{
@@ -506,12 +509,13 @@ impl Shitlist {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
-			! MsgKind::Confirm
-				.into_msg(&format!(
+			! Msg::new(
+				MsgKind::Confirm,
+				format!(
 					"Remove all Adbyss blackhole entries from {:?}?",
 					&self.hostfile
-				))
-				.prompt()
+				)
+			).prompt()
 		{
 			return Err(AdbyssError::Aborted);
 		}
@@ -567,13 +571,14 @@ impl Shitlist {
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
-				! MsgKind::Confirm
-					.into_msg(&format!(
+				! Msg::new(
+					MsgKind::Confirm,
+					format!(
 						"Write {} hosts to {:?}?",
 						NiceInt::from(self.len()).as_str(),
 						dst
-					))
-					.prompt()
+					)
+				).prompt()
 			{
 				return Err(AdbyssError::Aborted);
 			}
