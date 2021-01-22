@@ -594,21 +594,19 @@ impl Shitlist {
 	fn add_www_tlds(&mut self) {
 		if self.found.is_empty() { return; }
 
-		let extra: HashSet<String> = self.found
-			.par_iter()
-			.filter(|x| x.starts_with("www."))
-			.filter_map(|x|
-				Domain::parse(x)
-					.and_then(|mut x|
-						if x.strip_www() { Some(x.take()) }
-						else { None }
-					)
-			)
-			.collect();
-
-		if ! extra.is_empty() {
-			self.found.par_extend(extra);
-		}
+		self.found.par_extend(
+			self.found
+				.par_iter()
+				.filter(|x| x.starts_with("www."))
+				.filter_map(|x|
+					Domain::parse(x)
+						.and_then(|mut x|
+							if x.strip_www() { Some(x.take()) }
+							else { None }
+						)
+				)
+				.collect::<Vec<String>>()
+		);
 	}
 
 	#[allow(trivial_casts)] // Triviality is required!
