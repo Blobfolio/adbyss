@@ -129,18 +129,17 @@ use std::{
 
 /// Main.
 fn main() {
-	if let Err(e) = _main() {
-		match e {
-			AdbyssError::Argue(ArgueError::WantsVersion) => {
-				fyi_msg::plain!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
-			},
-			AdbyssError::Argue(ArgueError::WantsHelp) => {
-				helper();
-			},
-			_ => {
-				Msg::error(e.to_string()).die(1);
-			},
-		}
+	match _main() {
+		Err(AdbyssError::Argue(ArgueError::WantsVersion)) => {
+			fyi_msg::plain!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
+		},
+		Err(AdbyssError::Argue(ArgueError::WantsHelp)) => {
+			helper();
+		},
+		Err(e) => {
+			Msg::error(e.to_string()).die(1);
+		},
+		Ok(_) => {},
 	}
 }
 
