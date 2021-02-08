@@ -9,10 +9,10 @@ repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [build-dependencies]
-ahash = "0.6.*"
+ahash = "0.7.*"
 idna = "0.2.*"
 
 [dependencies]
-ahash = "0.6.*"
+ahash = "0.7.*"
 idna = "0.2.*"
 lazy_static = "1.4.*"

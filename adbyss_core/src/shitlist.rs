@@ -4,11 +4,8 @@
 
 use adbyss_psl::Domain;
 use crate::AdbyssError;
-use fyi_msg::{
-	Msg,
-	MsgKind,
-};
-use fyi_num::NiceInt;
+use fyi_msg::confirm;
+use fyi_num::NiceU64;
 use rayon::prelude::*;
 use regex::{
 	Regex,
@@ -509,13 +506,10 @@ impl Shitlist {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
-			! Msg::new(
-				MsgKind::Confirm,
-				format!(
-					"Remove all Adbyss blackhole entries from {:?}?",
-					&self.hostfile
-				)
-			).prompt()
+			! confirm!(format!(
+				"Remove all Adbyss blackhole entries from {:?}?",
+				&self.hostfile
+			))
 		{
 			return Err(AdbyssError::Aborted);
 		}
@@ -571,14 +565,11 @@ impl Shitlist {
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
-				! Msg::new(
-					MsgKind::Confirm,
-					format!(
+				! confirm!(format!(
 						"Write {} hosts to {:?}?",
-						NiceInt::from(self.len()).as_str(),
+						NiceU64::from(self.len()).as_str(),
 						dst
-					)
-				).prompt()
+				))
 			{
 				return Err(AdbyssError::Aborted);
 			}
@@ -678,7 +669,7 @@ impl Shitlist {
 ##########
 "#,
 			chrono::Local::now().format("%Y-%m-%d %H:%M:%S %Z"),
-			NiceInt::from(self.found.len()).as_str()
+			NiceU64::from(self.found.len()).as_str()
 		).as_bytes());
 
 		// Add our results!
