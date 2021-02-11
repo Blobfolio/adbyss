@@ -173,7 +173,7 @@ fn _main() -> Result<(), AdbyssError> {
 
 	// Are we just disabling it?
 	if args.switch(b"--disable") {
-		shitlist.unwrite()?;
+		return shitlist.unwrite();
 	}
 
 	// Build it.
