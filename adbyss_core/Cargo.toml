@@ -10,7 +10,6 @@ publish = false
 
 [dependencies]
 ahash = "0.7.*"
-crossbeam-channel = "0.5.*"
 flate2 = "1.0.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"

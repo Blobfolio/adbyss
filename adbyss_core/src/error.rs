@@ -3,7 +3,7 @@
 */
 
 
-use crate::ShitlistSource;
+use crate::Source;
 use fyi_menu::ArgueError;
 use std::{
 	error::Error,
@@ -33,7 +33,7 @@ pub enum AdbyssError {
 	/// # Root required.
 	Root,
 	/// # Fetching source failed.
-	SourceFetch(ShitlistSource),
+	SourceFetch(Source),
 }
 
 impl Error for AdbyssError {}

@@ -1,0 +1,241 @@
+/*!
+# `Adbyss`: Sources
+*/
+
+use adbyss_psl::Domain;
+use crate::{
+	AdbyssError,
+	FLAG_ADAWAY,
+	FLAG_ADBYSS,
+	FLAG_STEVENBLACK,
+	FLAG_YOYO,
+};
+use rayon::{
+	iter::{
+		IntoParallelRefIterator,
+		ParallelIterator,
+	},
+	prelude::ParallelString,
+};
+use regex::Regex;
+use std::{
+	collections::HashSet,
+	fs::File,
+	path::PathBuf,
+};
+
+
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
+/// # Shitlist Sources.
+pub enum Source {
+	/// AdAway.
+	AdAway,
+	/// Adbyss.
+	Adbyss,
+	/// StevenBlack.
+	StevenBlack,
+	/// Yoyo.
+	Yoyo,
+}
+
+/// # Conversion.
+impl Source {
+	#[must_use]
+	/// # As Byte (Flag).
+	///
+	/// Return the equivalent flag for the source.
+	pub const fn as_byte(self) -> u8 {
+		match self {
+			Self::AdAway => FLAG_ADAWAY,
+			Self::Adbyss => FLAG_ADBYSS,
+			Self::StevenBlack => FLAG_STEVENBLACK,
+			Self::Yoyo => FLAG_YOYO,
+		}
+	}
+
+	#[must_use]
+	/// # As Str.
+	pub const fn as_str(self) -> &'static str {
+		match self {
+			Self::AdAway => "AdAway",
+			Self::Adbyss => "Adbyss",
+			Self::StevenBlack => "Steven Black",
+			Self::Yoyo => "Yoyo",
+		}
+	}
+}
+
+/// # Getters.
+impl Source {
+	#[must_use]
+	/// # Cache path.
+	pub fn cache_path(self) -> PathBuf {
+		let mut out: PathBuf = std::env::temp_dir();
+		out.push(
+			match self {
+				Self::AdAway => "_adbyss-adaway.tmp",
+				Self::Adbyss => "_adbyss.tmp",
+				Self::StevenBlack => "_adbyss-sb.tmp",
+				Self::Yoyo => "_adbyss-yoyo.tmp",
+			}
+		);
+		out
+	}
+
+	#[must_use]
+	/// # AdAway-Style Data.
+	///
+	/// AdAway-styled sources map shitlist entries to 127.0.0.1 instead of
+	/// 0.0.0.0. This will replace the IPs so later parsing can operate on a
+	/// consistent foundation.
+	fn patch(self, src: String) -> String {
+		lazy_static::lazy_static! {
+			static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
+		}
+
+		match self {
+			Self::AdAway | Self::Yoyo => { RE.replace_all(&src, "0.0.0.0 ").into_owned() },
+			_ => src,
+		}
+	}
+
+	#[must_use]
+	/// # Source URL.
+	///
+	/// For remote hosts, return the URL where data is found.
+	pub const fn url(self) -> &'static str {
+		match self {
+			Self::AdAway => "https://adaway.org/hosts.txt",
+			Self::Adbyss => "",
+			Self::StevenBlack => "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+			Self::Yoyo => "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
+		}
+	}
+}
+
+/// # Raw Data.
+impl Source {
+	/// # Fetch Raw Source Data.
+	pub fn fetch_raw(self) -> Result<String, AdbyssError> {
+		use std::io::Write;
+
+		// Adbyss' own dataset is static.
+		if self == Self::Adbyss {
+			return Ok(adbyss_sources());
+		}
+
+		// Check the cache first. If the source was downloaded less than an
+		// hour ago, we can use that instead of asking the Internet for a new
+		// copy.
+		let cache = self.cache_path();
+		if let Some(x) = std::fs::metadata(&cache)
+			.ok()
+			.filter(std::fs::Metadata::is_file)
+			.and_then(|meta| meta.modified().ok())
+			.and_then(|time| time.elapsed()
+				.ok()
+				.filter(|secs| 3600 > secs.as_secs())
+			)
+			.and_then(|_| std::fs::read_to_string(&cache).ok())
+		{
+			return Ok(x);
+		}
+
+		// Try to download it.
+		let out = download_source(self).map(|x| self.patch(x))?;
+
+		// Cache it for next time. If this doesn't work, we'll just have to
+		// download it each time. Whatever.
+		let _ = File::create(&cache).and_then(|mut file|
+			file.write_all(out.as_bytes()).and_then(|_| file.flush())
+		);
+
+		// Return it!
+		Ok(out)
+	}
+
+	/// # Fetch Many Raw Source Data.
+	pub fn fetch_many(src: u8) -> Result<HashSet<Domain>, AdbyssError> {
+		lazy_static::lazy_static! {
+			static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
+		}
+
+		Ok(
+			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
+				.filter(|x| 0 != src & x.as_byte())
+				.map(|x| x.fetch_raw())
+				// Merge the raw data into a single block so we can better
+				// parallelize parsing. If any sources failed, operations will
+				// abort here.
+				.try_reduce(String::new, |mut a, b| {
+					a.push('\n');
+					a.push_str(&b);
+					Ok(a)
+				})?
+				// Reduce the lines to those starting with 0.0.0.0, strip that,
+				// and remove comments so we are left with hosts only.
+				.par_lines()
+				.filter(|x| x.starts_with("0.0.0.0 "))
+				.map(|x| RE.replace_all(x, "").into_owned())
+				.intersperse(String::from("\n"))
+				// Stuff them back into a string to workaround borrower
+				// complaints.
+				.collect::<String>()
+				// One last pass, splitting on any whitespace, to domainify all
+				// entries.
+				.par_split_whitespace()
+				.filter_map(Domain::parse)
+				.collect()
+		)
+	}
+}
+
+
+
+/// # Adbyss Built-Ins.
+///
+/// We could pre-package these into a `HashSet`, but pretending they're string
+/// data allows us to parse everything the same way.
+fn adbyss_sources() -> String {
+	include_str!("../skel/adbyss.txt").to_string()
+}
+
+/// # Download Source.
+///
+/// This will try to fetch the remote source data, using Gzip encoding where
+/// possible to reduce the transfer times. All sources currently serve Gzipped
+/// content, so the extra complexity is worth it.
+pub(super) fn download_source(kind: Source) -> Result<String, AdbyssError> {
+	use flate2::read::GzDecoder;
+	use std::io::Read;
+
+	ureq::get(kind.url())
+		.set("user-agent", "Mozilla/5.0")
+		.set("accept-encoding", "gzip")
+		.call()
+		.and_then(|r|
+			if is_gzip(&r) {
+				let mut gz = GzDecoder::new(r.into_reader());
+				let mut s = String::new();
+				gz.read_to_string(&mut s)?;
+				Ok(s)
+			}
+			else {
+				r.into_string().map_err(|e| e.into())
+			}
+		)
+		.map_err(|_| AdbyssError::SourceFetch(kind))
+}
+
+/// # Look for Gzip.
+///
+/// We're asking for Gzipped content, so trust that the response is Gzipped if
+/// either the content-encoding or transfer-encoding flags are set.
+fn is_gzip(res: &ureq::Response) -> bool {
+	match res.header("content-encoding") {
+		Some("gzip") => true,
+		Some(h) => h.contains("gzip"),
+		None => false,
+	}
+}

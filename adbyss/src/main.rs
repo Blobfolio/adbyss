@@ -171,7 +171,7 @@ fn _main() -> Result<(), AdbyssError> {
 		shitlist.set_flags(FLAG_Y);
 	}
 
-	// Are we just disabling it?
+	// Are we just removing shitlist rules?
 	if args.switch(b"--disable") {
 		return shitlist.unwrite();
 	}
@@ -190,7 +190,7 @@ fn _main() -> Result<(), AdbyssError> {
 			.and_then(|_| handle.write_all(b"\n"))
 			.and_then(|_| handle.flush());
 	}
-	// Output to STDOUT?
+	// Output to STDOUT? This is like `--show`, but formatted as a hosts file.
 	else if args.switch(b"--stdout") {
 		use std::io::Write;
 
@@ -200,10 +200,11 @@ fn _main() -> Result<(), AdbyssError> {
 			.and_then(|_| handle.write_all(b"\n"))
 			.and_then(|_| handle.flush());
 	}
-	// Write changes to file.
+	// Actually write the changes to the host file!
 	else {
 		shitlist.write()?;
 
+		// Summarize what we've done.
 		if ! args.switch2(b"-q", b"--quiet") {
 			Msg::new(
 				MsgKind::Success,
@@ -264,7 +265,7 @@ Additional global settings are stored in /etc/adbyss.yaml.
 	));
 }
 
-#[allow(clippy::similar_names)] // There's just two variables; we'll be fine.
+#[allow(clippy::similar_names)] // There are only two variables; we'll be fine.
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail

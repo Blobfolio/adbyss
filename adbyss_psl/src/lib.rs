@@ -65,19 +65,21 @@ host. You can also consume the object into an owned string with [`Domain::take`]
 
 
 mod list;
+
 use self::list::{
 	PSL_MAIN,
 	PSL_WILD,
 };
-
-use std::hash::{
-	Hash,
-	Hasher,
-};
-
-use std::ops::{
-	Deref,
-	Range,
+use std::{
+	cmp::Ordering,
+	hash::{
+		Hash,
+		Hasher,
+	},
+	ops::{
+		Deref,
+		Range,
+	},
 };
 
 
@@ -113,6 +115,12 @@ impl Hash for Domain {
 	fn hash<H: Hasher>(&self, state: &mut H) { self.host.hash(state); }
 }
 
+impl Ord for Domain {
+	fn cmp(&self, other: &Self) -> Ordering {
+		self.host.cmp(&other.host)
+	}
+}
+
 impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
@@ -125,6 +133,12 @@ impl PartialEq<String> for Domain {
 	fn eq(&self, other: &String) -> bool { self.host.eq(other) }
 }
 
+impl PartialOrd for Domain {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+}
+
 /// # Main.
 impl Domain {
 	#[must_use]
@@ -134,6 +148,14 @@ impl Domain {
 	#[must_use]
 	/// # Length.
 	pub fn len(&self) -> usize { self.host.len() }
+
+	#[must_use]
+	/// # As String Slice.
+	pub fn as_str(&self) -> &str { &self.host }
+
+	#[must_use]
+	/// # As Bytes.
+	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
 /// # Setters.
@@ -269,6 +291,8 @@ impl Domain {
 		&self.host[self.root.start..]
 	}
 }
+
+
 
 /// # Find Suffix.
 ///
