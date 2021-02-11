@@ -55,6 +55,7 @@ rustflags   := "-C link-arg=-s"
 		-p {{ pkg_id }} \
 		-o "{{ justfile_directory() }}/release"
 
+	just _fix-chown "{{ pkg_dir3 }}"
 	just _fix-chown "{{ release_dir }}"
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
