@@ -176,12 +176,18 @@ impl Domain {
 			)
 	}
 
+	#[must_use]
+	/// # Has Leading WWW.
+	pub fn has_www(&self) -> bool {
+		self.root.start >= 4 && self.host.starts_with("www.")
+	}
+
 	/// # Strip Leading WWW.
 	///
 	/// If this host has a leading `www.` subdomain, it will be removed. If it
 	/// doesn't, no change. `True` is returned if a change is made.
 	pub fn strip_www(&mut self)	-> bool {
-		if self.root.start >= 4 && self.host.starts_with("www.") {
+		if self.has_www() {
 			unsafe { self.host.as_mut_vec().drain(0..4); }
 			self.root.start -= 4;
 			self.root.end -= 4;
@@ -190,6 +196,20 @@ impl Domain {
 			true
 		}
 		else { false }
+	}
+
+	#[must_use]
+	/// # Clone Without Leading WWW.
+	///
+	/// This will return a clone of the instance without the leading WWW if it
+	/// has one, otherwise `None`.
+	pub fn without_www(&self) -> Option<Self> {
+		if self.has_www() {
+			let mut out = self.clone();
+			out.strip_www();
+			Some(out)
+		}
+		else { None }
 	}
 }
 
