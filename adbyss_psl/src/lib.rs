@@ -328,9 +328,7 @@ fn parse_suffix(host: &str) -> Option<usize> {
 			// There has to be a before-before part.
 			else if dot == 0 { return None; }
 			// Otherwise the last chunk is part of the suffix.
-			else {
-				return Some(after_dot);
-			}
+			return Some(after_dot);
 		}
 		// This is a normal suffix.
 		else if PSL_MAIN.contains(&host[idx + 1..]) {
