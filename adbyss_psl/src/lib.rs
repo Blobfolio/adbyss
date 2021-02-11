@@ -82,6 +82,17 @@ use std::ops::{
 
 
 
+/// # (Not) Random State.
+///
+/// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
+/// and prevents Valgrind complaining about 64 lingering bytes from the runtime
+/// static that would be used otherwise.
+///
+/// For our purposes, the variability of truly random keys isn't really needed.
+pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
+
+
+
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 pub struct Domain {

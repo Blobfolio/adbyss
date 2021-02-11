@@ -6058,6 +6058,7 @@ yt
 հայ
 বাংলা
 бг
+البحرين
 бел
 中国
 中國
@@ -6096,6 +6097,7 @@ yt
 الاردن
 한국
 қаз
+ລາວ
 ලංකා
 இலங்கை
 المغرب
@@ -7400,6 +7402,7 @@ us-west-1.elasticbeanstalk.com
 us-west-2.elasticbeanstalk.com
 *.elb.amazonaws.com
 *.elb.amazonaws.com.cn
+awsglobalaccelerator.com
 s3.amazonaws.com
 s3-ap-northeast-1.amazonaws.com
 s3-ap-northeast-2.amazonaws.com
@@ -7458,6 +7461,8 @@ amsw.nl
 t3l3p0rt.net
 tele.amune.org
 apigee.io
+appspacehosted.com
+appspaceusercontent.com
 on-aptible.com
 user.aseinet.ne.jp
 gv.vc
@@ -7545,6 +7550,7 @@ cleverapps.io
 *.lcl.dev
 *.stg.dev
 clic2000.net
+clickrising.net
 c66.me
 cloud66.ws
 cloud66.zone
@@ -8479,6 +8485,8 @@ kinghost.net
 uni5.net
 knightpoint.systems
 oya.to
+kuleuven.cloud
+ezproxy.kuleuven.be
 // .KRD : http://nic.krd/data/krd/Registration%20Policy.pdf
 co.krd
 edu.krd
@@ -8613,6 +8621,8 @@ netlify.app
 ngrok.io
 nh-serv.co.uk
 nfshost.com
+northflank.app
+code.run
 dnsking.ch
 mypi.co
 n4t.co
@@ -8793,6 +8803,8 @@ orsites.com
 operaunite.com
 skygearapp.com
 outsystemscloud.com
+*.webpaas.ovh.net
+*.hosting.ovh.net
 ownprovider.com
 own.pm
 *.owo.codes
@@ -8965,6 +8977,8 @@ cust.testing.thingdust.io
 arvo.network
 azimuth.network
 tlon.network
+torproject.net
+pages.torproject.net
 bloxcms.com
 townnews-staging.com
 12hp.at

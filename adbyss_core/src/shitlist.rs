@@ -909,7 +909,7 @@ fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
 /// home page for more details. Otherwise, TL;DR it is very fast.
 fn hash64(src: &[u8]) -> u64 {
 	use std::hash::Hasher;
-	let mut hasher = ahash::AHasher::default();
+	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
 	hasher.write(src);
 	hasher.finish()
 }
