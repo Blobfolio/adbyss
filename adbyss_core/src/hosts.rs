@@ -29,6 +29,10 @@ use regex::{
 	Regex,
 	RegexSet,
 };
+use smartstring::{
+	LazyCompact,
+	SmartString,
+};
 use std::{
 	cmp::Ordering,
 	collections::{
@@ -298,8 +302,8 @@ impl Shitlist {
 	///
 	/// Consume the struct and return a sorted vector of the qualifying
 	/// blackholeable hosts.
-	pub fn into_vec(mut self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.par_drain()
+	pub fn into_vec(mut self) -> Vec<SmartString<LazyCompact>> {
+		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_drain()
 			.filter(|x| x.len() <= MAX_LINE)
 			.map(Domain::take)
 			.collect();
@@ -546,9 +550,9 @@ impl Shitlist {
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
-	fn found_compact(&self) -> Vec<String> {
+	fn found_compact(&self) -> Vec<SmartString<LazyCompact>> {
 		// Start by building up a map keyed by root domain...
-		let mut found: Vec<String> = self.found
+		let mut found: Vec<SmartString<LazyCompact>> = self.found
 			.iter()
 			.fold(
 				HashMap::<u64, Vec<&Domain>>::with_capacity(self.found.len()),
@@ -567,8 +571,8 @@ impl Shitlist {
 			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
-				let mut out: Vec<String> = Vec::new();
-				let mut line: String = String::new();
+				let mut out: Vec<SmartString<LazyCompact>> = Vec::new();
+				let mut line: SmartString<LazyCompact> = SmartString::<LazyCompact>::new();
 
 				// Split on whitespace.
 				x.sort();
@@ -602,10 +606,10 @@ impl Shitlist {
 	/// # Found: Straight Sort.
 	///
 	/// This delivers each host, one per line.
-	fn found_separate(&self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.par_iter()
+	fn found_separate(&self) -> Vec<SmartString<LazyCompact>> {
+		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
-			.map(|x| String::from(x.as_str()))
+			.map(|x| x.as_str().into())
 			.collect();
 		found.par_sort();
 		found

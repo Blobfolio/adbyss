@@ -94,13 +94,17 @@ pub(crate) const MAX_LINE: usize = 245;
 #[cfg(test)]
 mod tests {
 	use adbyss_psl::Domain;
+	use smartstring::{
+		LazyCompact,
+		SmartString,
+	};
 
 
 
 	/// # Sanitize Domain.
 	///
 	/// This ensures the domain is correctly formatted and has a recognized TLD.
-	fn sanitize_domain<S>(dom: S) -> Option<String>
+	fn sanitize_domain<S>(dom: S) -> Option<SmartString<LazyCompact>>
 	where S: AsRef<str> {
 		Domain::parse(dom).map(adbyss_psl::Domain::take)
 	}
@@ -108,15 +112,15 @@ mod tests {
 	#[test]
 	fn t_sanitize_domain() {
 		for (a, b) in [
-			("Blobfolio.com", Some(String::from("blobfolio.com"))),
-			("www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
-			(" www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
+			("Blobfolio.com", Some(SmartString::<LazyCompact>::from("blobfolio.com"))),
+			("www.Blobfolio.com", Some(SmartString::<LazyCompact>::from("www.blobfolio.com"))),
+			(" www.Blobfolio.com", Some(SmartString::<LazyCompact>::from("www.blobfolio.com"))),
 			("http://www.Blobfolio.com", None),
 			("hello", None),
 			("localhost", None),
-			("☺.com", Some(String::from("xn--74h.com"))),
-			("www.☺.com", Some(String::from("www.xn--74h.com"))),
-			("www.xn--74h.com", Some(String::from("www.xn--74h.com"))),
+			("☺.com", Some(SmartString::<LazyCompact>::from("xn--74h.com"))),
+			("www.☺.com", Some(SmartString::<LazyCompact>::from("www.xn--74h.com"))),
+			("www.xn--74h.com", Some(SmartString::<LazyCompact>::from("www.xn--74h.com"))),
 		].iter() {
 			assert_eq!(sanitize_domain(a), *b);
 		}

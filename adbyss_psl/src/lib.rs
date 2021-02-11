@@ -70,6 +70,10 @@ use self::list::{
 	PSL_MAIN,
 	PSL_WILD,
 };
+use smartstring::{
+	LazyCompact,
+	SmartString,
+};
 use std::{
 	cmp::Ordering,
 	hash::{
@@ -98,7 +102,7 @@ pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seed
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 pub struct Domain {
-	host: String,
+	host: SmartString<LazyCompact>,
 	root: Range<usize>,
 	suffix: Range<usize>,
 }
@@ -183,7 +187,7 @@ impl Domain {
 						Self {
 							root: d + 1..s - 1,
 							suffix: s..host.len(),
-							host,
+							host: host.into(),
 						}
 					}
 					// The root starts at zero.
@@ -191,7 +195,7 @@ impl Domain {
 						Self {
 							root: 0..s - 1,
 							suffix: s..host.len(),
-							host,
+							host: host.into(),
 						}
 					}
 				)
@@ -204,22 +208,6 @@ impl Domain {
 		self.root.start >= 4 && self.host.starts_with("www.")
 	}
 
-	/// # Strip Leading WWW.
-	///
-	/// If this host has a leading `www.` subdomain, it will be removed. If it
-	/// doesn't, no change. `True` is returned if a change is made.
-	pub fn strip_www(&mut self)	-> bool {
-		if self.has_www() {
-			unsafe { self.host.as_mut_vec().drain(0..4); }
-			self.root.start -= 4;
-			self.root.end -= 4;
-			self.suffix.start -= 4;
-			self.suffix.end -= 4;
-			true
-		}
-		else { false }
-	}
-
 	#[must_use]
 	/// # Clone Without Leading WWW.
 	///
@@ -227,9 +215,11 @@ impl Domain {
 	/// has one, otherwise `None`.
 	pub fn without_www(&self) -> Option<Self> {
 		if self.has_www() {
-			let mut out = self.clone();
-			out.strip_www();
-			Some(out)
+			Some(Self {
+				host: self.host[4..].into(),
+				root: self.root.start - 4..self.root.end - 4,
+				suffix: self.suffix.start - 4..self.suffix.end - 4,
+			})
 		}
 		else { None }
 	}
@@ -242,7 +232,7 @@ impl Domain {
 	/// # Into String.
 	///
 	/// Consume the struct, returning the sanitized host as an owned string.
-	pub fn take(self) -> String { self.host }
+	pub fn take(self) -> SmartString<LazyCompact> { self.host }
 }
 
 /// # Getters.
@@ -488,7 +478,8 @@ mod tests {
 		assert_eq!(dom.deref(), "www.blobfolio.com");
 		assert_eq!(dom.host(), "www.blobfolio.com");
 
-		assert!(dom.strip_www());
+		assert!(dom.has_www());
+		dom = dom.without_www().expect("Dom without www.");
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
