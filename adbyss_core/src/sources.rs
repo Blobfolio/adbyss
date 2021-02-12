@@ -13,6 +13,7 @@ use crate::{
 use rayon::{
 	iter::{
 		IntoParallelRefIterator,
+		ParallelExtend,
 		ParallelIterator,
 	},
 	prelude::ParallelString,
@@ -157,12 +158,13 @@ impl Source {
 	}
 
 	/// # Fetch Many Raw Source Data.
-	pub fn fetch_many(src: u8) -> Result<HashSet<Domain>, AdbyssError> {
+	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		lazy_static::lazy_static! {
 			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();
 		}
 
-		Ok(
+		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(60000, crate::AHASH_STATE);
+		out.par_extend(
 			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
 				.filter(|x| 0 != src & x.as_byte())
 				.map(|x| x.fetch_raw())
@@ -178,8 +180,8 @@ impl Source {
 				// Now split into lines to find host matches.
 				.par_lines()
 				.filter_map(|x| RE.find(x).and_then(|y| Domain::parse(&x[8..y.end()])))
-				.collect()
-		)
+		);
+		Ok(out)
 	}
 }
 

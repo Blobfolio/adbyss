@@ -106,12 +106,23 @@ impl Settings {
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
 
 		// And build!
-		Shitlist::default()
+		let mut out = Shitlist::default()
 			.with_flags(flags)
-			.with_hostfile(self.hostfile)
-			.without(self.exclude)
-			.without_regex(self.regexclude)
-			.with(self.include)
+			.with_hostfile(self.hostfile);
+
+		if ! self.exclude.is_empty() {
+			out.exclude(self.exclude);
+		}
+
+		if ! self.regexclude.is_empty() {
+			out.regexclude(self.regexclude);
+		}
+
+		if ! self.include.is_empty() {
+			out.include(self.include);
+		}
+
+		out
 	}
 }
 

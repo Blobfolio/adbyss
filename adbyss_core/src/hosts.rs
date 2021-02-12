@@ -5,6 +5,7 @@
 use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
+	AHASH_STATE,
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_Y,
@@ -107,9 +108,9 @@ impl Watermark {
 pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
-	exclude: HashSet<Domain>,
+	exclude: HashSet<Domain, ahash::RandomState>,
 	regexclude: Option<RegexSet>,
-	found: HashSet<Domain>,
+	found: HashSet<Domain, ahash::RandomState>,
 	out: Vec<u8>,
 }
 
@@ -118,9 +119,9 @@ impl Default for Shitlist {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
 			flags: 0,
-			exclude: HashSet::new(),
+			exclude: HashSet::with_hasher(AHASH_STATE),
 			regexclude: None,
-			found: HashSet::with_capacity(60000),
+			found: HashSet::with_capacity_and_hasher(60000, AHASH_STATE),
 			out: Vec::with_capacity(60000),
 		}
 	}
@@ -456,10 +457,11 @@ impl Shitlist {
 	/// Note: The reverse is not enforced as that would be madness!
 	fn add_www_tlds(&mut self) {
 		if ! self.found.is_empty() {
-			let extra = self.found
+			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+			extra.par_extend(self.found
 				.par_iter()
 				.filter_map(Domain::without_www)
-				.collect::<HashSet<Domain>>();
+			);
 			self.found.par_extend(extra);
 		}
 	}
@@ -555,7 +557,7 @@ impl Shitlist {
 		let mut found: Vec<SmartString<LazyCompact>> = self.found
 			.iter()
 			.fold(
-				HashMap::<u64, Vec<&Domain>>::with_capacity(self.found.len()),
+				HashMap::<u64, Vec<&Domain>, ahash::RandomState>::with_capacity_and_hasher(self.found.len(), AHASH_STATE),
 				|mut acc, dom| {
 					let hash: u64 = hash64(dom.tld().as_bytes());
 
@@ -662,12 +664,13 @@ impl Shitlist {
 		}
 
 		if let Some(cb) = self.strip_excludes_cb() {
-			self.found.par_iter()
-				.filter(cb)
-				.cloned()
-				.collect::<HashSet<Domain>>()
-					.iter()
-					.for_each(|x| { self.found.remove(x); });
+			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+			extra.par_extend(
+				self.found.par_iter()
+					.filter(cb)
+					.cloned()
+			);
+			extra.iter().for_each(|x| { self.found.remove(x); });
 		}
 	}
 }
@@ -692,7 +695,7 @@ fn hash64(src: &[u8]) -> u64 {
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
 /// We'll want to exclude these from the blackhole list to prevent duplicates,
 /// however unlikely that may be.
-fn parse_custom_hosts(raw: &str) -> HashSet<Domain> {
+fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 	lazy_static::lazy_static! {
 		// Match comments.
 		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
@@ -700,22 +703,25 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain> {
 		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
 	}
 
-	raw.par_lines()
-		.filter_map(|x| {
-			let line = RE1.replace_all(x.trim(), "");
+	let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+	out.par_extend(
+		raw.par_lines()
+			.filter_map(|x| {
+				let line = RE1.replace_all(x.trim(), "");
 
-			if RE2.is_match(&line) {
-				Some(
-					line.split_whitespace()
-						.skip(1)
-						.filter_map(Domain::parse)
-						.collect::<Vec<Domain>>()
-				)
-			}
-			else { None }
-		})
-		.flatten()
-		.collect()
+				if RE2.is_match(&line) {
+					Some(
+						line.split_whitespace()
+							.skip(1)
+							.filter_map(Domain::parse)
+							.collect::<Vec<Domain>>()
+					)
+				}
+				else { None }
+			})
+			.flatten()
+	);
+	out
 }
 
 /// # Write Helper.
