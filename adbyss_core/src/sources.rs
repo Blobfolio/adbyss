@@ -158,13 +158,7 @@ impl Source {
 	/// # Fetch Many Raw Source Data.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain>, AdbyssError> {
 		lazy_static::lazy_static! {
-			/// # Match bits to remove.
-			///
-			/// It would be a lot less janky to transform the query into
-			/// something for [`Regex::find_iter`], but unfortunately that
-			/// doesn't parallelize well, and results in slower processing at
-			/// this scale.
-			static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
+			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();
 		}
 
 		Ok(
@@ -179,19 +173,9 @@ impl Source {
 					a.push_str(&b);
 					Ok(a)
 				})?
-				// Reduce the lines to those starting with 0.0.0.0, strip that,
-				// and remove comments so we are left with hosts only.
+				// Now split into lines to find host matches.
 				.par_lines()
-				.filter(|x| x.starts_with("0.0.0.0 "))
-				.map(|x| RE.replace_all(x, "").into_owned())
-				.intersperse(String::from("\n"))
-				// Stuff them back into a string to workaround borrower
-				// complaints.
-				.collect::<String>()
-				// One last pass, splitting on any whitespace, to domainify all
-				// entries.
-				.par_split_whitespace()
-				.filter_map(Domain::parse)
+				.filter_map(|x| RE.find(x).and_then(|y| Domain::parse(&x[8..y.end()])))
 				.collect()
 		)
 	}
