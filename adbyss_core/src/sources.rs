@@ -158,6 +158,12 @@ impl Source {
 	/// # Fetch Many Raw Source Data.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain>, AdbyssError> {
 		lazy_static::lazy_static! {
+			/// # Match bits to remove.
+			///
+			/// It would be a lot less janky to transform the query into
+			/// something for [`Regex::find_iter`], but unfortunately that
+			/// doesn't parallelize well, and results in slower processing at
+			/// this scale.
 			static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
 		}
 
