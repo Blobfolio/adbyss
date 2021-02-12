@@ -19,6 +19,7 @@ use rayon::{
 };
 use regex::Regex;
 use std::{
+	borrow::Cow,
 	collections::HashSet,
 	fs::File,
 	path::PathBuf,
@@ -117,12 +118,12 @@ impl Source {
 /// # Raw Data.
 impl Source {
 	/// # Fetch Raw Source Data.
-	pub fn fetch_raw(self) -> Result<String, AdbyssError> {
+	pub fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
 		use std::io::Write;
 
 		// Adbyss' own dataset is static.
 		if self == Self::Adbyss {
-			return Ok(adbyss_sources());
+			return Ok(Cow::Borrowed(include_str!("../skel/adbyss.txt")));
 		}
 
 		// Check the cache first. If the source was downloaded less than an
@@ -139,7 +140,7 @@ impl Source {
 			)
 			.and_then(|_| std::fs::read_to_string(&cache).ok())
 		{
-			return Ok(x);
+			return Ok(Cow::Owned(x));
 		}
 
 		// Try to download it.
@@ -152,7 +153,7 @@ impl Source {
 		);
 
 		// Return it!
-		Ok(out)
+		Ok(Cow::Owned(out))
 	}
 
 	/// # Fetch Many Raw Source Data.
@@ -168,9 +169,10 @@ impl Source {
 				// Merge the raw data into a single block so we can better
 				// parallelize parsing. If any sources failed, operations will
 				// abort here.
-				.try_reduce(String::new, |mut a, b| {
-					a.push('\n');
-					a.push_str(&b);
+				.try_reduce(Cow::default, |mut a, b| {
+					let tmp = a.to_mut();
+					tmp.push('\n');
+					tmp.push_str(&b);
 					Ok(a)
 				})?
 				// Now split into lines to find host matches.
@@ -182,14 +184,6 @@ impl Source {
 }
 
 
-
-/// # Adbyss Built-Ins.
-///
-/// We could pre-package these into a `HashSet`, but pretending they're string
-/// data allows us to parse everything the same way.
-fn adbyss_sources() -> String {
-	include_str!("../skel/adbyss.txt").to_string()
-}
 
 /// # Download Source.
 ///
