@@ -105,15 +105,22 @@ use adbyss_core::{
 	AdbyssError,
 	FLAG_Y,
 };
-use fyi_menu::Argue;
+use fyi_menu::{
+	Argue,
+	ArgueError,
+	FLAG_HELP,
+	FLAG_VERSION,
+};
 use fyi_msg::{
 	Msg,
 	MsgKind,
 };
-use fyi_num::NiceInt;
+use fyi_num::NiceU64;
 use settings::Settings;
 use std::{
 	convert::TryFrom,
+	ffi::OsStr,
+	os::unix::ffi::OsStrExt,
 	path::PathBuf,
 	process::Command,
 };
@@ -122,99 +129,102 @@ use std::{
 
 /// Main.
 fn main() {
-	// We need root!
-	if let Err(e) = require_root() {
-		Msg::error(e.to_string()).die(1);
+	match _main() {
+		Err(AdbyssError::Argue(ArgueError::WantsVersion)) => {
+			fyi_msg::plain!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
+		},
+		Err(AdbyssError::Argue(ArgueError::WantsHelp)) => {
+			helper();
+		},
+		Err(e) => {
+			Msg::error(e.to_string()).die(1);
+		},
+		Ok(_) => {},
 	}
+}
+
+#[inline]
+/// Actual Main.
+fn _main() -> Result<(), AdbyssError> {
+	// We need root!
+	require_root()?;
 
 	// Parse CLI arguments.
-	let args = Argue::new(0)
-		.with_version("Adbyss", env!("CARGO_PKG_VERSION"))
-		.with_help(helper);
+	let args = Argue::new(FLAG_VERSION | FLAG_HELP).map_err(AdbyssError::Argue)?;
 
 	// Load configuration. If the user specified one, go with that and print an
 	// error if the path is invalid. Otherwise look for a config at the default
 	// path and go with that if it exists. Otherwise just use the internal
 	// default settings.
-	let mut shitlist = args.option2("-c", "--config")
-		.map(PathBuf::from)
-		.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
-		.map_or_else(
-			Settings::default,
-			|x| match Settings::try_from(x) {
-				Ok(y) => y,
-				Err(e) => {
-					Msg::error(e.to_string()).die(1);
-					unreachable!();
-				}
-			}
-		)
+	let mut shitlist =
+		if let Some(sh) = args.option2(b"-c", b"--config")
+			.map(|x| PathBuf::from(OsStr::from_bytes(x)))
+			.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
+		{
+			Settings::try_from(sh)?
+		}
+		else { Settings::default() }
 		.into_shitlist();
 
 	// Handle runtime flags.
-	if args.switch2("-y", "--yes") {
+	if args.switch2(b"-y", b"--yes") {
 		shitlist.set_flags(FLAG_Y);
 	}
 
-	// Are we just disabling it?
-	if args.switch("--disable") {
-		if let Err(e) = shitlist.unwrite() {
-			Msg::error(e.to_string()).die(1);
-		}
-		else { return; }
+	// Are we just removing shitlist rules?
+	if args.switch(b"--disable") {
+		return shitlist.unwrite();
 	}
 
 	// Build it.
-	match shitlist.build() {
-		Ok(shitlist) =>
-			// Just list the results.
-			if args.switch("--show") {
-				use std::io::Write;
+	let shitlist = shitlist.build()?;
 
-				let raw: String = shitlist.into_vec().join("\n");
-				let writer = std::io::stdout();
-				let mut handle = writer.lock();
-				let _ = handle.write_all(raw.as_bytes())
-					.and_then(|_| handle.write_all(b"\n"))
-					.and_then(|_| handle.flush());
-			}
-			// Output to STDOUT?
-			else if args.switch("--stdout") {
-				use std::io::Write;
+	// Just list the results.
+	if args.switch(b"--show") {
+		use std::io::Write;
 
-				let writer = std::io::stdout();
-				let mut handle = writer.lock();
-				let _ = handle.write_all(shitlist.as_bytes())
-					.and_then(|_| handle.write_all(b"\n"))
-					.and_then(|_| handle.flush());
-			}
-			// Write changes to file.
-			else if let Err(e) = shitlist.write() {
-				Msg::error(e.to_string()).die(1);
-			}
-			// Summarize the results!
-			else if ! args.switch2("-q", "--quiet") {
-				Msg::new(
-					MsgKind::Success,
-					format!(
-						"{} unique hosts have been cast to a blackhole!",
-						NiceInt::from(shitlist.len()).as_str()
-					)
+		let raw: String = shitlist.into_vec().join("\n");
+		let writer = std::io::stdout();
+		let mut handle = writer.lock();
+		let _ = handle.write_all(raw.as_bytes())
+			.and_then(|_| handle.write_all(b"\n"))
+			.and_then(|_| handle.flush());
+	}
+	// Output to STDOUT? This is like `--show`, but formatted as a hosts file.
+	else if args.switch(b"--stdout") {
+		use std::io::Write;
+
+		let writer = std::io::stdout();
+		let mut handle = writer.lock();
+		let _ = handle.write_all(shitlist.as_bytes())
+			.and_then(|_| handle.write_all(b"\n"))
+			.and_then(|_| handle.flush());
+	}
+	// Actually write the changes to the host file!
+	else {
+		shitlist.write()?;
+
+		// Summarize what we've done.
+		if ! args.switch2(b"-q", b"--quiet") {
+			Msg::new(
+				MsgKind::Success,
+				format!(
+					"{} unique hosts have been cast to a blackhole!",
+					NiceU64::from(shitlist.len()).as_str()
 				)
-					.with_newline(true)
-					.print();
-			},
-		Err(e) => {
-			Msg::error(e.to_string()).die(1);
+			)
+				.with_newline(true)
+				.print();
 		}
 	}
 
+	Ok(())
 }
 
 #[cold]
 /// Print Help.
-const fn helper() -> &'static str {
-	concat!(
+fn helper() {
+	fyi_msg::plain!(concat!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )
@@ -252,10 +262,10 @@ SOURCES:
 
 Additional global settings are stored in /etc/adbyss.yaml.
 "#
-	)
+	));
 }
 
-#[allow(clippy::similar_names)] // There's just two variables; we'll be fine.
+#[allow(clippy::similar_names)] // There are only two variables; we'll be fine.
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail

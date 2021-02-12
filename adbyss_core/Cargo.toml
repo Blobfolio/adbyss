@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.2.9"
+version = "0.3.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -9,12 +9,12 @@ repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [dependencies]
-ahash = "0.6.*"
-crossbeam-channel = "0.5.*"
+ahash = "0.7.*"
 flate2 = "1.0.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"
 regex = "1.4.*"
+smartstring = "0.2.*"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
@@ -24,13 +24,17 @@ version = "0.4.*"
 default-features = false
 features = [ "clock", "std" ]
 
+[dependencies.fyi_menu]
+git = "https://github.com/Blobfolio/fyi.git"
+tag = "v0.6.1"
+
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.4"
+tag = "v0.6.1"
 
 [dependencies.fyi_num]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.5.4"
+tag = "v0.6.1"
 
 [dependencies.tempfile-fast]
 git = "https://github.com/FauxFaux/tempfile-fast-rs.git"

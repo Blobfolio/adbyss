@@ -65,27 +65,44 @@ host. You can also consume the object into an owned string with [`Domain::take`]
 
 
 mod list;
+
 use self::list::{
 	PSL_MAIN,
 	PSL_WILD,
 };
-
-use std::hash::{
-	Hash,
-	Hasher,
+use smartstring::{
+	LazyCompact,
+	SmartString,
+};
+use std::{
+	cmp::Ordering,
+	hash::{
+		Hash,
+		Hasher,
+	},
+	ops::{
+		Deref,
+		Range,
+	},
 };
 
-use std::ops::{
-	Deref,
-	Range,
-};
+
+
+/// # (Not) Random State.
+///
+/// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
+/// and prevents Valgrind complaining about 64 lingering bytes from the runtime
+/// static that would be used otherwise.
+///
+/// For our purposes, the variability of truly random keys isn't really needed.
+pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
 
 
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 pub struct Domain {
-	host: String,
+	host: SmartString<LazyCompact>,
 	root: Range<usize>,
 	suffix: Range<usize>,
 }
@@ -102,6 +119,12 @@ impl Hash for Domain {
 	fn hash<H: Hasher>(&self, state: &mut H) { self.host.hash(state); }
 }
 
+impl Ord for Domain {
+	fn cmp(&self, other: &Self) -> Ordering {
+		self.host.cmp(&other.host)
+	}
+}
+
 impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
@@ -114,6 +137,12 @@ impl PartialEq<String> for Domain {
 	fn eq(&self, other: &String) -> bool { self.host.eq(other) }
 }
 
+impl PartialOrd for Domain {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+}
+
 /// # Main.
 impl Domain {
 	#[must_use]
@@ -123,6 +152,14 @@ impl Domain {
 	#[must_use]
 	/// # Length.
 	pub fn len(&self) -> usize { self.host.len() }
+
+	#[must_use]
+	/// # As String Slice.
+	pub fn as_str(&self) -> &str { &self.host }
+
+	#[must_use]
+	/// # As Bytes.
+	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
 /// # Setters.
@@ -150,7 +187,7 @@ impl Domain {
 						Self {
 							root: d + 1..s - 1,
 							suffix: s..host.len(),
-							host,
+							host: host.into(),
 						}
 					}
 					// The root starts at zero.
@@ -158,27 +195,33 @@ impl Domain {
 						Self {
 							root: 0..s - 1,
 							suffix: s..host.len(),
-							host,
+							host: host.into(),
 						}
 					}
 				)
 			)
 	}
 
-	/// # Strip Leading WWW.
+	#[must_use]
+	/// # Has Leading WWW.
+	pub fn has_www(&self) -> bool {
+		self.root.start >= 4 && self.host.starts_with("www.")
+	}
+
+	#[must_use]
+	/// # Clone Without Leading WWW.
 	///
-	/// If this host has a leading `www.` subdomain, it will be removed. If it
-	/// doesn't, no change. `True` is returned if a change is made.
-	pub fn strip_www(&mut self)	-> bool {
-		if self.root.start >= 4 && self.host.starts_with("www.") {
-			unsafe { self.host.as_mut_vec().drain(0..4); }
-			self.root.start -= 4;
-			self.root.end -= 4;
-			self.suffix.start -= 4;
-			self.suffix.end -= 4;
-			true
+	/// This will return a clone of the instance without the leading WWW if it
+	/// has one, otherwise `None`.
+	pub fn without_www(&self) -> Option<Self> {
+		if self.has_www() {
+			Some(Self {
+				host: self.host[4..].into(),
+				root: self.root.start - 4..self.root.end - 4,
+				suffix: self.suffix.start - 4..self.suffix.end - 4,
+			})
 		}
-		else { false }
+		else { None }
 	}
 }
 
@@ -189,7 +232,7 @@ impl Domain {
 	/// # Into String.
 	///
 	/// Consume the struct, returning the sanitized host as an owned string.
-	pub fn take(self) -> String { self.host }
+	pub fn take(self) -> SmartString<LazyCompact> { self.host }
 }
 
 /// # Getters.
@@ -239,6 +282,8 @@ impl Domain {
 	}
 }
 
+
+
 /// # Find Suffix.
 ///
 /// The hardest part of suffix validation is teasing the suffix out of the
@@ -273,9 +318,7 @@ fn parse_suffix(host: &str) -> Option<usize> {
 			// There has to be a before-before part.
 			else if dot == 0 { return None; }
 			// Otherwise the last chunk is part of the suffix.
-			else {
-				return Some(after_dot);
-			}
+			return Some(after_dot);
 		}
 		// This is a normal suffix.
 		else if PSL_MAIN.contains(&host[idx + 1..]) {
@@ -435,7 +478,8 @@ mod tests {
 		assert_eq!(dom.deref(), "www.blobfolio.com");
 		assert_eq!(dom.host(), "www.blobfolio.com");
 
-		assert!(dom.strip_www());
+		assert!(dom.has_www());
+		dom = dom.without_www().expect("Dom without www.");
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");

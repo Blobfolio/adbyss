@@ -55,6 +55,7 @@ rustflags   := "-C link-arg=-s"
 		-p {{ pkg_id }} \
 		-o "{{ justfile_directory() }}/release"
 
+	just _fix-chown "{{ pkg_dir3 }}"
 	just _fix-chown "{{ release_dir }}"
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
@@ -79,6 +80,8 @@ rustflags   := "-C link-arg=-s"
 	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
 	[ ! -d "{{ pkg_dir2 }}/target" ] || rm -rf "{{ pkg_dir2 }}/target"
 	[ ! -d "{{ pkg_dir3 }}/target" ] || rm -rf "{{ pkg_dir3 }}/target"
+
+	cargo update -w
 
 
 # Clippy.
@@ -201,7 +204,7 @@ version:
 # Init dependencies.
 @_init:
 	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
-	cargo update
+	cargo update -w
 	cargo outdated -w
 	[ -f "/etc/adbyss.yaml" ] || cp "{{ pkg_dir1 }}/skel/adbyss.yaml" "/etc"
 

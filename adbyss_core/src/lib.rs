@@ -32,53 +32,104 @@
 
 
 mod error;
-mod shitlist;
-
-use adbyss_psl::Domain;
+mod hosts;
+mod sources;
 
 pub use error::AdbyssError;
-pub use shitlist::{
-	Shitlist,
-	ShitlistSource,
-	FLAG_ALL,
-	FLAG_ADAWAY,
-	FLAG_ADBYSS,
-	FLAG_STEVENBLACK,
-	FLAG_YOYO,
-	FLAG_BACKUP,
-	FLAG_COMPACT,
-	FLAG_Y,
-};
+pub use hosts::Shitlist;
+pub use sources::Source;
 
 
 
-#[must_use]
-/// # Sanitize Domain.
+/// # Flag: All Sources.
 ///
-/// This ensures the domain is correctly formatted and has a recognized TLD.
-pub fn sanitize_domain<S>(dom: S) -> Option<String>
-where S: AsRef<str> {
-	Domain::parse(dom).map(adbyss_psl::Domain::take)
-}
+/// This flag enables all shitlist sources.
+pub const FLAG_ALL: u8         = 0b0000_1111;
+
+/// # Flag: `AdAway`.
+///
+/// This flag enables the `AdAway` shitlist.
+pub const FLAG_ADAWAY: u8      = 0b0000_0001;
+
+/// # Flag: `Adbyss`.
+///
+/// This flag enables `Adbyss`' internal shitlist.
+pub const FLAG_ADBYSS: u8      = 0b0000_0010;
+
+/// # Flag: `Steven Black`.
+///
+/// This flag enables the `Steven Black` shitlist.
+pub const FLAG_STEVENBLACK: u8 = 0b0000_0100;
+
+/// # Flag: `Yoyo`.
+///
+/// This flag enables the `Yoyo` shitlist.
+pub const FLAG_YOYO: u8        = 0b0000_1000;
+
+/// # Flag: Backup Before Writing.
+///
+/// When writing to an existing file, a backup of the original will be made
+/// first.
+pub const FLAG_BACKUP: u8      = 0b0001_0000;
+
+/// # Flag: Compact Output.
+///
+/// Group subdomains by their top-level domain, reducing the total number of
+/// lines written to the hostfile (as well as its overall disk size).
+pub const FLAG_COMPACT: u8     = 0b0010_0000;
+
+/// # Flag: Non-Interactive Mode.
+///
+/// This flag bypasses the confirmation when writing to an existing file.
+pub const FLAG_Y: u8           = 0b0100_0000;
+
+/// # Maximum Host Line.
+///
+/// The true limit is `256`; this adds a little padding for `0.0.0.0` and
+/// whitespace.
+pub(crate) const MAX_LINE: usize = 245;
+
+/// # (Not) Random State.
+///
+/// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
+/// and prevents Valgrind complaining about 64 lingering bytes from the runtime
+/// static that would be used otherwise.
+///
+/// For our purposes, the variability of truly random keys isn't really needed.
+pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
 
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+	use adbyss_psl::Domain;
+	use smartstring::{
+		LazyCompact,
+		SmartString,
+	};
+
+
+
+	/// # Sanitize Domain.
+	///
+	/// This ensures the domain is correctly formatted and has a recognized TLD.
+	fn sanitize_domain<S>(dom: S) -> Option<SmartString<LazyCompact>>
+	where S: AsRef<str> {
+		Domain::parse(dom).map(adbyss_psl::Domain::take)
+	}
 
 	#[test]
 	fn t_sanitize_domain() {
 		for (a, b) in [
-			("Blobfolio.com", Some(String::from("blobfolio.com"))),
-			("www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
-			(" www.Blobfolio.com", Some(String::from("www.blobfolio.com"))),
+			("Blobfolio.com", Some(SmartString::<LazyCompact>::from("blobfolio.com"))),
+			("www.Blobfolio.com", Some(SmartString::<LazyCompact>::from("www.blobfolio.com"))),
+			(" www.Blobfolio.com", Some(SmartString::<LazyCompact>::from("www.blobfolio.com"))),
 			("http://www.Blobfolio.com", None),
 			("hello", None),
 			("localhost", None),
-			("☺.com", Some(String::from("xn--74h.com"))),
-			("www.☺.com", Some(String::from("www.xn--74h.com"))),
-			("www.xn--74h.com", Some(String::from("www.xn--74h.com"))),
+			("☺.com", Some(SmartString::<LazyCompact>::from("xn--74h.com"))),
+			("www.☺.com", Some(SmartString::<LazyCompact>::from("www.xn--74h.com"))),
+			("www.xn--74h.com", Some(SmartString::<LazyCompact>::from("www.xn--74h.com"))),
 		].iter() {
 			assert_eq!(sanitize_domain(a), *b);
 		}

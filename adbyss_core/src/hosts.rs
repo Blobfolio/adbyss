@@ -1,18 +1,38 @@
 /*!
-# `Adbyss`: Block Lists
+# `Adbyss`: Hosts
 */
 
 use adbyss_psl::Domain;
-use crate::AdbyssError;
-use fyi_msg::{
-	Msg,
-	MsgKind,
+use crate::{
+	AdbyssError,
+	AHASH_STATE,
+	FLAG_BACKUP,
+	FLAG_COMPACT,
+	FLAG_Y,
+	MAX_LINE,
+	Source,
 };
-use fyi_num::NiceInt;
-use rayon::prelude::*;
+use fyi_msg::confirm;
+use fyi_num::NiceU64;
+use rayon::{
+	iter::{
+		IntoParallelRefIterator,
+		ParallelDrainFull,
+		ParallelExtend,
+		ParallelIterator,
+	},
+	prelude::{
+		ParallelSliceMut,
+		ParallelString,
+	},
+};
 use regex::{
 	Regex,
 	RegexSet,
+};
+use smartstring::{
+	LazyCompact,
+	SmartString,
 };
 use std::{
 	cmp::Ordering,
@@ -29,56 +49,6 @@ use std::{
 		PathBuf,
 	},
 };
-
-
-
-/// # Flag: All Sources.
-///
-/// This flag enables all shitlist sources.
-pub const FLAG_ALL: u8         = 0b0000_1111;
-
-/// # Flag: `AdAway`.
-///
-/// This flag enables the `AdAway` shitlist.
-pub const FLAG_ADAWAY: u8      = 0b0000_0001;
-
-/// # Flag: `Adbyss`.
-///
-/// This flag enables `Adbyss`' internal shitlist.
-pub const FLAG_ADBYSS: u8      = 0b0000_0010;
-
-/// # Flag: `Steven Black`.
-///
-/// This flag enables the `Steven Black` shitlist.
-pub const FLAG_STEVENBLACK: u8 = 0b0000_0100;
-
-/// # Flag: `Yoyo`.
-///
-/// This flag enables the `Yoyo` shitlist.
-pub const FLAG_YOYO: u8        = 0b0000_1000;
-
-/// # Flag: Backup Before Writing.
-///
-/// When writing to an existing file, a backup of the original will be made
-/// first.
-pub const FLAG_BACKUP: u8      = 0b0001_0000;
-
-/// # Flag: Compact Output.
-///
-/// Group subdomains by their top-level domain, reducing the total number of
-/// lines written to the hostfile (as well as its overall disk size).
-pub const FLAG_COMPACT: u8     = 0b0010_0000;
-
-/// # Flag: Non-Interactive Mode.
-///
-/// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b0100_0000;
-
-/// # Maximum Host Line.
-///
-/// The true limit is `256`; this adds a little padding for `0.0.0.0` and
-/// whitespace.
-const MAX_LINE: usize = 245;
 
 
 
@@ -126,112 +96,6 @@ impl Watermark {
 
 
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-/// # Shitlist Sources.
-pub enum ShitlistSource {
-	/// AdAway.
-	AdAway,
-	/// Adbyss.
-	Adbyss,
-	/// StevenBlack.
-	StevenBlack,
-	/// Yoyo.
-	Yoyo,
-}
-
-/// # Conversion.
-impl ShitlistSource {
-	/// # As Byte (Flag).
-	///
-	/// Return the equivalent flag for the source.
-	const fn as_byte(self) -> u8 {
-		match self {
-			Self::AdAway => FLAG_ADAWAY,
-			Self::Adbyss => FLAG_ADBYSS,
-			Self::StevenBlack => FLAG_STEVENBLACK,
-			Self::Yoyo => FLAG_YOYO,
-		}
-	}
-
-	#[must_use]
-	/// # As Str.
-	pub const fn as_str(self) -> &'static str {
-		match self {
-			Self::AdAway => "AdAway",
-			Self::Adbyss => "Adbyss",
-			Self::StevenBlack => "Steven Black",
-			Self::Yoyo => "Yoyo",
-		}
-	}
-}
-
-/// # Getters.
-impl ShitlistSource {
-	/// # Cache path.
-	fn cache_path(self) -> PathBuf {
-		let mut out: PathBuf = std::env::temp_dir();
-		out.push(
-			match self {
-				Self::AdAway => "_adbyss-adaway.tmp",
-				Self::Adbyss => "_adbyss.tmp",
-				Self::StevenBlack => "_adbyss-sb.tmp",
-				Self::Yoyo => "_adbyss-yoyo.tmp",
-			}
-		);
-		out
-	}
-
-	/// # Parse Raw.
-	///
-	/// Fetch and parse the raw source data.
-	fn parse(self) -> Result<HashSet<String>, AdbyssError> {
-		Ok(match self {
-			Self::AdAway | Self::Yoyo => parse_adaway_hosts(&fetch_url(self)?),
-			Self::Adbyss => {
-				let mut hs: HashSet<String> = HashSet::with_capacity(20);
-
-				hs.insert(String::from("api.triptease.io"));
-				hs.insert(String::from("collect.snitcher.com"));
-				hs.insert(String::from("ct.pinterest.com"));
-				hs.insert(String::from("guest-experience.triptease.io"));
-				hs.insert(String::from("js.trendmd.com"));
-				hs.insert(String::from("medtargetsystem.com"));
-				hs.insert(String::from("onboard.triptease.io"));
-				hs.insert(String::from("rum-static.pingdom.net"));
-				hs.insert(String::from("s.pinimg.com"));
-				hs.insert(String::from("shareasale-analytics.com"));
-				hs.insert(String::from("snid.snitcher.com"));
-				hs.insert(String::from("snitcher.com"));
-				hs.insert(String::from("static-meta.triptease.io"));
-				hs.insert(String::from("static.triptease.io"));
-				hs.insert(String::from("trendmd.com"));
-				hs.insert(String::from("triptease.io"));
-				hs.insert(String::from("www.medtargetsystem.com"));
-				hs.insert(String::from("www.snitcher.com"));
-				hs.insert(String::from("www.trendmd.com"));
-				hs.insert(String::from("www.triptease.io"));
-
-				hs
-			},
-			Self::StevenBlack => parse_blackhole_hosts(&fetch_url(self)?),
-		})
-	}
-
-	/// # Source URL.
-	///
-	/// For remote hosts, return the URL where data is found.
-	const fn url(self) -> &'static str {
-		match self {
-			Self::AdAway => "https://adaway.org/hosts.txt",
-			Self::Adbyss => "",
-			Self::StevenBlack => "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-			Self::Yoyo => "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
-		}
-	}
-}
-
-
-
 #[derive(Debug)]
 /// # Shitlist.
 ///
@@ -244,9 +108,9 @@ impl ShitlistSource {
 pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
-	exclude: HashSet<String>,
+	exclude: HashSet<Domain, ahash::RandomState>,
 	regexclude: Option<RegexSet>,
-	found: HashSet<String>,
+	found: HashSet<Domain, ahash::RandomState>,
 	out: Vec<u8>,
 }
 
@@ -255,9 +119,9 @@ impl Default for Shitlist {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
 			flags: 0,
-			exclude: HashSet::new(),
+			exclude: HashSet::with_hasher(AHASH_STATE),
 			regexclude: None,
-			found: HashSet::with_capacity(60000),
+			found: HashSet::with_capacity_and_hasher(60000, AHASH_STATE),
 			out: Vec::with_capacity(60000),
 		}
 	}
@@ -345,7 +209,7 @@ impl Shitlist {
 	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
 	/// something with the results.
 	pub fn build(mut self) -> Result<Self, AdbyssError> {
-		self.found.par_extend(fetch_sources(self.flags)?);
+		self.found.par_extend(Source::fetch_many(self.flags)?);
 
 		// Post-processing.
 		self.build_out()?;
@@ -392,7 +256,7 @@ impl Shitlist {
 	/// sources don't know about.
 	pub fn include<I>(&mut self, extras: I)
 	where I: IntoIterator<Item=String> {
-		self.found.extend(extras.into_iter().filter_map(crate::sanitize_domain));
+		self.found.extend(extras.into_iter().filter_map(Domain::parse));
 		let _ = self.build_out();
 	}
 
@@ -403,7 +267,7 @@ impl Shitlist {
 	/// an address you want to be able to visit, e.g. `supportxmr.com`.
 	pub fn exclude<I>(&mut self, excludes: I)
 	where I: IntoIterator<Item=String> {
-		self.exclude.extend(excludes);
+		self.exclude.extend(excludes.into_iter().filter_map(Domain::parse));
 	}
 
 	/// # Exclude Entries (Regular Expression).
@@ -439,9 +303,10 @@ impl Shitlist {
 	///
 	/// Consume the struct and return a sorted vector of the qualifying
 	/// blackholeable hosts.
-	pub fn into_vec(mut self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.par_drain()
+	pub fn into_vec(mut self) -> Vec<SmartString<LazyCompact>> {
+		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_drain()
 			.filter(|x| x.len() <= MAX_LINE)
+			.map(Domain::take)
 			.collect();
 		found.par_sort();
 		found
@@ -509,13 +374,10 @@ impl Shitlist {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
-			! Msg::new(
-				MsgKind::Confirm,
-				format!(
-					"Remove all Adbyss blackhole entries from {:?}?",
-					&self.hostfile
-				)
-			).prompt()
+			! confirm!(format!(
+				"Remove all Adbyss blackhole entries from {:?}?",
+				&self.hostfile
+			))
 		{
 			return Err(AdbyssError::Aborted);
 		}
@@ -571,14 +433,11 @@ impl Shitlist {
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
-				! Msg::new(
-					MsgKind::Confirm,
-					format!(
-						"Write {} hosts to {:?}?",
-						NiceInt::from(self.len()).as_str(),
-						dst
-					)
-				).prompt()
+				! confirm!(format!(
+					"Write {} hosts to {:?}?",
+					NiceU64::from(self.len()).as_str(),
+					dst
+				))
 			{
 				return Err(AdbyssError::Aborted);
 			}
@@ -597,21 +456,14 @@ impl Shitlist {
 	///
 	/// Note: The reverse is not enforced as that would be madness!
 	fn add_www_tlds(&mut self) {
-		if self.found.is_empty() { return; }
-
-		self.found.par_extend(
-			self.found
+		if ! self.found.is_empty() {
+			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+			extra.par_extend(self.found
 				.par_iter()
-				.filter(|x| x.starts_with("www."))
-				.filter_map(|x|
-					Domain::parse(x)
-						.and_then(|mut x|
-							if x.strip_www() { Some(x.take()) }
-							else { None }
-						)
-				)
-				.collect::<Vec<String>>()
-		);
+				.filter_map(Domain::without_www)
+			);
+			self.found.par_extend(extra);
+		}
 	}
 
 	#[allow(trivial_casts)] // Triviality is required!
@@ -678,7 +530,7 @@ impl Shitlist {
 ##########
 "#,
 			chrono::Local::now().format("%Y-%m-%d %H:%M:%S %Z"),
-			NiceInt::from(self.found.len()).as_str()
+			NiceU64::from(self.found.len()).as_str()
 		).as_bytes());
 
 		// Add our results!
@@ -700,19 +552,18 @@ impl Shitlist {
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
-	fn found_compact(&self) -> Vec<String> {
+	fn found_compact(&self) -> Vec<SmartString<LazyCompact>> {
 		// Start by building up a map keyed by root domain...
-		let mut found: Vec<String> = self.found
+		let mut found: Vec<SmartString<LazyCompact>> = self.found
 			.iter()
-			.filter_map(Domain::parse)
 			.fold(
-				HashMap::<u64, Vec<String>>::with_capacity(self.found.len()),
+				HashMap::<u64, Vec<&Domain>, ahash::RandomState>::with_capacity_and_hasher(self.found.len(), AHASH_STATE),
 				|mut acc, dom| {
 					let hash: u64 = hash64(dom.tld().as_bytes());
 
 					acc.entry(hash)
 						.or_insert_with(Vec::new)
-						.push(dom.take());
+						.push(dom);
 
 					acc
 				}
@@ -722,8 +573,8 @@ impl Shitlist {
 			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
-				let mut out: Vec<String> = Vec::new();
-				let mut line: String = String::new();
+				let mut out: Vec<SmartString<LazyCompact>> = Vec::new();
+				let mut line: SmartString<LazyCompact> = SmartString::<LazyCompact>::new();
 
 				// Split on whitespace.
 				x.sort();
@@ -732,12 +583,12 @@ impl Shitlist {
 						if ! line.is_empty() {
 							line.push(' ');
 						}
-						line.push_str(x);
+						line.push_str(x.as_str());
 					}
 					else if ! line.is_empty() {
 						out.push(line.split_off(0));
 						if x.len() <= MAX_LINE {
-							line.push_str(x);
+							line.push_str(x.as_str());
 						}
 					}
 				});
@@ -757,10 +608,10 @@ impl Shitlist {
 	/// # Found: Straight Sort.
 	///
 	/// This delivers each host, one per line.
-	fn found_separate(&self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.par_iter()
+	fn found_separate(&self) -> Vec<SmartString<LazyCompact>> {
+		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
-			.cloned()
+			.map(|x| x.as_str().into())
 			.collect();
 		found.par_sort();
 		found
@@ -770,14 +621,14 @@ impl Shitlist {
 	///
 	/// Because this filter could run 60K times or more, it is worth taking
 	/// a moment to optimize the matcher.
-	fn strip_excludes_cb(&self) -> Option<Box<dyn Fn(&&String) -> bool + Send + Sync>> {
+	fn strip_excludes_cb(&self) -> Option<Box<dyn Fn(&&Domain) -> bool + Send + Sync>> {
 		match (&self.regexclude, 1.cmp(&self.exclude.len())) {
 			// Neither.
 			(None, Ordering::Greater) => None,
 			// Only regexclude.
 			(Some(re), Ordering::Greater) => {
 				let re = re.clone();
-				Some(Box::new(move |x| re.is_match(x)))
+				Some(Box::new(move |x| re.is_match(x.as_str())))
 			},
 			// Both, optimized static.
 			(Some(re), Ordering::Equal) => {
@@ -794,12 +645,12 @@ impl Shitlist {
 			(Some(re), Ordering::Less) => {
 				let re = re.clone();
 				let ex = self.exclude.clone();
-				Some(Box::new(move |x| re.is_match(x) || ex.contains(x.as_str())))
+				Some(Box::new(move |x| re.is_match(x.as_str()) || ex.contains(x)))
 			},
 			// Many statics.
 			(None, Ordering::Less) => {
 				let ex = self.exclude.clone();
-				Some(Box::new(move |x| ex.contains(x.as_str())))
+				Some(Box::new(move |x| ex.contains(x)))
 			},
 		}
 	}
@@ -813,102 +664,18 @@ impl Shitlist {
 		}
 
 		if let Some(cb) = self.strip_excludes_cb() {
-			self.found.par_iter()
-				.filter(cb)
-				.cloned()
-				.collect::<HashSet<String>>()
-					.iter()
-					.for_each(|x| { self.found.remove(x); });
+			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+			extra.par_extend(
+				self.found.par_iter()
+					.filter(cb)
+					.cloned()
+			);
+			extra.iter().for_each(|x| { self.found.remove(x); });
 		}
 	}
 }
 
 
-
-/// # Download URL.
-fn download_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
-	use flate2::read::GzDecoder;
-	use std::io::Read;
-
-	ureq::get(kind.url())
-		.set("user-agent", "Mozilla/5.0")
-		.set("accept-encoding", "gzip")
-		.call()
-		.and_then(|r|
-			if is_gzip(&r) {
-				let mut gz = GzDecoder::new(r.into_reader());
-				let mut s = String::new();
-				gz.read_to_string(&mut s)?;
-				Ok(s)
-			}
-			else {
-				r.into_string().map_err(|e| e.into())
-			}
-		)
-		.map_err(|_| AdbyssError::SourceFetch(kind))
-}
-
-/// # Fetch Sources by Flag.
-///
-/// This fetches and returns a single host collection given the flags.
-fn fetch_sources(flags: u8) -> Result<HashSet<String>, AdbyssError> {
-	// Fetch the remote sources in parallel to speed up downloads a bit.
-	let (tx, rx) = crossbeam_channel::bounded(3);
-
-	[
-		ShitlistSource::AdAway,
-		ShitlistSource::StevenBlack,
-		ShitlistSource::Yoyo,
-	].par_iter()
-		.filter(|x| 0 != flags & x.as_byte())
-		.for_each(|x| {
-			tx.send(x.parse()).unwrap();
-		});
-
-	drop(tx);
-
-	// Merge the results! We'll start with the infallible Adbyss set —
-	// which doesn't have to be downloaded — if that source is enabled,
-	// otherwise we'll start with an empty HashSet.
-	let mut set: HashSet<String> =
-		if 0 == flags & ShitlistSource::Adbyss.as_byte() { HashSet::new() }
-		else { ShitlistSource::Adbyss.parse().unwrap() };
-
-	rx.iter().try_for_each(|x| {
-		set.par_extend(x?);
-		Ok(())
-	})?;
-
-	Ok(set)
-}
-
-/// # Fetch URL.
-///
-/// This is just a GET wrapper that returns the response as a string.
-fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
-	// Check the cache first. If the source was downloaded less than an hour
-	// ago, we can use that instead of asking the Internet for a new copy.
-	let cache = kind.cache_path();
-	if let Some(x) = std::fs::metadata(&cache)
-		.ok()
-		.filter(std::fs::Metadata::is_file)
-		.and_then(|meta| meta.modified().ok())
-		.and_then(|time| time.elapsed()
-			.ok()
-			.filter(|secs| 3600 > secs.as_secs())
-		)
-		.and_then(|_| std::fs::read_to_string(&cache).ok())
-	{
-		return Ok(x);
-	}
-
-	// Download and cache for next time.
-	download_url(kind)
-		.map(|x| {
-			let _ = write_to_file(&cache, x.as_bytes());
-			x
-		})
-}
 
 #[inline]
 /// # `AHash` Byte Hash.
@@ -918,21 +685,9 @@ fn fetch_url(kind: ShitlistSource) -> Result<String, AdbyssError> {
 /// home page for more details. Otherwise, TL;DR it is very fast.
 fn hash64(src: &[u8]) -> u64 {
 	use std::hash::Hasher;
-	let mut hasher = ahash::AHasher::default();
+	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
 	hasher.write(src);
 	hasher.finish()
-}
-
-/// # Look for Gzip.
-///
-/// We're asking for Gzipped content, so trust that the response is Gzipped if
-/// either the content-encoding or transfer-encoding flags are set.
-fn is_gzip(res: &ureq::Response) -> bool {
-	match res.header("content-encoding") {
-		Some("gzip") => true,
-		Some(h) => h.contains("gzip"),
-		None => false,
-	}
 }
 
 /// # Parse Custom Hosts.
@@ -940,7 +695,7 @@ fn is_gzip(res: &ureq::Response) -> bool {
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
 /// We'll want to exclude these from the blackhole list to prevent duplicates,
 /// however unlikely that may be.
-fn parse_custom_hosts(raw: &str) -> HashSet<String> {
+fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 	lazy_static::lazy_static! {
 		// Match comments.
 		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
@@ -948,62 +703,25 @@ fn parse_custom_hosts(raw: &str) -> HashSet<String> {
 		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
 	}
 
-	raw.par_lines()
-		.filter_map(|x| {
-			let line = RE1.replace_all(x.trim(), "");
+	let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
+	out.par_extend(
+		raw.par_lines()
+			.filter_map(|x| {
+				let line = RE1.replace_all(x.trim(), "");
 
-			if RE2.is_match(&line) {
-				Some(
-					line.split_whitespace()
-						.skip(1)
-						.map(String::from)
-						.collect::<Vec<String>>()
-				).filter(|x| ! x.is_empty())
-			}
-			else { None }
-		})
-		.flatten()
-		.filter_map(crate::sanitize_domain)
-		.collect()
-}
-
-/// # Parse Hosts Format.
-///
-/// Most data sources format results in something akin to the final `/etc/hosts`
-/// format, where each line looks like `0.0.0.0 somehost.com`.
-///
-/// This extracts the hosts from such lines, ignoring comments and the like, as
-/// well as entries with other IPs assigned to them.
-fn parse_blackhole_hosts(raw: &str) -> HashSet<String> {
-	lazy_static::lazy_static! {
-		static ref RE: Regex = Regex::new(r"((^0\.0\.0\.0\s+)|(#.*$))").unwrap();
-	}
-
-	raw.par_lines()
-		.filter(|x| x.starts_with("0.0.0.0 "))
-		.filter_map(|x|
-			Some(RE.replace_all(x, "")
-				.split_whitespace()
-				.map(String::from)
-				.collect::<Vec<String>>()
-			)
-			.filter(|x| ! x.is_empty())
-		)
-		.flatten()
-		.filter_map(crate::sanitize_domain)
-		.collect()
-}
-
-/// # Parse `AdAway` Hosts Format.
-///
-/// The `AdAway` sources send targets to `127.0.0.1` instead of `0.0.0.0`; this
-/// just quickly patches such data so that it can then be parsed using
-/// [`parse_blackhole_hosts`].
-fn parse_adaway_hosts(raw: &str) -> HashSet<String> {
-	lazy_static::lazy_static! {
-		static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
-	}
-	parse_blackhole_hosts(&RE.replace_all(raw, "0.0.0.0 "))
+				if RE2.is_match(&line) {
+					Some(
+						line.split_whitespace()
+							.skip(1)
+							.filter_map(Domain::parse)
+							.collect::<Vec<Domain>>()
+					)
+				}
+				else { None }
+			})
+			.flatten()
+	);
+	out
 }
 
 /// # Write Helper.
@@ -1023,104 +741,3 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), AdbyssError> {
 		.map_err(|_| AdbyssError::HostsWrite(path.clone()))
 }
 
-
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	const STUB: &str = r"# AdAway default blocklist
-# Blocking mobile ad providers and some analytics providers
-#
-# Project home page:
-# https://github.com/AdAway/adaway.github.io/
-#
-# Fetch the latest version of this file:
-# https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt
-#
-# License:
-# CC Attribution 3.0 (http://creativecommons.org/licenses/by/3.0/)
-#
-# Contributions by:
-# Kicelo, Dominik Schuermann.
-# Further changes and contributors maintained in the commit history at
-# https://github.com/AdAway/adaway.github.io/commits/master
-#
-# Contribute:
-# Create an issue at https://github.com/AdAway/adaway.github.io/issues
-#
-
-0.0.0.0  localhost
-::1  localhost
-
-# [163.com]
-0.0.0.0 analytics.163.com
-0.0.0.0 crash.163.com # Comment.com here!
-0.0.0.0 crashlytics.163.com
-0.0.0.0 iad.g.163.com
-
-# [1mobile.com]
-0.0.0.0 ads.1mobile.com
-0.0.0.0 api.1mobile.com";
-
-	#[test]
-	fn t_parse_blackhole_hosts() {
-		let mut test: Vec<String> = parse_blackhole_hosts(STUB).into_iter().collect();
-		test.sort();
-
-		assert_eq!(
-			test,
-			vec![
-				String::from("ads.1mobile.com"),
-				String::from("analytics.163.com"),
-				String::from("api.1mobile.com"),
-				String::from("crash.163.com"),
-				String::from("crashlytics.163.com"),
-				String::from("iad.g.163.com"),
-			]
-		);
-	}
-
-	#[test]
-	fn t_parse_custom_hosts() {
-		let mut test: Vec<String> = parse_custom_hosts(r#"#############
-# Localhost #
-#############
-
-127.0.0.1 localhost
-127.0.1.1 Computer
-127.0.0.1 my-dev.loc some-other.loc
-172.19.0.2 docker-mysql
-
-##################
-# Manual Records #
-##################
-
-140.82.113.4 github.com www.github.com
-100.100.100.1 0.nextyourcontent.com
-2600:3c00::f03c:91ff:feae:ff2 blobfolio.com
-
-########
-# IPv6 #
-########
-
-::1     ip6-localhost ip6-loopback domain.com www.domain.com
-fe00::0 ip6-localnet
-ff00::0 ip6-mcastprefix
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters"#).into_iter().collect();
-		test.sort();
-
-		assert_eq!(
-			test,
-			vec![
-				String::from("0.nextyourcontent.com"),
-				String::from("blobfolio.com"),
-				String::from("domain.com"),
-				String::from("github.com"),
-				String::from("www.domain.com"),
-				String::from("www.github.com"),
-			]
-		);
-	}
-}
