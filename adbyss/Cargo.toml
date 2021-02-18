@@ -60,7 +60,7 @@ description = "Print program version."
 [[package.metadata.bashman.switches]]
 short = "-y"
 long = "--yes"
-description = "Non-interactive mode; answer \"yes\" to all prompts."
+description = 'Non-interactive mode; answer "yes" to all prompts.'
 
 [[package.metadata.bashman.options]]
 short = "-c"
