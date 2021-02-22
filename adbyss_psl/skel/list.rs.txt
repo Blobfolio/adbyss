@@ -1,9 +1,3 @@
-/*!
-# Adbyss: Public Suffix - The List!
-
-This file is generated automatically by `build.rs`; do not edit it directly.
-*/
-
 use ahash::{{ AHashMap, AHashSet }};
 use crate::AHASH_STATE;
 

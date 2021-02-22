@@ -64,7 +64,9 @@ host. You can also consume the object into an owned string with [`Domain::take`]
 
 
 
-mod list;
+mod list {
+	include!(concat!(env!("OUT_DIR"), "/adbyss-list.rs"));
+}
 
 use self::list::{
 	PSL_MAIN,

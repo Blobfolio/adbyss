@@ -78,9 +78,10 @@ pub fn main() {
 		);
 
 	// Our generated script will live here.
-	let mut file = std::fs::canonicalize(env!("CARGO_MANIFEST_DIR"))
-		.map(|mut x| { x.push("src/list.rs"); x })
-		.and_then(std::fs::File::create)
+	let mut file = std::env::var("OUT_DIR")
+		.ok()
+		.map(|mut x| { x.push_str("/adbyss-list.rs"); x })
+		.and_then(|x| std::fs::File::create(x).ok())
 		.expect("Unable to create public_suffix_list.rs");
 
 	let (main_len, main_inserts) = build_psl_main(psl_main);
