@@ -356,7 +356,7 @@ impl Shitlist {
 
 		for line in File::open(&self.hostfile)
 			.map(BufReader::new)
-			.map_err(|_| AdbyssError::HostsRead(self.hostfile.clone()))?
+			.map_err(|_| AdbyssError::HostsRead(Box::from(self.hostfile.clone())))?
 			.lines()
 			.filter_map(std::result::Result::ok)
 		{
@@ -454,7 +454,7 @@ impl Shitlist {
 			dst = dst.canonicalize()
 				.ok()
 				.filter(|x| ! x.is_dir())
-				.ok_or(AdbyssError::HostsInvalid(dst))?;
+				.ok_or_else(|| AdbyssError::HostsInvalid(Box::from(dst)))?;
 
 			// Prompt about writing it?
 			if
@@ -505,7 +505,7 @@ impl Shitlist {
 
 			// Copy the original, clobbering only as a fallback.
 			std::fs::copy(&dst, &dst2)
-				.map_err(|_| AdbyssError::BackupWrite(dst2))?;
+				.map_err(|_| AdbyssError::BackupWrite(Box::from(dst2)))?;
 		}
 
 		Ok(())
@@ -764,6 +764,6 @@ fn write_to_file(path: &Path, data: &[u8]) -> Result<(), AdbyssError> {
 		.or_else(|_| File::create(path)
 			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
 		)
-		.map_err(|_| AdbyssError::HostsWrite(path.to_path_buf()))
+		.map_err(|_| AdbyssError::HostsWrite(Box::from(path)))
 }
 

@@ -81,7 +81,7 @@ impl TryFrom<PathBuf> for Settings {
 			.and_then(std::fs::read_to_string)
 			.ok()
 			.and_then(|x| serde_yaml::from_str::<Self>(&x).ok())
-			.ok_or(AdbyssError::Config(path))
+			.ok_or_else(|| AdbyssError::Config(Box::from(path)))
 	}
 }
 

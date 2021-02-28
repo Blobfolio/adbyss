@@ -8,7 +8,7 @@ use argyle::ArgyleError;
 use std::{
 	error::Error,
 	fmt,
-	path::PathBuf,
+	path::Path,
 };
 
 
@@ -21,15 +21,15 @@ pub enum AdbyssError {
 	/// # Menu error.
 	Argue(ArgyleError),
 	/// # Backup write.
-	BackupWrite(PathBuf),
+	BackupWrite(Box<Path>),
 	/// # Invalid configuration.
-	Config(PathBuf),
+	Config(Box<Path>),
 	/// # Invalid Hosts.
-	HostsInvalid(PathBuf),
+	HostsInvalid(Box<Path>),
 	/// # Read error.
-	HostsRead(PathBuf),
+	HostsRead(Box<Path>),
 	/// # Write error.
-	HostsWrite(PathBuf),
+	HostsWrite(Box<Path>),
 	/// # Root required.
 	Root,
 	/// # Fetching source failed.
