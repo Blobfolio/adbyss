@@ -4131,13 +4131,14 @@ gob.mx
 edu.mx
 net.mx
 my
+biz.my
 com.my
-net.my
-org.my
-gov.my
 edu.my
+gov.my
 mil.my
 name.my
+net.my
+org.my
 mz
 ac.mz
 adv.mz
@@ -6357,7 +6358,6 @@ careers
 cars
 casa
 case
-caseih
 cash
 casino
 catering
@@ -6856,7 +6856,6 @@ netflix
 network
 neustar
 new
-newholland
 news
 next
 nextdirect
@@ -8119,6 +8118,7 @@ vladimir.su
 vologda.su
 channelsdvr.net
 u.channelsdvr.net
+edgecompute.app
 fastly-terrarium.com
 fastlylb.net
 map.fastlylb.net
@@ -8159,6 +8159,8 @@ fly.dev
 edgeapp.net
 shw.io
 flynnhosting.net
+framer.app
+framercanvas.com
 0e.vc
 freebox-os.com
 freeboxos.com
@@ -8624,8 +8626,9 @@ netlify.app
 ngrok.io
 nh-serv.co.uk
 nfshost.com
-northflank.app
-code.run
+*.northflank.app
+*.code.run
+noticeable.news
 dnsking.ch
 mypi.co
 n4t.co
