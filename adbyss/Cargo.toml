@@ -84,6 +84,8 @@ items = [
 ]
 
 [dependencies]
+argyle = "0.3.*"
+dactyl = "0.1.*"
 libc = "0.2.*"
 serde_yaml = "0.8.*"
 
@@ -92,15 +94,7 @@ path = "../adbyss_core"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_num]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
+branch = "feature/next"
 
 [dependencies.serde]
 version = "1.0.*"

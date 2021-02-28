@@ -13,7 +13,7 @@ use crate::{
 	Source,
 };
 use fyi_msg::confirm;
-use fyi_num::NiceU64;
+use dactyl::NiceU64;
 use rayon::{
 	iter::{
 		IntoParallelRefIterator,
@@ -208,6 +208,11 @@ impl Shitlist {
 	/// This method does not output anything. See [`Shitlist::as_str`],
 	/// [`Shitlist::write`], and [`Shitlist::write_to`] to actually *do*
 	/// something with the results.
+	///
+	/// ## Errors
+	///
+	/// This returns an error if any of the data sources could not be fetched
+	/// or parsed, or if there are issues reading the hostfile.
 	pub fn build(mut self) -> Result<Self, AdbyssError> {
 		self.found.par_extend(Source::fetch_many(self.flags)?);
 
@@ -334,6 +339,11 @@ impl Shitlist {
 	/// # Stub.
 	///
 	/// Return the user portion of the specified hostfile.
+	///
+	/// ## Errors
+	///
+	/// This returns an error if there are issues reading or parsing the
+	/// hostfile.
 	pub fn hostfile_stub(&self) -> Result<String, AdbyssError> {
 		use std::io::{
 			BufRead,
@@ -371,6 +381,11 @@ impl Shitlist {
 	///
 	/// This will remove all of Adbyss' blackhole entries from the given
 	/// hostfile.
+	///
+	/// ## Errors
+	///
+	/// This returns an error if there are issues writing changes to the
+	/// hostfile.
 	pub fn unwrite(&self) -> Result<(), AdbyssError> {
 		// Prompt about writing it?
 		if
@@ -400,6 +415,11 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
+	///
+	/// ## Errors
+	///
+	/// This returns an error if there are issues writing changes to the
+	/// hostfile.
 	pub fn write(&self) -> Result<(), AdbyssError> {
 		self.write_to(&self.hostfile)
 	}
@@ -420,6 +440,11 @@ impl Shitlist {
 	///
 	/// This method will print an error and exit with a status code of `1` if
 	/// it is unable to read from or write to the relevant path(s).
+	///
+	/// ## Errors
+	///
+	/// This returns an error if there are issues writing changes to the
+	/// hostfile.
 	pub fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
 	where P: AsRef<Path> {
 		let mut dst: PathBuf = dst.as_ref().to_path_buf();
@@ -469,7 +494,7 @@ impl Shitlist {
 
 	#[allow(trivial_casts)] // Triviality is required!
 	/// # Backup.
-	fn backup(&self, dst: &PathBuf) -> Result<(), AdbyssError> {
+	fn backup(&self, dst: &Path) -> Result<(), AdbyssError> {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
@@ -730,7 +755,7 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 /// This method will first attempt an atomic write using `tempfile`, but if
 /// that fails — as is common with `/etc/hosts` — it will try a nonatomic write
 /// instead.
-fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), AdbyssError> {
+fn write_to_file(path: &Path, data: &[u8]) -> Result<(), AdbyssError> {
 	use std::io::Write;
 
 	// Try an atomic write first.
@@ -739,6 +764,6 @@ fn write_to_file(path: &PathBuf, data: &[u8]) -> Result<(), AdbyssError> {
 		.or_else(|_| File::create(path)
 			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
 		)
-		.map_err(|_| AdbyssError::HostsWrite(path.clone()))
+		.map_err(|_| AdbyssError::HostsWrite(path.to_path_buf()))
 }
 

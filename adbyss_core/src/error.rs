@@ -4,7 +4,7 @@
 
 
 use crate::Source;
-use fyi_menu::ArgueError;
+use argyle::ArgyleError;
 use std::{
 	error::Error,
 	fmt,
@@ -19,7 +19,7 @@ pub enum AdbyssError {
 	/// # Aborted.
 	Aborted,
 	/// # Menu error.
-	Argue(ArgueError),
+	Argue(ArgyleError),
 	/// # Backup write.
 	BackupWrite(PathBuf),
 	/// # Invalid configuration.

@@ -92,12 +92,9 @@ Save, reboot, and you're back to normal.
 #![warn(unused_extern_crates)]
 #![warn(unused_import_braces)]
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::map_err_ignore)]
-#![allow(clippy::missing_errors_doc)]
 #![allow(clippy::module_name_repetitions)]
+
+
 
 mod settings;
 
@@ -105,17 +102,14 @@ use adbyss_core::{
 	AdbyssError,
 	FLAG_Y,
 };
-use fyi_menu::{
+use argyle::{
 	Argue,
-	ArgueError,
+	ArgyleError,
 	FLAG_HELP,
 	FLAG_VERSION,
 };
-use fyi_msg::{
-	Msg,
-	MsgKind,
-};
-use fyi_num::NiceU64;
+use fyi_msg::Msg;
+use dactyl::NiceU64;
 use settings::Settings;
 use std::{
 	convert::TryFrom,
@@ -130,10 +124,10 @@ use std::{
 /// Main.
 fn main() {
 	match _main() {
-		Err(AdbyssError::Argue(ArgueError::WantsVersion)) => {
-			fyi_msg::plain!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
+		Err(AdbyssError::Argue(ArgyleError::WantsVersion)) => {
+			println!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
 		},
-		Err(AdbyssError::Argue(ArgueError::WantsHelp)) => {
+		Err(AdbyssError::Argue(ArgyleError::WantsHelp)) => {
 			helper();
 		},
 		Err(e) => {
@@ -206,15 +200,12 @@ fn _main() -> Result<(), AdbyssError> {
 
 		// Summarize what we've done.
 		if ! args.switch2(b"-q", b"--quiet") {
-			Msg::new(
-				MsgKind::Success,
+			Msg::success(
 				format!(
 					"{} unique hosts have been cast to a blackhole!",
 					NiceU64::from(shitlist.len()).as_str()
 				)
-			)
-				.with_newline(true)
-				.print();
+			).print();
 		}
 	}
 
@@ -224,7 +215,7 @@ fn _main() -> Result<(), AdbyssError> {
 #[cold]
 /// Print Help.
 fn helper() {
-	fyi_msg::plain!(concat!(
+	println!(concat!(
 		r#"
  .--,       .--,
 ( (  \.---./  ) )
@@ -270,7 +261,7 @@ Additional global settings are stored in /etc/adbyss.yaml.
 ///
 /// This will restart the command with root privileges if necessary, or fail
 /// if that doesn't work.
-pub fn require_root() -> Result<(), AdbyssError> {
+fn require_root() -> Result<(), AdbyssError> {
 	// See what privileges we have.
 	let (uid, euid) = unsafe { (libc::getuid(), libc::geteuid()) };
 
