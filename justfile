@@ -150,20 +150,14 @@ rustflags   := "-C link-arg=-s"
 
 
 # Unit tests!
-test:
-	#!/usr/bin/env bash
-
+@test:
 	clear
-
-	RUST_TEST_THREADS=1 cargo test \
-		--tests \
+	cargo test \
 		--release \
+		--all-features \
 		--workspace \
 		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}" -- \
-			--format terse
-
-	exit 0
+		--target-dir "{{ cargo_dir }}"
 
 
 
