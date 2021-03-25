@@ -7486,6 +7486,7 @@ bnr.la
 blackbaudcdn.net
 of.je
 boomla.net
+boutir.com
 boxfuse.io
 square7.ch
 bplaced.com
@@ -7497,6 +7498,7 @@ browsersafetymark.io
 uk0.bigv.io
 dh.bytemark.co.uk
 vm.bytemark.co.uk
+cafjs.com
 mycd.eu
 carrd.co
 crd.co
@@ -7547,7 +7549,9 @@ discourse.team
 virtueeldomein.nl
 cleverapps.io
 *.lcl.dev
+*.lclstage.dev
 *.stg.dev
+*.stgstage.dev
 clic2000.net
 clickrising.net
 c66.me
@@ -7608,6 +7612,8 @@ realm.cz
 *.cryptonomic.net
 cupcake.is
 curv.dev
+multibaas.app
+multibaas.com
 *.customer-oci.com
 *.oci.customer-oci.com
 *.ocp.customer-oci.com
@@ -8159,6 +8165,7 @@ fly.dev
 edgeapp.net
 shw.io
 flynnhosting.net
+forgeblocks.com
 framer.app
 framercanvas.com
 0e.vc
@@ -8461,8 +8468,6 @@ jelastic.saveincloud.net
 nordeste-idc.saveincloud.net
 j.scaleforce.net
 jelastic.tsukaeru.net
-atl.jelastic.vps-host.net
-njs.jelastic.vps-host.net
 unicloud.pl
 mircloud.ru
 jelastic.regruhosting.ru
@@ -8564,6 +8569,7 @@ mcdir.me
 mcdir.ru
 mcpre.ru
 vps.mcdir.ru
+hra.health
 miniserver.com
 memset.net
 *.cloud.metacentrum.cz
@@ -8819,6 +8825,7 @@ oy.lc
 pgfog.com
 pagefrontapp.com
 pagexl.com
+*.paywhirl.com
 bar0.net
 bar1.net
 bar2.net
@@ -8859,9 +8866,12 @@ protonet.io
 chirurgiens-dentistes-en-france.fr
 byen.site
 pubtls.org
+*.pythonanywhere.com
+*.eu.pythonanywhere.com
 qoto.io
 qualifioapp.com
 qbuser.com
+cloudsite.builders
 instantcloud.cn
 ras.ru
 qa2.com
@@ -8896,6 +8906,7 @@ logoip.de
 logoip.com
 schokokeks.net
 gov.scot
+service.gov.scot
 scrysec.com
 firewall-gateway.com
 firewall-gateway.de
@@ -8909,9 +8920,12 @@ myfirewall.org
 spdns.org
 seidat.net
 senseering.net
+magnet.page
 biz.ua
 co.ua
 pp.ua
+shiftcrypto.dev
+shiftcrypto.io
 shiftedit.io
 myshopblocks.com
 myshopify.com
@@ -8929,6 +8943,7 @@ alpha.bounty-full.com
 beta.bounty-full.com
 small-web.org
 try-snowplow.com
+srht.site
 stackhero-network.com
 static.land
 dev.static.land
@@ -9152,4 +9167,8 @@ gsj.bz
 сочи.рус
 спб.рус
 я.рус
+vps-host.net
+atl.jelastic.vps-host.net
+njs.jelastic.vps-host.net
+ric.jelastic.vps-host.net
 // ===END PRIVATE DOMAINS===
