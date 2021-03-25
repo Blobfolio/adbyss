@@ -8,9 +8,9 @@ License details for project dependencies are listed below.
 * MIT License (6)
 * ISC License (3)
 * Mozilla Public License 2.0 (2)
+* Do What The F*ck You Want To Public License (2)
 * BSD 3-Clause &quot;New&quot; or &quot;Revised&quot; License (1)
 * OpenSSL License (1)
-* Do What The F*ck You Want To Public License (1)
 
 
 ## Complete Licenses:
@@ -19,8 +19,7 @@ License details for project dependencies are listed below.
 
 **Used By:**
 
-* [const_fn 0.4.5](https://github.com/taiki-e/const_fn)
-* [miniz_oxide 0.4.3](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide)
+* [miniz_oxide 0.4.4](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide)
 
 
 ```
@@ -421,7 +420,7 @@ License details for project dependencies are listed below.
 
 **Used By:**
 
-* [ureq 2.0.1](https://github.com/algesten/ureq)
+* [ureq 2.0.2](https://github.com/algesten/ureq)
 
 
 ```
@@ -1058,44 +1057,43 @@ limitations under the License.
 
 **Used By:**
 
-* [ahash 0.7.0](https://github.com/tkaitchuck/ahash)
+* [ahash 0.7.2](https://github.com/tkaitchuck/ahash)
 * [base64 0.13.0](https://github.com/marshallpierce/rust-base64)
 * [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
 * [chunked_transfer 1.4.0](https://github.com/frewsxcv/rust-chunked-transfer)
 * [crossbeam-channel 0.5.0](https://github.com/crossbeam-rs/crossbeam)
 * [crossbeam-deque 0.8.0](https://github.com/crossbeam-rs/crossbeam)
-* [crossbeam-epoch 0.9.1](https://github.com/crossbeam-rs/crossbeam)
-* [crossbeam-utils 0.8.1](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-epoch 0.9.3](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-utils 0.8.3](https://github.com/crossbeam-rs/crossbeam)
 * [dtoa 0.4.7](https://github.com/dtolnay/dtoa)
 * [either 1.6.1](https://github.com/bluss/either)
 * [flate2 1.0.20](https://github.com/rust-lang/flate2-rs)
-* [form_urlencoded 1.0.0](https://github.com/servo/rust-url)
-* [idna 0.2.1](https://github.com/servo/rust-url/)
+* [form_urlencoded 1.0.1](https://github.com/servo/rust-url)
+* [idna 0.2.2](https://github.com/servo/rust-url/)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.86](https://github.com/rust-lang/libc)
+* [libc 0.2.91](https://github.com/rust-lang/libc)
 * [num-integer 0.1.44](https://github.com/rust-num/num-integer)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
-* [once_cell 1.5.2](https://github.com/matklad/once_cell)
+* [once_cell 1.7.2](https://github.com/matklad/once_cell)
 * [percent-encoding 2.1.0](https://github.com/servo/rust-url/)
 * [proc-macro2 1.0.24](https://github.com/alexcrichton/proc-macro2)
-* [quote 1.0.8](https://github.com/dtolnay/quote)
+* [quote 1.0.9](https://github.com/dtolnay/quote)
 * [rayon 1.5.0](https://github.com/rayon-rs/rayon)
 * [rayon-core 1.9.0](https://github.com/rayon-rs/rayon)
-* [regex 1.4.3](https://github.com/rust-lang/regex)
-* [regex-syntax 0.6.22](https://github.com/rust-lang/regex)
+* [regex 1.4.5](https://github.com/rust-lang/regex)
+* [regex-syntax 0.6.23](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [sct 0.6.0](https://github.com/ctz/sct.rs)
-* [serde 1.0.123](https://github.com/serde-rs/serde)
-* [serde_derive 1.0.123](https://github.com/serde-rs/serde)
+* [serde 1.0.125](https://github.com/serde-rs/serde)
+* [serde_derive 1.0.125](https://github.com/serde-rs/serde)
 * [serde_yaml 0.8.17](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.60](https://github.com/dtolnay/syn)
+* [syn 1.0.64](https://github.com/dtolnay/syn)
 * [tempfile 3.2.0](https://github.com/Stebalien/tempfile)
-* [thread_local 1.1.3](https://github.com/Amanieu/thread_local-rs)
 * [unicode-bidi 0.3.4](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.17](https://github.com/unicode-rs/unicode-normalization)
 * [unicode-xid 0.2.1](https://github.com/unicode-rs/unicode-xid)
-* [url 2.2.0](https://github.com/servo/rust-url)
+* [url 2.2.1](https://github.com/servo/rust-url)
 * [yaml-rust 0.4.5](https://github.com/chyh1990/yaml-rust)
 
 
@@ -1523,7 +1521,7 @@ limitations under the License.
 * [getrandom 0.2.2](https://github.com/rust-random/getrandom)
 * [rand 0.8.3](https://github.com/rust-random/rand)
 * [rand_chacha 0.3.0](https://github.com/rust-random/rand)
-* [rand_core 0.6.1](https://github.com/rust-random/rand)
+* [rand_core 0.6.2](https://github.com/rust-random/rand)
 
 
 ```
@@ -1735,7 +1733,7 @@ limitations under the License.
 
 **Used By:**
 
-* [adler 0.2.3](https://github.com/jonas-schievink/adler.git)
+* [adler 1.0.2](https://github.com/jonas-schievink/adler.git)
 
 
 ```
@@ -3783,12 +3781,35 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.3.0](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.3.0](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.3.0](https://github.com/Blobfolio/adbyss)
-* [fyi_menu 0.6.1](https://github.com/Blobfolio/fyi)
-* [fyi_msg 0.6.1](https://github.com/Blobfolio/fyi)
-* [fyi_num 0.6.1](https://github.com/Blobfolio/fyi)
+* [argyle 0.3.1](https://github.com/Blobfolio/argyle)
+* [dactyl 0.1.7](https://github.com/Blobfolio/dactyl)
+
+
+```
+DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+Version 2, December 2004
+
+Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+Everyone is permitted to copy and distribute verbatim or modified
+copies of this license document, and changing it is allowed as long
+as the name is changed.
+
+DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+0. You just DO WHAT THE FUCK YOU WANT TO.
+
+```
+
+### Do What The F*ck You Want To Public License
+
+**Used By:**
+
+* [adbyss 0.3.1](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.3.1](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.3.1](https://github.com/Blobfolio/adbyss)
+* [fyi_msg 0.7.0](https://github.com/Blobfolio/fyi)
 
 
 ```

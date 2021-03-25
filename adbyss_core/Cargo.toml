@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.3.0"
+version = "0.3.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -10,6 +10,8 @@ publish = false
 
 [dependencies]
 ahash = "0.7.*"
+argyle = "0.3.*"
+dactyl = "0.1.*"
 flate2 = "1.0.*"
 lazy_static = "1.4.*"
 rayon = "1.5.*"
@@ -24,17 +26,9 @@ version = "0.4.*"
 default-features = false
 features = [ "clock", "std" ]
 
-[dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_num]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
+tag = "v0.7.0"
 
 [dependencies.tempfile-fast]
 git = "https://github.com/FauxFaux/tempfile-fast-rs.git"

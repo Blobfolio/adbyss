@@ -119,6 +119,10 @@ impl Source {
 /// # Raw Data.
 impl Source {
 	/// # Fetch Raw Source Data.
+	///
+	/// ## Errors
+	///
+	/// This returns an error if the data cannot be downloaded or parsed.
 	pub fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
 		use std::io::Write;
 
@@ -158,6 +162,10 @@ impl Source {
 	}
 
 	/// # Fetch Many Raw Source Data.
+	///
+	/// ## Errors
+	///
+	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		lazy_static::lazy_static! {
 			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();

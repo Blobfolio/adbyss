@@ -108,11 +108,8 @@ rustflags   := "-C link-arg=-s"
 
 # Build Docs.
 @doc:
-	# Make sure nightly is installed; this version generates better docs.
-	rustup install nightly
-
 	# Make the docs.
-	cargo +nightly doc \
+	cargo doc \
 		--workspace \
 		--release \
 		--no-deps \
@@ -150,20 +147,14 @@ rustflags   := "-C link-arg=-s"
 
 
 # Unit tests!
-test:
-	#!/usr/bin/env bash
-
+@test:
 	clear
-
-	RUST_TEST_THREADS=1 cargo test \
-		--tests \
+	cargo test \
 		--release \
+		--all-features \
 		--workspace \
 		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}" -- \
-			--format terse
-
-	exit 0
+		--target-dir "{{ cargo_dir }}"
 
 
 
@@ -203,9 +194,6 @@ version:
 
 # Init dependencies.
 @_init:
-	[ ! -f "{{ justfile_directory() }}/Cargo.lock" ] || rm "{{ justfile_directory() }}/Cargo.lock"
-	cargo update -w
-	cargo outdated -w
 	[ -f "/etc/adbyss.yaml" ] || cp "{{ pkg_dir1 }}/skel/adbyss.yaml" "/etc"
 
 

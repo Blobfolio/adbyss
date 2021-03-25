@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.3.0"
+version = "0.3.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -60,7 +60,7 @@ description = "Print program version."
 [[package.metadata.bashman.switches]]
 short = "-y"
 long = "--yes"
-description = "Non-interactive mode; answer \"yes\" to all prompts."
+description = 'Non-interactive mode; answer "yes" to all prompts.'
 
 [[package.metadata.bashman.options]]
 short = "-c"
@@ -84,6 +84,8 @@ items = [
 ]
 
 [dependencies]
+argyle = "0.3.*"
+dactyl = "0.1.*"
 libc = "0.2.*"
 serde_yaml = "0.8.*"
 
@@ -92,15 +94,7 @@ path = "../adbyss_core"
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_menu]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
-
-[dependencies.fyi_num]
-git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.6.1"
+tag = "v0.7.0"
 
 [dependencies.serde]
 version = "1.0.*"
