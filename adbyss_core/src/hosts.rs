@@ -492,14 +492,13 @@ impl Shitlist {
 		}
 	}
 
-	#[allow(trivial_casts)] // Triviality is required!
 	/// # Backup.
 	fn backup(&self, dst: &Path) -> Result<(), AdbyssError> {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
 			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
-				unsafe { &*(dst.as_os_str() as *const OsStr as *const [u8]) },
+				dst.as_os_str().as_bytes(),
 				b".adbyss.bak"
 			].concat()));
 
