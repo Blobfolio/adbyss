@@ -35,6 +35,6 @@ git = "https://github.com/FauxFaux/tempfile-fast-rs.git"
 rev = "7cd84b2"
 
 [dependencies.ureq]
-version = "2.0.*"
+version = "2.1.*"
 default-features = false
 features = [ "tls" ]
