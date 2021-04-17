@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 ahash = "0.7.*"
-argyle = "0.3.*"
+argyle = "0.4.*"
 dactyl = "0.1.*"
 flate2 = "1.0.*"
 lazy_static = "1.4.*"
@@ -28,7 +28,7 @@ features = [ "clock", "std" ]
 
 [dependencies.fyi_msg]
 git = "https://github.com/Blobfolio/fyi.git"
-tag = "v0.7.0"
+tag = "v0.7.1"
 
 [dependencies.tempfile-fast]
 git = "https://github.com/FauxFaux/tempfile-fast-rs.git"
