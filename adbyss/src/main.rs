@@ -144,7 +144,7 @@ fn _main() -> Result<(), AdbyssError> {
 	require_root()?;
 
 	// Parse CLI arguments.
-	let args = Argue::new(FLAG_VERSION | FLAG_HELP).map_err(AdbyssError::Argue)?;
+	let args = Argue::new(FLAG_VERSION | FLAG_HELP)?;
 
 	// Load configuration. If the user specified one, go with that and print an
 	// error if the path is invalid. Otherwise look for a config at the default
