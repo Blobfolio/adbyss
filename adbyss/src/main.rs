@@ -180,7 +180,7 @@ fn _main() -> Result<(), AdbyssError> {
 		let raw: String = shitlist.into_vec().join("\n");
 		let writer = std::io::stdout();
 		let mut handle = writer.lock();
-		let _ = handle.write_all(raw.as_bytes())
+		let _res = handle.write_all(raw.as_bytes())
 			.and_then(|_| handle.write_all(b"\n"))
 			.and_then(|_| handle.flush());
 	}
@@ -190,7 +190,7 @@ fn _main() -> Result<(), AdbyssError> {
 
 		let writer = std::io::stdout();
 		let mut handle = writer.lock();
-		let _ = handle.write_all(shitlist.as_bytes())
+		let _res = handle.write_all(shitlist.as_bytes())
 			.and_then(|_| handle.write_all(b"\n"))
 			.and_then(|_| handle.flush());
 	}
