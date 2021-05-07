@@ -262,7 +262,7 @@ impl Shitlist {
 	pub fn include<I>(&mut self, extras: I)
 	where I: IntoIterator<Item=String> {
 		self.found.extend(extras.into_iter().filter_map(Domain::parse));
-		let _ = self.build_out();
+		let _res = self.build_out();
 	}
 
 	/// # Exclude Entries.

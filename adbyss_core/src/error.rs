@@ -53,3 +53,8 @@ impl fmt::Display for AdbyssError {
 		}
 	}
 }
+
+impl From<ArgyleError> for AdbyssError {
+	#[inline]
+	fn from(e: ArgyleError) -> Self { Self::Argue(e) }
+}

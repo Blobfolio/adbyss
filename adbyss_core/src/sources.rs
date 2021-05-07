@@ -153,7 +153,7 @@ impl Source {
 
 		// Cache it for next time. If this doesn't work, we'll just have to
 		// download it each time. Whatever.
-		let _ = File::create(&cache).and_then(|mut file|
+		let _res = File::create(&cache).and_then(|mut file|
 			file.write_all(out.as_bytes()).and_then(|_| file.flush())
 		);
 
