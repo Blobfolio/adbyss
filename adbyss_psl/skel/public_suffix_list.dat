@@ -5476,15 +5476,16 @@ biz.ss
 com.ss
 edu.ss
 gov.ss
+me.ss
 net.ss
 org.ss
+sch.ss
 st
 co.st
 com.st
 consulado.st
 edu.st
 embaixada.st
-gov.st
 mil.st
 net.st
 org.st
@@ -6692,7 +6693,6 @@ ist
 istanbul
 itau
 itv
-iveco
 jaguar
 java
 jcb
@@ -7086,7 +7086,6 @@ spa
 space
 sport
 spot
-spreadbetting
 srl
 stada
 staples
@@ -8143,10 +8142,11 @@ fedorapeople.org
 cloud.fedoraproject.org
 app.os.fedoraproject.org
 app.os.stg.fedoraproject.org
-conn.uk
-copro.uk
 couk.me
 ukco.me
+conn.uk
+copro.uk
+hosp.uk
 mydobiss.com
 fh-muenster.io
 filegear.me
@@ -8195,8 +8195,10 @@ lab.ms
 cdn-edges.net
 ghost.io
 gsj.bz
-github.io
 githubusercontent.com
+github.dev
+githubpreview.dev
+github.io
 gitlab.io
 gitapp.si
 gitpage.si
@@ -8301,6 +8303,7 @@ blogspot.td
 blogspot.tw
 blogspot.ug
 blogspot.vn
+goupile.fr
 awsmppl.com
 günstigbestellen.de
 günstigliefern.de
@@ -8634,6 +8637,8 @@ netlify.app
 ngrok.io
 nh-serv.co.uk
 nfshost.com
+*.developer.app
+noop.app
 *.northflank.app
 *.code.run
 noticeable.news
@@ -8815,6 +8820,8 @@ opensocial.site
 opencraft.hosting
 orsites.com
 operaunite.com
+authgear-staging.com
+authgearapps.com
 skygearapp.com
 outsystemscloud.com
 *.webpaas.ovh.net
@@ -8869,8 +8876,8 @@ protonet.io
 chirurgiens-dentistes-en-france.fr
 byen.site
 pubtls.org
-*.pythonanywhere.com
-*.eu.pythonanywhere.com
+pythonanywhere.com
+eu.pythonanywhere.com
 qoto.io
 qualifioapp.com
 qbuser.com
@@ -8962,6 +8969,7 @@ stackhero-network.com
 static.land
 dev.static.land
 sites.static.land
+storebase.store
 vps-host.net
 atl.jelastic.vps-host.net
 njs.jelastic.vps-host.net

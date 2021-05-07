@@ -237,15 +237,15 @@ limitations under the License.
 * [chunked_transfer 1.4.0](https://github.com/frewsxcv/rust-chunked-transfer)
 * [crossbeam-channel 0.5.1](https://github.com/crossbeam-rs/crossbeam)
 * [crossbeam-deque 0.8.0](https://github.com/crossbeam-rs/crossbeam)
-* [crossbeam-epoch 0.9.3](https://github.com/crossbeam-rs/crossbeam)
-* [crossbeam-utils 0.8.3](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-epoch 0.9.4](https://github.com/crossbeam-rs/crossbeam)
+* [crossbeam-utils 0.8.4](https://github.com/crossbeam-rs/crossbeam)
 * [dtoa 0.4.8](https://github.com/dtolnay/dtoa)
 * [either 1.6.1](https://github.com/bluss/either)
 * [flate2 1.0.20](https://github.com/rust-lang/flate2-rs)
 * [form_urlencoded 1.0.1](https://github.com/servo/rust-url)
 * [idna 0.2.3](https://github.com/servo/rust-url/)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.93](https://github.com/rust-lang/libc)
+* [libc 0.2.94](https://github.com/rust-lang/libc)
 * [num-integer 0.1.44](https://github.com/rust-num/num-integer)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
@@ -255,19 +255,19 @@ limitations under the License.
 * [quote 1.0.9](https://github.com/dtolnay/quote)
 * [rayon 1.5.0](https://github.com/rayon-rs/rayon)
 * [rayon-core 1.9.0](https://github.com/rayon-rs/rayon)
-* [regex 1.4.5](https://github.com/rust-lang/regex)
-* [regex-syntax 0.6.23](https://github.com/rust-lang/regex)
+* [regex 1.5.4](https://github.com/rust-lang/regex)
+* [regex-syntax 0.6.25](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [sct 0.6.1](https://github.com/ctz/sct.rs)
 * [serde 1.0.125](https://github.com/serde-rs/serde)
 * [serde_derive 1.0.125](https://github.com/serde-rs/serde)
 * [serde_yaml 0.8.17](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.69](https://github.com/dtolnay/syn)
+* [syn 1.0.72](https://github.com/dtolnay/syn)
 * [tempfile 3.2.0](https://github.com/Stebalien/tempfile)
 * [unicode-bidi 0.3.5](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.17](https://github.com/unicode-rs/unicode-normalization)
-* [unicode-xid 0.2.1](https://github.com/unicode-rs/unicode-xid)
-* [url 2.2.1](https://github.com/servo/rust-url)
+* [unicode-xid 0.2.2](https://github.com/unicode-rs/unicode-xid)
+* [url 2.2.2](https://github.com/servo/rust-url)
 * [yaml-rust 0.4.5](https://github.com/chyh1990/yaml-rust)
 
 
@@ -2696,7 +2696,7 @@ limitations under the License.
 
 **Used By:**
 
-* [ureq 2.1.0](https://github.com/algesten/ureq)
+* [ureq 2.1.1](https://github.com/algesten/ureq)
 
 
 ```
@@ -3032,8 +3032,8 @@ third-party/chromium/LICENSE.
 
 **Used By:**
 
-* [aho-corasick 0.7.15](https://github.com/BurntSushi/aho-corasick)
-* [memchr 2.3.4](https://github.com/BurntSushi/rust-memchr)
+* [aho-corasick 0.7.18](https://github.com/BurntSushi/aho-corasick)
+* [memchr 2.4.0](https://github.com/BurntSushi/rust-memchr)
 
 
 ```
@@ -3916,10 +3916,10 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.3.2](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.3.2](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.3.2](https://github.com/Blobfolio/adbyss)
-* [argyle 0.4.0](https://github.com/Blobfolio/argyle)
+* [adbyss 0.3.3](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.3.3](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.3.3](https://github.com/Blobfolio/adbyss)
+* [argyle 0.4.1](https://github.com/Blobfolio/argyle)
 * [dactyl 0.1.7](https://github.com/Blobfolio/dactyl)
 * [fyi_msg 0.7.1](https://github.com/Blobfolio/fyi)
 
