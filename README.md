@@ -1,5 +1,7 @@
 # Adbyss
 
+[![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
+
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
 While ad-blocking browser extensions are extremely useful, they only block unwatned content *in the browser*, and require read/write access to every page you visit, which adds overhead and potential security/privacy issues.
