@@ -171,7 +171,7 @@ impl Source {
 			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();
 		}
 
-		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(60000, crate::AHASH_STATE);
+		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(80_000, crate::AHASH_STATE);
 		out.par_extend(
 			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
 				.filter(|x| 0 != src & x.as_byte())
