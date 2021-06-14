@@ -11,6 +11,8 @@ publish = false
 [build-dependencies]
 ahash = "0.7.*"
 idna = "0.2.*"
+regex = "1.5.*"
+ureq = "2.1.*"
 
 [dependencies]
 ahash = "0.7.*"
