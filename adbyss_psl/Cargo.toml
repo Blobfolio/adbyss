@@ -12,7 +12,11 @@ publish = false
 ahash = "0.7.*"
 idna = "0.2.*"
 regex = "1.5.*"
-ureq = "2.1.*"
+
+[build-dependencies.ureq]
+version = "2.1.*"
+default-features = false
+features = [ "tls" ]
 
 [dependencies]
 ahash = "0.7.*"
