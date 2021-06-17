@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.3.3"
+version = "0.3.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -11,6 +11,12 @@ publish = false
 [build-dependencies]
 ahash = "0.7.*"
 idna = "0.2.*"
+regex = "1.5.*"
+
+[build-dependencies.ureq]
+version = "2.1.*"
+default-features = false
+features = [ "tls" ]
 
 [dependencies]
 ahash = "0.7.*"

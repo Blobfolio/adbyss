@@ -41,7 +41,7 @@ rustflags   := "-C link-arg=-s"
 
 
 # Build Debian package!
-@build-deb: credits psl build
+@build-deb: credits build
 	# Do completions/man.
 	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
 
@@ -120,18 +120,6 @@ rustflags   := "-C link-arg=-s"
 	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
 	mv "{{ cargo_dir }}/x86_64-unknown-linux-gnu/doc" "{{ justfile_directory() }}"
 	just _fix-chown "{{ doc_dir }}"
-
-
-# Pull Public Suffix list.
-@psl:
-	[ ! -f "{{ pkg_dir3 }}/skel/public_suffix_list.dat" ] || rm "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
-	wget -O "{{ pkg_dir3 }}/skel/public_suffix_list.dat" "https://publicsuffix.org/list/public_suffix_list.dat"
-
-	sd -f mi '^// [a-z0-9].*$' '' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
-	sd -f mi '^\s*$' '' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
-	sed -i '/^$/d' "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
-
-	just _fix-chown "{{ pkg_dir3 }}/skel/public_suffix_list.dat"
 
 
 # Test Run.

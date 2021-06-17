@@ -6,7 +6,15 @@ use ahash::{
 	AHashMap,
 	AHashSet,
 };
-use std::io::Write;
+use regex::Regex;
+use std::{
+	fs::{
+		File,
+		Metadata,
+	},
+	io::Write,
+	path::PathBuf,
+};
 
 
 
@@ -17,7 +25,7 @@ use std::io::Write;
 ///
 /// It's a bit ugly, but saves having to do this at runtime!
 pub fn main() {
-	println!("cargo:rerun-if-changed=skel/public_suffix_list.dat");
+	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 
 	// Let's build the thing we'll be writing about building.
 	let mut psl_main: AHashSet<String> = AHashSet::new();
@@ -27,11 +35,7 @@ pub fn main() {
 	const FLAG_WILDCARD: u8  = 0b0010;
 
 	// Parse the raw data.
-	std::fs::canonicalize(env!("CARGO_MANIFEST_DIR"))
-		.map(|mut x| { x.push("skel/public_suffix_list.dat"); x })
-		.and_then(std::fs::read_to_string)
-		.expect("Unable to read public_suffix_list.dat")
-		.lines()
+	fetch_suffixes().lines()
 		.filter(|line| ! line.is_empty() && ! line.starts_with("//"))
 		.filter_map(|mut line| {
 			let mut flags: u8 = 0;
@@ -78,14 +82,16 @@ pub fn main() {
 		);
 
 	// Our generated script will live here.
-	let mut file = std::env::var("OUT_DIR")
-		.ok()
-		.map(|mut x| { x.push_str("/adbyss-list.rs"); x })
-		.and_then(|x| std::fs::File::create(x).ok())
-		.expect("Unable to create public_suffix_list.rs");
+	let mut file = File::create(out_path("adbyss-list.rs"))
+		.expect("Unable to create adbyss-list.rs");
 
 	let (main_len, main_inserts) = build_psl_main(psl_main);
 	let (wild_len, wild_inserts) = build_psl_wild(psl_wild);
+
+	// Make sure they aren't empty.
+	assert!(0 < main_len, "Invalid PSL.");
+	assert!(0 < wild_len, "Invalid PSL.");
+
 	write!(
 		&mut file,
 		include_str!("./skel/list.rs.txt"),
@@ -129,4 +135,50 @@ fn build_psl_wild(set: AHashMap<String, Vec<String>>) -> (usize, String) {
 		set.len(),
 		set.concat(),
 	)
+}
+
+/// # Fetch Suffixes.
+///
+/// This downloads and lightly cleans the raw public suffix list.
+fn fetch_suffixes() -> String {
+	// Cache this locally for up to an hour.
+	let cache = out_path("public_suffix_list.dat");
+	if let Some(x) = std::fs::metadata(&cache)
+		.ok()
+		.filter(Metadata::is_file)
+		.and_then(|meta| meta.modified().ok())
+		.and_then(|time| time.elapsed().ok().filter(|secs| secs.as_secs() < 3600))
+		.and_then(|_| std::fs::read_to_string(&cache).ok())
+	{
+		return x;
+	}
+
+	// Download it fresh.
+	let raw = ureq::get("https://publicsuffix.org/list/public_suffix_list.dat")
+		.set("user-agent", "Mozilla/5.0")
+		.call()
+		.and_then(|r| r.into_string().map_err(|e| e.into()))
+		.map(|raw| {
+			let re = Regex::new(r"(?m)^\s*").unwrap();
+			re.replace_all(&raw, "").to_string()
+		})
+		.expect("Unable to fetch https://publicsuffix.org/list/public_suffix_list.dat");
+
+	// We don't need to panic if the cache-save fails; the system is only
+	// hurting its future self in such cases. ;)
+	let _res = File::create(cache)
+		.and_then(|mut file| file.write_all(raw.as_bytes()).and_then(|_| file.flush()));
+
+	// Return the data.
+	raw
+}
+
+/// # Out path.
+///
+/// This generates a (file/dir) path relative to `OUT_DIR`.
+fn out_path(name: &str) -> PathBuf {
+	let dir = std::env::var("OUT_DIR").expect("Missing OUT_DIR.");
+	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
+	out.push(name);
+	out
 }

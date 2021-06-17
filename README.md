@@ -1,5 +1,7 @@
 # Adbyss
 
+[![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
+
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
 While ad-blocking browser extensions are extremely useful, they only block unwatned content *in the browser*, and require read/write access to every page you visit, which adds overhead and potential security/privacy issues.
@@ -10,13 +12,27 @@ Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
 
 ## Installation
 
-This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
+Debian and Ubuntu users can just grab the pre-built `.deb` package from the [latest release](https://github.com/Blobfolio/adbyss/releases/latest).
+
+This application is written in [Rust](https://www.rust-lang.org/) and can alternatively be built from source using [Cargo](https://github.com/rust-lang/cargo):
 
 ```bash
+# Clone the source.
+git clone https://github.com/Blobfolio/adbyss.git
+
+# Go to it.
+cd adbyss
+
+# Copy the configuration file.
 sudo cp adbyss/misc/adbyss.yaml /etc
+
+# Build as usual. Specify additional flags as desired.
+cargo build \
+    --bin adbyss \
+    --release
 ```
 
-Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
+(This should work under other 64-bit Unix environments too, like MacOS.)
 
 
 
