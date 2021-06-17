@@ -572,7 +572,6 @@ impl Shitlist {
 	}
 
 	#[allow(clippy::comparison_chain)] // We're only matching two branches.
-	#[allow(clippy::filter_map)] // This is confusing.
 	/// # Found: Compact.
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of
@@ -603,20 +602,20 @@ impl Shitlist {
 
 				// Split on whitespace.
 				x.sort();
-				x.iter().for_each(|x| {
-					if line.len() + 1 + x.len() <= MAX_LINE {
+				for y in &x {
+					if line.len() + 1 + y.len() <= MAX_LINE {
 						if ! line.is_empty() {
 							line.push(' ');
 						}
-						line.push_str(x.as_str());
+						line.push_str(y.as_str());
 					}
 					else if ! line.is_empty() {
 						out.push(line.split_off(0));
-						if x.len() <= MAX_LINE {
-							line.push_str(x.as_str());
+						if y.len() <= MAX_LINE {
+							line.push_str(y.as_str());
 						}
 					}
-				});
+				}
 
 				// Add the remainder, if any.
 				if ! line.is_empty() {
@@ -695,7 +694,7 @@ impl Shitlist {
 					.filter(cb)
 					.cloned()
 			);
-			extra.iter().for_each(|x| { self.found.remove(x); });
+			for x in &extra { self.found.remove(x); }
 		}
 	}
 }
