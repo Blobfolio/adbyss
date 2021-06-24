@@ -121,28 +121,32 @@ impl fmt::Display for Domain {
 }
 
 impl Hash for Domain {
+	#[inline]
 	fn hash<H: Hasher>(&self, state: &mut H) { self.host.hash(state); }
 }
 
 impl Ord for Domain {
-	fn cmp(&self, other: &Self) -> Ordering {
-		self.host.cmp(&other.host)
-	}
+	#[inline]
+	fn cmp(&self, other: &Self) -> Ordering { self.host.cmp(&other.host) }
 }
 
 impl PartialEq for Domain {
+	#[inline]
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
 impl PartialEq<str> for Domain {
+	#[inline]
 	fn eq(&self, other: &str) -> bool { self.host == other }
 }
 
 impl PartialEq<String> for Domain {
+	#[inline]
 	fn eq(&self, other: &String) -> bool { self.host.eq(other) }
 }
 
 impl PartialOrd for Domain {
+	#[inline]
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
