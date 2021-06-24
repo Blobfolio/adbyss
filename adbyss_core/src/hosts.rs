@@ -49,6 +49,7 @@ use std::{
 		PathBuf,
 	},
 };
+use utc2k::FmtUtc2k;
 
 
 
@@ -547,14 +548,14 @@ impl Shitlist {
 # If you have custom host entries to add, place them at the top of this file
 # instead. (Anywhere before the start of this section will do.)
 #
-# Updated: {}
+# Updated: {} UTC
 # Blocked: {} garbage hosts
 #
 # Eat the rich.
 #
 ##########
 "#,
-			chrono::Local::now().format("%Y-%m-%d %H:%M:%S %Z"),
+			FmtUtc2k::now().as_str(),
 			NiceU64::from(self.found.len()).as_str()
 		).as_bytes());
 
