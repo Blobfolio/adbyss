@@ -232,11 +232,21 @@ impl Domain {
 
 /// # Conversion.
 impl Domain {
-	#[allow(clippy::missing_const_for_fn)] // Doesn't work.
 	#[must_use]
 	/// # Into String.
 	///
 	/// Consume the struct, returning the sanitized host as an owned string.
+	pub fn into_string(self) -> String { self.host.into() }
+
+	#[allow(clippy::missing_const_for_fn)] // Doesn't work.
+	#[must_use]
+	/// # Into `SmartString`.
+	///
+	/// Consume the struct, returning the sanitized host as an owned
+	/// `SmartString` (which is how this struct stores the data).
+	///
+	/// If you would rather have a regular `String`, use [`Domain::into_string`]
+	/// instead.
 	pub fn take(self) -> SmartString<LazyCompact> { self.host }
 }
 
