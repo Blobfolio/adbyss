@@ -73,6 +73,7 @@ use smartstring::{
 };
 use std::{
 	cmp::Ordering,
+	fmt,
 	hash::{
 		Hash,
 		Hasher,
@@ -111,6 +112,13 @@ impl Deref for Domain {
 }
 
 impl Eq for Domain {}
+
+impl fmt::Display for Domain {
+	#[inline]
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(self.as_str())
+	}
+}
 
 impl Hash for Domain {
 	fn hash<H: Hasher>(&self, state: &mut H) { self.host.hash(state); }
