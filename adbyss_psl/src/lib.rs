@@ -105,6 +105,11 @@ pub struct Domain {
 	suffix: Range<usize>,
 }
 
+impl AsRef<str> for Domain {
+	#[inline]
+	fn as_ref(&self) -> &str { self.as_str() }
+}
+
 impl Deref for Domain {
 	type Target = str;
 	#[inline]
