@@ -6,7 +6,7 @@ authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
 description = "A minimal Public Suffix List hostname validator."
 repository = "https://github.com/Blobfolio/adbyss"
-publish = false
+readme = "README.md"
 
 [build-dependencies]
 ahash = "0.7.*"

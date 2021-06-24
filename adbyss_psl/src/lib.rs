@@ -4,23 +4,17 @@
 This crate provides a very simple interface for checking hosts against the
 [Public Suffix List](https://publicsuffix.org/list/).
 
-This is a judgey library; hosts with unknown or missing suffixes are not
-parsed. No distinction is made between ICANN and private entries. Rules must be
-followed! Haha.
+This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries. Rules must be followed! Haha.
 
-For hosts that do get parsed, their values will be normalized to lowercase
-ASCII.
+For hosts that do get parsed, their values will be normalized to lowercase ASCII.
 
-Note: The master suffix data is baked into this crate at build time. This reduces the
-runtime overhead of parsing all that data out, but can also cause implementing
-apps to grow stale if they haven't been packed lately.
+Note: The master suffix data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
-## Example
+## Examples
 
-Initiate a new instance using [`Domain::parse`]. If that works, you then have
-accesses to the individual components:
+Initiate a new instance using [`Domain::parse`]. If that works, you then have accesses to the individual components:
 
-```no_run
+```
 use adbyss_psl::Domain;
 
 let dom = Domain::parse("www.MyDomain.com").unwrap();
@@ -31,8 +25,7 @@ assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 ```
 
-A [`Domain`] object can be dereferenced to a string slice of the sanitized
-host. You can also consume the object into an owned string with [`Domain::take`].
+A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
 */
 
 #![warn(clippy::filetype_is_file)]
@@ -99,6 +92,29 @@ pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seed
 
 #[derive(Debug, Default, Clone)]
 /// # Domain.
+///
+/// This struct can be used to validate a domain against the [Public Suffix List](https://publicsuffix.org/list/)
+/// and separate out subdomain/root/suffix components.
+///
+/// All valid entries are normalized to lowercase ASCII.
+///
+/// Note: this is judgey; hosts with unknown or missing suffixes will not parse.
+///
+/// ## Examples
+///
+/// Initiate a new instance using [`Domain::parse`]. If that works, you then
+/// have accesses to the individual components:
+///
+/// ```
+/// use adbyss_psl::Domain;
+///
+/// let dom = Domain::parse("www.MyDomain.com").unwrap();
+/// assert_eq!(dom.host(), "www.mydomain.com");
+/// assert_eq!(dom.subdomain(), Some("www"));
+/// assert_eq!(dom.root(), "mydomain");
+/// assert_eq!(dom.suffix(), "com");
+/// assert_eq!(dom.tld(), "mydomain.com");
+/// ```
 pub struct Domain {
 	host: SmartString<LazyCompact>,
 	root: Range<usize>,
@@ -218,6 +234,9 @@ impl Domain {
 
 	#[must_use]
 	/// # Has Leading WWW.
+	///
+	/// This will return `true` if the domain begins with "www." _and_ that
+	/// "www." is a subdomain. (The latter is usually but not always the case!)
 	pub fn has_www(&self) -> bool {
 		self.root.start >= 4 && self.host.starts_with("www.")
 	}
