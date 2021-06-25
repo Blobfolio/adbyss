@@ -27,6 +27,34 @@ use std::{
 pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 
+	// Our generated script will live here.
+	let mut file = File::create(out_path("adbyss-list.rs"))
+		.expect("Unable to create adbyss-list.rs");
+
+	// Compile the data.
+	let (psl_main, psl_wild) = load_data();
+	let (main_len, main_inserts) = build_psl_main(psl_main);
+	let (wild_len, wild_inserts) = build_psl_wild(psl_wild);
+
+	// Make sure they aren't empty.
+	assert!(0 < main_len, "Invalid PSL.");
+	assert!(0 < wild_len, "Invalid PSL.");
+
+	write!(
+		&mut file,
+		include_str!("./skel/list.rs.txt"),
+		main_len = main_len,
+		main_inserts = main_inserts,
+		wild_len = wild_len,
+		wild_inserts = wild_inserts
+	)
+		.and_then(|_| file.flush())
+		.unwrap();
+}
+
+#[cfg(not(feature = "docs-workaround"))]
+/// # Load Data.
+fn load_data() -> (AHashSet<String>, AHashMap<String, Vec<String>>) {
 	// Let's build the thing we'll be writing about building.
 	let mut psl_main: AHashSet<String> = AHashSet::new();
 	let mut psl_wild: AHashMap<String, Vec<String>> = AHashMap::new();
@@ -81,27 +109,25 @@ pub fn main() {
 			}
 		);
 
-	// Our generated script will live here.
-	let mut file = File::create(out_path("adbyss-list.rs"))
-		.expect("Unable to create adbyss-list.rs");
+	(psl_main, psl_wild)
+}
 
-	let (main_len, main_inserts) = build_psl_main(psl_main);
-	let (wild_len, wild_inserts) = build_psl_wild(psl_wild);
+#[cfg(feature = "docs-workaround")]
+/// # (Fake) Load Data.
+///
+/// This is a network-free workaround to allow `docs.rs` to be able to generate
+/// documentation for this library.
+///
+/// Don't try to compile this library with the `docs-workaround` feature or the
+/// library won't work properly.
+fn load_data() -> (AHashSet<String>, AHashMap<String, Vec<String>>) {
+	let mut psl_main: AHashSet<String> = AHashSet::new();
+	psl_main.insert(String::from("com"));
 
-	// Make sure they aren't empty.
-	assert!(0 < main_len, "Invalid PSL.");
-	assert!(0 < wild_len, "Invalid PSL.");
+	let mut psl_wild: AHashMap<String, Vec<String>> = AHashMap::new();
+	psl_wild.insert(String::from("bd"), Vec::new());
 
-	write!(
-		&mut file,
-		include_str!("./skel/list.rs.txt"),
-		main_len = main_len,
-		main_inserts = main_inserts,
-		wild_len = wild_len,
-		wild_inserts = wild_inserts
-	)
-		.and_then(|_| file.flush())
-		.unwrap();
+	(psl_main, psl_wild)
 }
 
 /// # Build PSL_MAIN.
@@ -137,6 +163,7 @@ fn build_psl_wild(set: AHashMap<String, Vec<String>>) -> (usize, String) {
 	)
 }
 
+#[cfg(not(feature = "docs-workaround"))]
 /// # Fetch Suffixes.
 ///
 /// This downloads and lightly cleans the raw public suffix list.
