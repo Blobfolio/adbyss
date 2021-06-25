@@ -1,14 +1,13 @@
 /*!
 # Adbyss: Public Suffix
 
-This crate provides a very simple interface for checking hosts against the
-[Public Suffix List](https://publicsuffix.org/list/).
+This crate provides a very simple interface for checking hosts — ASCII and internationalized — against the [Public Suffix List](https://publicsuffix.org/list/).
 
 This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries. Rules must be followed! Haha.
 
 For hosts that do get parsed, their values will be normalized to lowercase ASCII.
 
-Note: The master suffix data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
+Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
 ## Examples
 
@@ -16,13 +15,22 @@ Initiate a new instance using [`Domain::parse`]. If that works, you then have ac
 
 ```
 use adbyss_psl::Domain;
+use std::convert::TryFrom;
 
+// Use `Domain::parse()` or `Domain::try_from()` to get started.
 let dom = Domain::parse("www.MyDomain.com").unwrap();
+let dom = Domain::try_from("www.MyDomain.com").unwrap();
+
+// Pull out the pieces if you're into that sort of thing.
 assert_eq!(dom.host(), "www.mydomain.com");
 assert_eq!(dom.subdomain(), Some("www"));
 assert_eq!(dom.root(), "mydomain");
 assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
+
+// If you just want the sanitized host back as an owned value, use
+// `Domain::take` or `Domain::into_string`.
+let owned = dom.into_string(); // "www.mydomain.com"
 ```
 
 A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
@@ -66,10 +74,15 @@ use smartstring::{
 };
 use std::{
 	cmp::Ordering,
+	convert::TryFrom,
 	fmt,
 	hash::{
 		Hash,
 		Hasher,
+	},
+	io::{
+		Error,
+		ErrorKind,
 	},
 	ops::{
 		Deref,
@@ -90,6 +103,20 @@ pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seed
 
 
 
+/// # Helper: Generate `TryFrom` Implementations.
+macro_rules! impl_try {
+	($($ty:ty),+) => ($(
+		impl TryFrom<$ty> for Domain {
+			type Error = Error;
+			fn try_from(src: $ty) -> Result<Self, Self::Error> {
+				Self::parse(src).ok_or_else(|| ErrorKind::InvalidData.into())
+			}
+		}
+	)+)
+}
+
+
+
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 ///
@@ -107,13 +134,22 @@ pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seed
 ///
 /// ```
 /// use adbyss_psl::Domain;
+/// use std::convert::TryFrom;
 ///
+/// // Use `Domain::parse()` or `Domain::try_from()` to get started.
 /// let dom = Domain::parse("www.MyDomain.com").unwrap();
+/// let dom = Domain::try_from("www.MyDomain.com").unwrap();
+///
+/// // Pull out the pieces if you're into that sort of thing.
 /// assert_eq!(dom.host(), "www.mydomain.com");
 /// assert_eq!(dom.subdomain(), Some("www"));
 /// assert_eq!(dom.root(), "mydomain");
 /// assert_eq!(dom.suffix(), "com");
 /// assert_eq!(dom.tld(), "mydomain.com");
+///
+/// // If you just want the sanitized host back as an owned value, use
+/// // `Domain::take` or `Domain::into_string`.
+/// let owned = dom.into_string(); // "www.mydomain.com"
 /// ```
 pub struct Domain {
 	host: SmartString<LazyCompact>,
@@ -172,6 +208,9 @@ impl PartialOrd for Domain {
 		Some(self.cmp(other))
 	}
 }
+
+// Aliases for Domain::parse.
+impl_try!(&str, String, &String);
 
 /// # Main.
 impl Domain {

@@ -2,12 +2,13 @@
 # Adbyss: Public Suffix - Build
 */
 
-use ahash::{
-	AHashMap,
-	AHashSet,
-};
+use ahash::RandomState;
 use regex::Regex;
 use std::{
+	collections::{
+		HashMap,
+		HashSet,
+	},
 	fs::{
 		File,
 		Metadata,
@@ -15,6 +16,11 @@ use std::{
 	io::Write,
 	path::PathBuf,
 };
+
+
+
+// Hash State.
+const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
 
 
@@ -26,6 +32,7 @@ use std::{
 /// It's a bit ugly, but saves having to do this at runtime!
 pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
+	println!("cargo:rerun-if-changed=skel/list.rs.txt");
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-list.rs"))
@@ -54,10 +61,10 @@ pub fn main() {
 
 #[cfg(not(feature = "docs-workaround"))]
 /// # Load Data.
-fn load_data() -> (AHashSet<String>, AHashMap<String, Vec<String>>) {
+fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, RandomState>) {
 	// Let's build the thing we'll be writing about building.
-	let mut psl_main: AHashSet<String> = AHashSet::new();
-	let mut psl_wild: AHashMap<String, Vec<String>> = AHashMap::new();
+	let mut psl_main: HashSet<String, RandomState> = HashSet::with_hasher(AHASH_STATE);
+	let mut psl_wild: HashMap<String, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
 
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
@@ -120,18 +127,18 @@ fn load_data() -> (AHashSet<String>, AHashMap<String, Vec<String>>) {
 ///
 /// Don't try to compile this library with the `docs-workaround` feature or the
 /// library won't work properly.
-fn load_data() -> (AHashSet<String>, AHashMap<String, Vec<String>>) {
-	let mut psl_main: AHashSet<String> = AHashSet::new();
+fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, RandomState>) {
+	let mut psl_main: HashSet<String, RandomState> = HashSet::with_hasher(AHASH_STATE);
 	psl_main.insert(String::from("com"));
 
-	let mut psl_wild: AHashMap<String, Vec<String>> = AHashMap::new();
+	let mut psl_wild: HashMap<String, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
 	psl_wild.insert(String::from("bd"), Vec::new());
 
 	(psl_main, psl_wild)
 }
 
 /// # Build PSL_MAIN.
-fn build_psl_main(set: AHashSet<String>) -> (usize, String) {
+fn build_psl_main(set: HashSet<String, RandomState>) -> (usize, String) {
 	let mut set: Vec<String> = set.iter()
 		.map(|x| format!("\t\tout.insert(\"{}\");\n", x))
 		.collect();
@@ -144,7 +151,7 @@ fn build_psl_main(set: AHashSet<String>) -> (usize, String) {
 }
 
 /// # Build PSL_WILD.
-fn build_psl_wild(set: AHashMap<String, Vec<String>>) -> (usize, String) {
+fn build_psl_wild(set: HashMap<String, Vec<String>, RandomState>) -> (usize, String) {
 	let mut set: Vec<String> = set.iter()
 		.map(|(k, v)| format!(
 			"\t\tout.insert(\"{}\", vec![{}]);\n",

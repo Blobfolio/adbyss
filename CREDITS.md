@@ -3664,9 +3664,9 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.3.5](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.3.5](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.3.5](https://github.com/Blobfolio/adbyss)
+* [adbyss 0.3.7](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.3.7](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.3.7](https://github.com/Blobfolio/adbyss)
 * [argyle 0.4.2](https://github.com/Blobfolio/argyle)
 * [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
 * [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
