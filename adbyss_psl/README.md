@@ -34,6 +34,17 @@ A `Domain` object can be dereferenced to a string slice representing the sanitiz
 
 
 
+## Installation
+
+Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
+
+```
+[dependencies]
+adbyss_psl = "0.3.*"
+```
+
+
+
 ## License
 
 Copyright © 2021 [Blobfolio, LLC](https://blobfolio.com) &lt;hello@blobfolio.com&gt;

@@ -26,6 +26,17 @@ assert_eq!(dom.tld(), "mydomain.com");
 ```
 
 A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
+
+
+
+## Installation
+
+Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
+
+```
+[dependencies]
+adbyss_psl = "0.3.*"
+```
 */
 
 #![warn(clippy::filetype_is_file)]
