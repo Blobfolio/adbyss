@@ -1,20 +1,21 @@
-use ahash::{{ AHashMap, AHashSet }};
+use ahash::RandomState;
 use crate::AHASH_STATE;
+use std::collections::{{ HashMap, HashSet }};
 
 
 
 lazy_static::lazy_static! {{
 	/// # Main Suffixes.
-	pub static ref PSL_MAIN: AHashSet<&'static str> = {{
-		let mut out: AHashSet<&'static str> = AHashSet::with_capacity_and_hasher({main_len}, AHASH_STATE);
+	pub static ref PSL_MAIN: HashSet<&'static str, RandomState> = {{
+		let mut out: HashSet<&'static str, RandomState> = HashSet::with_capacity_and_hasher({main_len}, AHASH_STATE);
 
 {main_inserts}
 		out
 	}};
 
 	/// # Weird Suffixes.
-	pub static ref PSL_WILD: AHashMap<&'static str, Vec<&'static str>> = {{
-		let mut out: AHashMap<&'static str, Vec<&'static str>> = AHashMap::with_capacity_and_hasher({wild_len}, AHASH_STATE);
+	pub static ref PSL_WILD: HashMap<&'static str, Vec<&'static str>, RandomState> = {{
+		let mut out: HashMap<&'static str, Vec<&'static str>, RandomState> = HashMap::with_capacity_and_hasher({wild_len}, AHASH_STATE);
 
 {wild_inserts}
 		out
