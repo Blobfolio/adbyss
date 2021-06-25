@@ -4,16 +4,13 @@
 [![crates.io](https://img.shields.io/crates/v/adbyss_psl.svg)](https://crates.io/crates/adbyss_psl)
 [![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
 
-This crate provides a very simple interface for checking hosts against the
-[Public Suffix List](https://publicsuffix.org/list/).
+This crate provides a very simple interface for checking hosts — ASCII and internationalized — against the [Public Suffix List](https://publicsuffix.org/list/).
 
-This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries.
-
-_Rules must be followed!_ Haha.
+This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries. Rules must be followed! Haha.
 
 For hosts that do get parsed, their values will be normalized to lowercase ASCII.
 
-Note: The master suffix data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
+Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
 ## Examples
 

@@ -1,14 +1,13 @@
 /*!
 # Adbyss: Public Suffix
 
-This crate provides a very simple interface for checking hosts against the
-[Public Suffix List](https://publicsuffix.org/list/).
+This crate provides a very simple interface for checking hosts — ASCII and internationalized — against the [Public Suffix List](https://publicsuffix.org/list/).
 
 This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries. Rules must be followed! Haha.
 
 For hosts that do get parsed, their values will be normalized to lowercase ASCII.
 
-Note: The master suffix data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
+Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
 ## Examples
 
@@ -26,17 +25,6 @@ assert_eq!(dom.tld(), "mydomain.com");
 ```
 
 A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
-
-
-
-## Installation
-
-Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
-
-```ignore,text
-[dependencies]
-adbyss_psl = "0.3.*"
-```
 */
 
 #![warn(clippy::filetype_is_file)]
