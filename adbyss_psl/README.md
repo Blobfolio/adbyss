@@ -18,13 +18,22 @@ Initiate a new instance using `Domain::parse`. If that works, you then have acce
 
 ```rust
 use adbyss_psl::Domain;
+use std::convert::TryFrom;
 
+// Use `Domain::parse()` or `Domain::try_from()` to get started.
 let dom = Domain::parse("www.MyDomain.com").unwrap();
+let dom = Domain::try_from("www.MyDomain.com").unwrap();
+
+// Pull out the pieces if you're into that sort of thing.
 assert_eq!(dom.host(), "www.mydomain.com");
 assert_eq!(dom.subdomain(), Some("www"));
 assert_eq!(dom.root(), "mydomain");
 assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
+
+// If you just want the sanitized host back as an owned value, use
+// `Domain::take` or `Domain::into_string`.
+let owned = dom.into_string(); // "www.mydomain.com"
 ```
 
 A `Domain` object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with `Domain::take`.
