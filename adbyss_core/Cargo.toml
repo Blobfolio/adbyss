@@ -18,7 +18,7 @@ lazy_static = "1.4.*"
 rayon = "1.5.*"
 regex = "1.5.*"
 smartstring = "0.2.*"
-utc2k = "0.1.*"
+utc2k = "0.2.*"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
