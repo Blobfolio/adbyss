@@ -92,6 +92,7 @@ use std::{
 
 
 
+#[doc(hidden)]
 /// # (Not) Random State.
 ///
 /// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
@@ -99,7 +100,7 @@ use std::{
 /// static that would be used otherwise.
 ///
 /// For our purposes, the variability of truly random keys isn't really needed.
-pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
+pub const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
 
 
