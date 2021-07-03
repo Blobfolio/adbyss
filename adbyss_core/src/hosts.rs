@@ -2,10 +2,12 @@
 # `Adbyss`: Hosts
 */
 
-use adbyss_psl::Domain;
+use adbyss_psl::{
+	AHASH_STATE,
+	Domain,
+};
 use crate::{
 	AdbyssError,
-	AHASH_STATE,
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_Y,
@@ -758,8 +760,7 @@ fn write_to_file(path: &Path, data: &[u8]) -> Result<(), AdbyssError> {
 	use std::io::Write;
 
 	// Try an atomic write first.
-	tempfile_fast::Sponge::new_for(path)
-		.and_then(|mut file| file.write_all(data).and_then(|_| file.commit()))
+	write_atomic::write_file(path, data)
 		.or_else(|_| File::create(path)
 			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
 		)

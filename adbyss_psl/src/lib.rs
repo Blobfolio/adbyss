@@ -92,6 +92,7 @@ use std::{
 
 
 
+#[doc(hidden)]
 /// # (Not) Random State.
 ///
 /// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
@@ -99,7 +100,7 @@ use std::{
 /// static that would be used otherwise.
 ///
 /// For our purposes, the variability of truly random keys isn't really needed.
-pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
+pub const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
 
 
@@ -241,6 +242,23 @@ impl Domain {
 	///
 	/// Hosts with unknown or missing suffixes are rejected. Otherwise all
 	/// values are normalized to lowercase ASCII.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// // A regular ASCII domain:
+	/// let dom = Domain::parse("www.MyDomain.com").unwrap();
+	/// assert_eq!(dom.as_str(), "www.mydomain.com");
+	///
+	/// // Non-ASCII domains are normalized to Punycode for consistency:
+	/// let dom = Domain::parse("www.♥.com").unwrap();
+	/// assert_eq!(dom.as_str(), "www.xn--g6h.com");
+	///
+	/// // An incorrectly structured "host" won't parse:
+	/// assert!(Domain::parse("not.a.domain.123").is_none());
+	/// ```
 	pub fn parse<S>(src: S) -> Option<Self>
 	where S: AsRef<str> {
 		idna::domain_to_ascii_strict(src.as_ref().trim_matches(|c: char| c == '.' || c.is_ascii_whitespace()))
@@ -276,6 +294,18 @@ impl Domain {
 	///
 	/// This will return `true` if the domain begins with "www." _and_ that
 	/// "www." is a subdomain. (The latter is usually but not always the case!)
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert!(dom1.has_www());
+	///
+	/// let dom2 = Domain::parse("blobfolio.com").unwrap();
+	/// assert!(! dom2.has_www());
+	/// ```
 	pub fn has_www(&self) -> bool {
 		self.root.start >= 4 && self.host.starts_with("www.")
 	}
@@ -285,6 +315,18 @@ impl Domain {
 	///
 	/// This will return a clone of the instance without the leading WWW if it
 	/// has one, otherwise `None`.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom1.as_str(), "www.blobfolio.com");
+	///
+	/// let dom2 = dom1.without_www().unwrap();
+	/// assert_eq!(dom2.as_str(), "blobfolio.com");
+	/// ```
 	pub fn without_www(&self) -> Option<Self> {
 		if self.has_www() {
 			Some(Self {
@@ -324,6 +366,15 @@ impl Domain {
 	///
 	/// Return the sanitized host as a string slice. This is equivalent to
 	/// dereferencing the object.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.host(), "www.blobfolio.com");
+	/// ```
 	pub fn host(&self) -> &str { &self.host }
 
 	#[must_use]
@@ -331,6 +382,15 @@ impl Domain {
 	///
 	/// Return the root portion of the host, if any. This does not include any
 	/// leading or trailing periods.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.root(), "blobfolio");
+	/// ```
 	pub fn root(&self) -> &str {
 		&self.host[self.root.start..self.root.end]
 	}
@@ -340,6 +400,15 @@ impl Domain {
 	///
 	/// Return the subdomain portion of the host, if any. This does not include
 	/// any trailing periods.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.subdomain(), Some("www"));
+	/// ```
 	pub fn subdomain(&self) -> Option<&str> {
 		if self.root.start > 0 { Some(&self.host[0..self.root.start - 1]) }
 		else { None }
@@ -350,6 +419,15 @@ impl Domain {
 	///
 	/// Return the suffix of the host. This does not include any leading
 	/// periods.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.suffix(), "com");
+	/// ```
 	pub fn suffix(&self) -> &str {
 		&self.host[self.suffix.start..self.suffix.end]
 	}
@@ -359,6 +437,15 @@ impl Domain {
 	///
 	/// Return the TLD portion of the host, i.e. everything but the
 	/// subdomain(s).
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.tld(), "blobfolio.com");
+	/// ```
 	pub fn tld(&self) -> &str {
 		&self.host[self.root.start..]
 	}

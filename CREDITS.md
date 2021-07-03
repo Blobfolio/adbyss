@@ -5,7 +5,7 @@ License details for project dependencies are listed below.
 ## Overview of Licenses:
 
 * Apache License 2.0 (13)
-* MIT License (6)
+* MIT License (5)
 * ISC License (3)
 * Mozilla Public License 2.0 (2)
 * BSD 3-Clause &quot;New&quot; or &quot;Revised&quot; License (1)
@@ -2938,43 +2938,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### MIT License
-
-**Used By:**
-
-* [tempfile-fast 0.3.3](https://github.com/FauxFaux/tempfile-fast-rs)
-
-
-```
-MIT License
-
-Copyright (c) 2017 Chris West
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-```
-
 ### Mozilla Public License 2.0
 
 **Used By:**
 
-* [smartstring 0.2.6](https://github.com/bodil/smartstring)
+* [smartstring 0.2.7](https://github.com/bodil/smartstring)
 
 
 ```
@@ -3664,13 +3632,14 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.3.7](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.3.7](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.3.7](https://github.com/Blobfolio/adbyss)
+* [adbyss 0.3.8](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.3.8](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.3.8](https://github.com/Blobfolio/adbyss)
 * [argyle 0.4.2](https://github.com/Blobfolio/argyle)
 * [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
 * [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
-* [utc2k 0.1.1](https://github.com/Blobfolio/utc2k)
+* [utc2k 0.2.2](https://github.com/Blobfolio/utc2k)
+* [write_atomic 0.1.0](https://github.com/Blobfolio/write_atomic)
 
 
 ```
