@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.3.7"
+version = "0.3.8"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -19,13 +19,10 @@ rayon = "1.5.*"
 regex = "1.5.*"
 smartstring = "0.2.*"
 utc2k = "0.2.*"
+write_atomic = "0.1.*"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
-
-[dependencies.tempfile-fast]
-git = "https://github.com/FauxFaux/tempfile-fast-rs.git"
-rev = "7cd84b2"
 
 [dependencies.ureq]
 version = "2.1.*"
