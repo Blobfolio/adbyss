@@ -170,10 +170,6 @@ impl Source {
 	///
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
-		lazy_static::lazy_static! {
-			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();
-		}
-
 		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(80_000, AHASH_STATE);
 		out.par_extend(
 			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
@@ -190,7 +186,16 @@ impl Source {
 				})?
 				// Now split into lines to find host matches.
 				.par_lines()
-				.filter_map(|x| RE.find(x).and_then(|y| Domain::parse(&x[8..y.end()])))
+				.filter_map(|x|
+					if let Some(("0.0.0.0", y)) = x.split_once(' ') {
+						y.split_once(|c: char| '#' == c || c.is_whitespace())
+							.map_or_else(
+								|| Domain::parse(y),
+								|(z, _)| Domain::parse(z)
+							)
+					}
+					else { None }
+				)
 		);
 		Ok(out)
 	}
