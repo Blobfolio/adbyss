@@ -118,6 +118,7 @@ pub struct Shitlist {
 }
 
 impl Default for Shitlist {
+	#[inline]
 	fn default() -> Self {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
@@ -131,8 +132,9 @@ impl Default for Shitlist {
 }
 
 impl fmt::Display for Shitlist {
+	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.as_str())
+		f.write_str(self.as_str())
 	}
 }
 
@@ -347,7 +349,7 @@ impl Shitlist {
 	///
 	/// This returns an error if there are issues reading or parsing the
 	/// hostfile.
-	pub fn hostfile_stub(&self) -> Result<String, AdbyssError> {
+	fn hostfile_stub(&self) -> Result<String, AdbyssError> {
 		use std::io::{
 			BufRead,
 			BufReader,
@@ -448,7 +450,7 @@ impl Shitlist {
 	///
 	/// This returns an error if there are issues writing changes to the
 	/// hostfile.
-	pub fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
+	fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
 	where P: AsRef<Path> {
 		let mut dst: PathBuf = dst.as_ref().to_path_buf();
 

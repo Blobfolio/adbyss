@@ -50,7 +50,7 @@ impl Source {
 	/// # As Byte (Flag).
 	///
 	/// Return the equivalent flag for the source.
-	pub const fn as_byte(self) -> u8 {
+	const fn as_byte(self) -> u8 {
 		match self {
 			Self::AdAway => FLAG_ADAWAY,
 			Self::Adbyss => FLAG_ADBYSS,
@@ -75,7 +75,7 @@ impl Source {
 impl Source {
 	#[must_use]
 	/// # Cache path.
-	pub fn cache_path(self) -> PathBuf {
+	fn cache_path(self) -> PathBuf {
 		let mut out: PathBuf = std::env::temp_dir();
 		out.push(
 			match self {
@@ -109,7 +109,7 @@ impl Source {
 	/// # Source URL.
 	///
 	/// For remote hosts, return the URL where data is found.
-	pub const fn url(self) -> &'static str {
+	const fn url(self) -> &'static str {
 		match self {
 			Self::AdAway => "https://adaway.org/hosts.txt",
 			Self::Adbyss => "",
@@ -126,7 +126,7 @@ impl Source {
 	/// ## Errors
 	///
 	/// This returns an error if the data cannot be downloaded or parsed.
-	pub fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
+	fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
 		use std::io::Write;
 
 		// Adbyss' own dataset is static.
@@ -203,7 +203,7 @@ impl Source {
 /// This will try to fetch the remote source data, using Gzip encoding where
 /// possible to reduce the transfer times. All sources currently serve Gzipped
 /// content, so the extra complexity is worth it.
-pub(super) fn download_source(kind: Source) -> Result<String, AdbyssError> {
+fn download_source(kind: Source) -> Result<String, AdbyssError> {
 	use flate2::read::GzDecoder;
 	use std::io::Read;
 
