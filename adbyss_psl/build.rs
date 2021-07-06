@@ -140,7 +140,7 @@ fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, Ra
 /// # Build PSL_MAIN.
 fn build_psl_main(set: HashSet<String, RandomState>) -> (usize, String) {
 	let mut set: Vec<String> = set.iter()
-		.map(|x| format!("\t\tout.insert(\"{}\");\n", x))
+		.map(|x| format!("\tout.insert(\"{}\");\n", x))
 		.collect();
 	set.sort();
 
@@ -154,7 +154,7 @@ fn build_psl_main(set: HashSet<String, RandomState>) -> (usize, String) {
 fn build_psl_wild(set: HashMap<String, Vec<String>, RandomState>) -> (usize, String) {
 	let mut set: Vec<String> = set.iter()
 		.map(|(k, v)| format!(
-			"\t\tout.insert(\"{}\", vec![{}]);\n",
+			"\tout.insert(\"{}\", vec![{}]);\n",
 			k,
 			v.iter()
 				.map(|x| format!(r#""{}""#, x))

@@ -1,23 +1,22 @@
 use ahash::RandomState;
 use crate::AHASH_STATE;
+use once_cell::sync::Lazy;
 use std::collections::{{ HashMap, HashSet }};
 
 
-
-lazy_static::lazy_static! {{
-	/// # Main Suffixes.
-	pub static ref PSL_MAIN: HashSet<&'static str, RandomState> = {{
-		let mut out: HashSet<&'static str, RandomState> = HashSet::with_capacity_and_hasher({main_len}, AHASH_STATE);
+#[allow(clippy::too_many_lines)]
+/// # Main Suffixes.
+pub(super) static PSL_MAIN: Lazy<HashSet<&'static str, RandomState>> = Lazy::new(|| {{
+	let mut out: HashSet<&'static str, RandomState> = HashSet::with_capacity_and_hasher({main_len}, AHASH_STATE);
 
 {main_inserts}
-		out
-	}};
+	out
+}});
 
-	/// # Weird Suffixes.
-	pub static ref PSL_WILD: HashMap<&'static str, Vec<&'static str>, RandomState> = {{
-		let mut out: HashMap<&'static str, Vec<&'static str>, RandomState> = HashMap::with_capacity_and_hasher({wild_len}, AHASH_STATE);
+/// # Weird Suffixes.
+pub(super) static PSL_WILD: Lazy<HashMap<&'static str, Vec<&'static str>, RandomState>> = Lazy::new(|| {{
+	let mut out: HashMap<&'static str, Vec<&'static str>, RandomState> = HashMap::with_capacity_and_hasher({wild_len}, AHASH_STATE);
 
 {wild_inserts}
-		out
-	}};
-}}
+	out
+}});
