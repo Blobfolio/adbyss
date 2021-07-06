@@ -28,10 +28,7 @@ use rayon::{
 		ParallelString,
 	},
 };
-use regex::{
-	Regex,
-	RegexSet,
-};
+use regex::RegexSet;
 use smartstring::{
 	LazyCompact,
 	SmartString,
@@ -725,26 +722,26 @@ fn hash64(src: &[u8]) -> u64 {
 /// We'll want to exclude these from the blackhole list to prevent duplicates,
 /// however unlikely that may be.
 fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
-	lazy_static::lazy_static! {
-		// Match comments.
-		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
-		// Match IPs. Man, IPv6 is *dramatic*!
-		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
-	}
-
 	let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
 	out.par_extend(
 		raw.par_lines()
 			.filter_map(|x| {
-				let line = RE1.replace_all(x.trim(), "");
-
-				if RE2.is_match(&line) {
-					Some(
-						line.split_whitespace()
-							.skip(1)
-							.filter_map(Domain::parse)
-							.collect::<Vec<Domain>>()
+				// Split on whitespace, up to the first #comment, if any.
+				let mut split = x.as_bytes()
+					.iter()
+					.position(|b| b'#'.eq(b))
+					.map_or(x, |p|
+						if x.is_char_boundary(p) {
+							unsafe { x.get_unchecked(0..p) }
+						}
+						else { "" }
 					)
+					.split_whitespace();
+
+				// If the first entry is an IP address, parse all subsequent
+				// entries as possible hosts.
+				if split.next().and_then(|x| x.parse::<std::net::IpAddr>().ok()).is_some() {
+					Some(split.filter_map(Domain::parse).collect::<Vec<Domain>>())
 				}
 				else { None }
 			})
