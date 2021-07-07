@@ -23,6 +23,9 @@ version = "2.1.*"
 default-features = false
 features = [ "tls" ]
 
+[dev-dependencies]
+brunch = "0.1.*"
+
 [dependencies]
 ahash = "0.7.*"
 idna = "0.2.*"
@@ -34,3 +37,7 @@ default = []
 
 # A workaround for Docs.rs; don't enable this if you're a human.
 docs-workaround = []
+
+[[bench]]
+name = "psl_parse"
+harness = false
