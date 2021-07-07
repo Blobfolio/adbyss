@@ -13,7 +13,7 @@ use crate::{
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
 };
-use once_cell::sync::OnceCell;
+use once_cell::sync::Lazy;
 use rayon::{
 	iter::{
 		IntoParallelRefIterator,
@@ -96,12 +96,10 @@ impl Source {
 	/// 0.0.0.0. This will replace the IPs so later parsing can operate on a
 	/// consistent foundation.
 	fn patch(self, src: String) -> String {
-		static RE: OnceCell<Regex> = OnceCell::new();
+		static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap());
 
 		match self {
-			Self::AdAway | Self::Yoyo => RE.get_or_init(|| Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap())
-				.replace_all(&src, "0.0.0.0 ")
-				.into_owned(),
+			Self::AdAway | Self::Yoyo => RE.replace_all(&src, "0.0.0.0 ").into_owned(),
 			_ => src,
 		}
 	}
