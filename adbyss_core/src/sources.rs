@@ -13,6 +13,7 @@ use crate::{
 	FLAG_STEVENBLACK,
 	FLAG_YOYO,
 };
+use once_cell::sync::Lazy;
 use rayon::{
 	iter::{
 		IntoParallelRefIterator,
@@ -50,7 +51,7 @@ impl Source {
 	/// # As Byte (Flag).
 	///
 	/// Return the equivalent flag for the source.
-	pub const fn as_byte(self) -> u8 {
+	const fn as_byte(self) -> u8 {
 		match self {
 			Self::AdAway => FLAG_ADAWAY,
 			Self::Adbyss => FLAG_ADBYSS,
@@ -75,7 +76,7 @@ impl Source {
 impl Source {
 	#[must_use]
 	/// # Cache path.
-	pub fn cache_path(self) -> PathBuf {
+	fn cache_path(self) -> PathBuf {
 		let mut out: PathBuf = std::env::temp_dir();
 		out.push(
 			match self {
@@ -95,12 +96,10 @@ impl Source {
 	/// 0.0.0.0. This will replace the IPs so later parsing can operate on a
 	/// consistent foundation.
 	fn patch(self, src: String) -> String {
-		lazy_static::lazy_static! {
-			static ref RE: Regex = Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap();
-		}
+		static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap());
 
 		match self {
-			Self::AdAway | Self::Yoyo => { RE.replace_all(&src, "0.0.0.0 ").into_owned() },
+			Self::AdAway | Self::Yoyo => RE.replace_all(&src, "0.0.0.0 ").into_owned(),
 			_ => src,
 		}
 	}
@@ -109,7 +108,7 @@ impl Source {
 	/// # Source URL.
 	///
 	/// For remote hosts, return the URL where data is found.
-	pub const fn url(self) -> &'static str {
+	const fn url(self) -> &'static str {
 		match self {
 			Self::AdAway => "https://adaway.org/hosts.txt",
 			Self::Adbyss => "",
@@ -126,7 +125,7 @@ impl Source {
 	/// ## Errors
 	///
 	/// This returns an error if the data cannot be downloaded or parsed.
-	pub fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
+	fn fetch_raw(self) -> Result<Cow<'static, str>, AdbyssError> {
 		use std::io::Write;
 
 		// Adbyss' own dataset is static.
@@ -170,10 +169,6 @@ impl Source {
 	///
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
-		lazy_static::lazy_static! {
-			static ref RE: Regex = Regex::new(r"^0\.0\.0\.0 [^\s#]+").unwrap();
-		}
-
 		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(80_000, AHASH_STATE);
 		out.par_extend(
 			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
@@ -190,7 +185,16 @@ impl Source {
 				})?
 				// Now split into lines to find host matches.
 				.par_lines()
-				.filter_map(|x| RE.find(x).and_then(|y| Domain::parse(&x[8..y.end()])))
+				.filter_map(|x|
+					if let Some(("0.0.0.0", y)) = x.split_once(' ') {
+						y.split_once(|c: char| '#' == c || c.is_whitespace())
+							.map_or_else(
+								|| Domain::parse(y),
+								|(z, _)| Domain::parse(z)
+							)
+					}
+					else { None }
+				)
 		);
 		Ok(out)
 	}
@@ -203,7 +207,7 @@ impl Source {
 /// This will try to fetch the remote source data, using Gzip encoding where
 /// possible to reduce the transfer times. All sources currently serve Gzipped
 /// content, so the extra complexity is worth it.
-pub(super) fn download_source(kind: Source) -> Result<String, AdbyssError> {
+fn download_source(kind: Source) -> Result<String, AdbyssError> {
 	use flate2::read::GzDecoder;
 	use std::io::Read;
 

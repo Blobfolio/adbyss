@@ -30,6 +30,27 @@ rustflags   := "-C link-arg=-s"
 
 
 
+# Bench PSL!
+bench BENCH="":
+	#!/usr/bin/env bash
+
+	clear
+	if [ -z "{{ BENCH }}" ]; then
+		RUSTFLAGS="{{ rustflags }}" cargo bench \
+			-p adbyss_psl \
+			--benches \
+			--target x86_64-unknown-linux-gnu \
+			--target-dir "{{ cargo_dir }}"
+	else
+		RUSTFLAGS="{{ rustflags }}" cargo bench \
+			-p adbyss_psl \
+			--bench "{{ BENCH }}" \
+			--target x86_64-unknown-linux-gnu \
+			--target-dir "{{ cargo_dir }}"
+	fi
+	exit 0
+
+
 # Build Release!
 @build: clean
 	# First let's build the Rust bit.

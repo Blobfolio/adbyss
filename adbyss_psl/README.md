@@ -32,8 +32,8 @@ assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
 // If you just want the sanitized host back as an owned value, use
-// `Domain::take` or `Domain::into_string`.
-let owned = dom.into_string(); // "www.mydomain.com"
+// `Domain::take`:
+let owned = dom.take(); // "www.mydomain.com"
 ```
 
 A `Domain` object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with `Domain::take`.
@@ -46,7 +46,7 @@ Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
 
 ```
 [dependencies]
-adbyss_psl = "0.3.*"
+adbyss_psl = "0.4.*"
 ```
 
 

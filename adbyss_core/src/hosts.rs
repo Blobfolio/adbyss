@@ -28,14 +28,7 @@ use rayon::{
 		ParallelString,
 	},
 };
-use regex::{
-	Regex,
-	RegexSet,
-};
-use smartstring::{
-	LazyCompact,
-	SmartString,
-};
+use regex::RegexSet;
 use std::{
 	cmp::Ordering,
 	collections::{
@@ -118,6 +111,7 @@ pub struct Shitlist {
 }
 
 impl Default for Shitlist {
+	#[inline]
 	fn default() -> Self {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
@@ -131,8 +125,9 @@ impl Default for Shitlist {
 }
 
 impl fmt::Display for Shitlist {
+	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.as_str())
+		f.write_str(self.as_str())
 	}
 }
 
@@ -315,7 +310,6 @@ impl Shitlist {
 		let mut found: Vec<String> = self.found.par_drain()
 			.filter(|x| x.len() <= MAX_LINE)
 			.map(Domain::take)
-			.map(|x| x.to_string())
 			.collect();
 		found.par_sort();
 		found
@@ -347,7 +341,7 @@ impl Shitlist {
 	///
 	/// This returns an error if there are issues reading or parsing the
 	/// hostfile.
-	pub fn hostfile_stub(&self) -> Result<String, AdbyssError> {
+	fn hostfile_stub(&self) -> Result<String, AdbyssError> {
 		use std::io::{
 			BufRead,
 			BufReader,
@@ -448,7 +442,7 @@ impl Shitlist {
 	///
 	/// This returns an error if there are issues writing changes to the
 	/// hostfile.
-	pub fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
+	fn write_to<P>(&self, dst: P) -> Result<(), AdbyssError>
 	where P: AsRef<Path> {
 		let mut dst: PathBuf = dst.as_ref().to_path_buf();
 
@@ -579,9 +573,9 @@ impl Shitlist {
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
-	fn found_compact(&self) -> Vec<SmartString<LazyCompact>> {
+	fn found_compact(&self) -> Vec<String> {
 		// Start by building up a map keyed by root domain...
-		let mut found: Vec<SmartString<LazyCompact>> = self.found
+		let mut found: Vec<String> = self.found
 			.iter()
 			.fold(
 				HashMap::<u64, Vec<&Domain>, ahash::RandomState>::with_capacity_and_hasher(self.found.len(), AHASH_STATE),
@@ -600,8 +594,8 @@ impl Shitlist {
 			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
-				let mut out: Vec<SmartString<LazyCompact>> = Vec::new();
-				let mut line: SmartString<LazyCompact> = SmartString::<LazyCompact>::new();
+				let mut out: Vec<String> = Vec::new();
+				let mut line = String::new();
 
 				// Split on whitespace.
 				x.sort();
@@ -610,12 +604,12 @@ impl Shitlist {
 						if ! line.is_empty() {
 							line.push(' ');
 						}
-						line.push_str(y.as_str());
+						line.push_str(y);
 					}
 					else if ! line.is_empty() {
 						out.push(line.split_off(0));
 						if y.len() <= MAX_LINE {
-							line.push_str(y.as_str());
+							line.push_str(y);
 						}
 					}
 				}
@@ -635,10 +629,10 @@ impl Shitlist {
 	/// # Found: Straight Sort.
 	///
 	/// This delivers each host, one per line.
-	fn found_separate(&self) -> Vec<SmartString<LazyCompact>> {
-		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_iter()
+	fn found_separate(&self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
-			.map(|x| x.as_str().into())
+			.map(std::string::ToString::to_string)
 			.collect();
 		found.par_sort();
 		found
@@ -655,7 +649,7 @@ impl Shitlist {
 			// Only regexclude.
 			(Some(re), Ordering::Greater) => {
 				let re = re.clone();
-				Some(Box::new(move |x| re.is_match(x.as_str())))
+				Some(Box::new(move |x| re.is_match(x)))
 			},
 			// Both, optimized static.
 			(Some(re), Ordering::Equal) => {
@@ -672,7 +666,7 @@ impl Shitlist {
 			(Some(re), Ordering::Less) => {
 				let re = re.clone();
 				let ex = self.exclude.clone();
-				Some(Box::new(move |x| re.is_match(x.as_str()) || ex.contains(x)))
+				Some(Box::new(move |x| re.is_match(x) || ex.contains(x)))
 			},
 			// Many statics.
 			(None, Ordering::Less) => {
@@ -723,26 +717,26 @@ fn hash64(src: &[u8]) -> u64 {
 /// We'll want to exclude these from the blackhole list to prevent duplicates,
 /// however unlikely that may be.
 fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
-	lazy_static::lazy_static! {
-		// Match comments.
-		static ref RE1: Regex = Regex::new(r"#.*$").unwrap();
-		// Match IPs. Man, IPv6 is *dramatic*!
-		static ref RE2: Regex = Regex::new(r"^(\d+\.\d+\.\d+\.\d+|(([\da-fA-F]{1,4}:){7,7}[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,7}:|([\da-fA-F]{1,4}:){1,6}:[\da-fA-F]{1,4}|([\da-fA-F]{1,4}:){1,5}(:[\da-fA-F]{1,4}){1,2}|([\da-fA-F]{1,4}:){1,4}(:[\da-fA-F]{1,4}){1,3}|([\da-fA-F]{1,4}:){1,3}(:[\da-fA-F]{1,4}){1,4}|([\da-fA-F]{1,4}:){1,2}(:[\da-fA-F]{1,4}){1,5}|[\da-fA-F]{1,4}:((:[\da-fA-F]{1,4}){1,6})|:((:[\da-fA-F]{1,4}){1,7}|:)|fe80:(:[\da-fA-F]{0,4}){0,4}%[\da-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])|([\da-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[\d]){0,1}[\d])))\s+").unwrap();
-	}
-
 	let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
 	out.par_extend(
 		raw.par_lines()
 			.filter_map(|x| {
-				let line = RE1.replace_all(x.trim(), "");
-
-				if RE2.is_match(&line) {
-					Some(
-						line.split_whitespace()
-							.skip(1)
-							.filter_map(Domain::parse)
-							.collect::<Vec<Domain>>()
+				// Split on whitespace, up to the first #comment, if any.
+				let mut split = x.as_bytes()
+					.iter()
+					.position(|b| b'#'.eq(b))
+					.map_or(x, |p|
+						if x.is_char_boundary(p) {
+							unsafe { x.get_unchecked(0..p) }
+						}
+						else { "" }
 					)
+					.split_whitespace();
+
+				// If the first entry is an IP address, parse all subsequent
+				// entries as possible hosts.
+				if split.next().and_then(|x| x.parse::<std::net::IpAddr>().ok()).is_some() {
+					Some(split.filter_map(Domain::parse).collect::<Vec<Domain>>())
 				}
 				else { None }
 			})
