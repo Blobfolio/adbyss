@@ -30,7 +30,6 @@ brunch = "0.1.*"
 ahash = "0.7.*"
 idna = "0.2.*"
 once_cell = "1.8.*"
-smartstring = "0.2.*"
 
 [features]
 default = []

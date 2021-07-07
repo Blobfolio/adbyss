@@ -28,9 +28,8 @@ assert_eq!(dom.root(), "mydomain");
 assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
-// If you just want the sanitized host back as an owned value, use
-// `Domain::take` or `Domain::into_string`.
-let owned = dom.into_string(); // "www.mydomain.com"
+// If you just want the sanitized host back as an owned value, use `Domain::take`:
+let owned = dom.take(); // "www.mydomain.com"
 ```
 
 A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
@@ -67,10 +66,6 @@ mod list {
 use self::list::{
 	PSL_MAIN,
 	PSL_WILD,
-};
-use smartstring::{
-	LazyCompact,
-	SmartString,
 };
 use std::{
 	cmp::Ordering,
@@ -149,11 +144,11 @@ macro_rules! impl_try {
 /// assert_eq!(dom.tld(), "mydomain.com");
 ///
 /// // If you just want the sanitized host back as an owned value, use
-/// // `Domain::take` or `Domain::into_string`.
-/// let owned = dom.into_string(); // "www.mydomain.com"
+/// // `Domain::take`:
+/// let owned = dom.take(); // "www.mydomain.com"
 /// ```
 pub struct Domain {
-	host: SmartString<LazyCompact>,
+	host: String,
 	root: Range<usize>,
 	suffix: Range<usize>,
 }
@@ -269,7 +264,7 @@ impl Domain {
 					Self {
 						root: d..s - 1,
 						suffix: s..host.len(),
-						host: host.into(),
+						host,
 					}
 				})
 			)
@@ -322,9 +317,8 @@ impl Domain {
 			// affecting string slice indexing of the host value in cargo-test
 			// in 1.53.0. The problem doesn't trigger in nightly, so we might
 			// revert after the next release.
-			let host: SmartString<LazyCompact> = self.host.clone().split_off(4);
 			Some(Self {
-				host,
+				host: self.host[4..].into(),
 				root: self.root.start - 4..self.root.end - 4,
 				suffix: self.suffix.start - 4..self.suffix.end - 4,
 			})
@@ -335,22 +329,12 @@ impl Domain {
 
 /// # Conversion.
 impl Domain {
-	#[must_use]
-	/// # Into String.
-	///
-	/// Consume the struct, returning the sanitized host as an owned string.
-	pub fn into_string(self) -> String { self.host.into() }
-
 	#[allow(clippy::missing_const_for_fn)] // Doesn't work.
 	#[must_use]
-	/// # Into `SmartString`.
+	/// # Take String
 	///
-	/// Consume the struct, returning the sanitized host as an owned
-	/// `SmartString` (which is how this struct stores the data).
-	///
-	/// If you would rather have a regular `String`, use [`Domain::into_string`]
-	/// instead.
-	pub fn take(self) -> SmartString<LazyCompact> { self.host }
+	/// Consume the struct, returning the sanitized host as an owned `String`.
+	pub fn take(self) -> String { self.host }
 }
 
 /// # Getters.

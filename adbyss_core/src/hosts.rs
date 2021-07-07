@@ -29,10 +29,6 @@ use rayon::{
 	},
 };
 use regex::RegexSet;
-use smartstring::{
-	LazyCompact,
-	SmartString,
-};
 use std::{
 	cmp::Ordering,
 	collections::{
@@ -314,7 +310,6 @@ impl Shitlist {
 		let mut found: Vec<String> = self.found.par_drain()
 			.filter(|x| x.len() <= MAX_LINE)
 			.map(Domain::take)
-			.map(|x| x.to_string())
 			.collect();
 		found.par_sort();
 		found
@@ -578,9 +573,9 @@ impl Shitlist {
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of
 	/// lines (and overall byte size), but without going overboard.
-	fn found_compact(&self) -> Vec<SmartString<LazyCompact>> {
+	fn found_compact(&self) -> Vec<String> {
 		// Start by building up a map keyed by root domain...
-		let mut found: Vec<SmartString<LazyCompact>> = self.found
+		let mut found: Vec<String> = self.found
 			.iter()
 			.fold(
 				HashMap::<u64, Vec<&Domain>, ahash::RandomState>::with_capacity_and_hasher(self.found.len(), AHASH_STATE),
@@ -599,8 +594,8 @@ impl Shitlist {
 			.flat_map(|(_k, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
-				let mut out: Vec<SmartString<LazyCompact>> = Vec::new();
-				let mut line: SmartString<LazyCompact> = SmartString::<LazyCompact>::new();
+				let mut out: Vec<String> = Vec::new();
+				let mut line = String::new();
 
 				// Split on whitespace.
 				x.sort();
@@ -609,12 +604,12 @@ impl Shitlist {
 						if ! line.is_empty() {
 							line.push(' ');
 						}
-						line.push_str(y.as_str());
+						line.push_str(y);
 					}
 					else if ! line.is_empty() {
 						out.push(line.split_off(0));
 						if y.len() <= MAX_LINE {
-							line.push_str(y.as_str());
+							line.push_str(y);
 						}
 					}
 				}
@@ -634,10 +629,10 @@ impl Shitlist {
 	/// # Found: Straight Sort.
 	///
 	/// This delivers each host, one per line.
-	fn found_separate(&self) -> Vec<SmartString<LazyCompact>> {
-		let mut found: Vec<SmartString<LazyCompact>> = self.found.par_iter()
+	fn found_separate(&self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
-			.map(|x| x.as_str().into())
+			.map(std::string::ToString::to_string)
 			.collect();
 		found.par_sort();
 		found
@@ -654,7 +649,7 @@ impl Shitlist {
 			// Only regexclude.
 			(Some(re), Ordering::Greater) => {
 				let re = re.clone();
-				Some(Box::new(move |x| re.is_match(x.as_str())))
+				Some(Box::new(move |x| re.is_match(x)))
 			},
 			// Both, optimized static.
 			(Some(re), Ordering::Equal) => {
@@ -671,7 +666,7 @@ impl Shitlist {
 			(Some(re), Ordering::Less) => {
 				let re = re.clone();
 				let ex = self.exclude.clone();
-				Some(Box::new(move |x| re.is_match(x.as_str()) || ex.contains(x)))
+				Some(Box::new(move |x| re.is_match(x) || ex.contains(x)))
 			},
 			// Many statics.
 			(None, Ordering::Less) => {
