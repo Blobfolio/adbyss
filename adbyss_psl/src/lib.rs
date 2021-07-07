@@ -263,32 +263,21 @@ impl Domain {
 	where S: AsRef<str> {
 		idna::domain_to_ascii_strict(src.as_ref().trim_matches(|c: char| c == '.' || c.is_ascii_whitespace()))
 			.ok()
-			.and_then(|host| parse_suffix(&host)
-				.map(|s|
-					// This has a subdomain, i.e. the root is in the middle.
-					if let Some(d) = host.as_bytes()
-						.iter()
-						.take(s - 1)
-						.rposition(|x| x == &b'.')
-					{
-						Self {
-							root: d + 1..s - 1,
-							suffix: s..host.len(),
-							host: host.into(),
-						}
+			.and_then(|host| find_dots(&host)
+				.map(|(mut d, s)| {
+					if 0 < d { d += 1; }
+					Self {
+						root: d..s - 1,
+						suffix: s..host.len(),
+						host: host.into(),
 					}
-					// The root starts at zero.
-					else {
-						Self {
-							root: 0..s - 1,
-							suffix: s..host.len(),
-							host: host.into(),
-						}
-					}
-				)
+				})
 			)
 	}
+}
 
+/// ## WWW.
+impl Domain {
 	#[must_use]
 	/// # Has Leading WWW.
 	///
@@ -329,8 +318,13 @@ impl Domain {
 	/// ```
 	pub fn without_www(&self) -> Option<Self> {
 		if self.has_www() {
+			// Manual assignment via clone/split works around a strange issue
+			// affecting string slice indexing of the host value in cargo-test
+			// in 1.53.0. The problem doesn't trigger in nightly, so we might
+			// revert after the next release.
+			let host: SmartString<LazyCompact> = self.host.clone().split_off(4);
 			Some(Self {
-				host: self.host[4..].into(),
+				host,
 				root: self.root.start - 4..self.root.end - 4,
 				suffix: self.suffix.start - 4..self.suffix.end - 4,
 			})
@@ -453,7 +447,7 @@ impl Domain {
 
 
 
-/// # Find Suffix.
+/// # Find Dots.
 ///
 /// The hardest part of suffix validation is teasing the suffix out of the
 /// hostname. Odd.
@@ -461,12 +455,13 @@ impl Domain {
 /// The suffix cannot be the whole of the thing, but should be the biggest
 /// matching chunk of the host.
 ///
-/// If a match is found, the starting index of the suffix (after its dot) is
-/// returned.
-fn parse_suffix(host: &str) -> Option<usize> {
+/// If a match is found, the location of the start of the root (its dot, or zero)
+/// is returned along with the starting index of the suffix (after its dot).
+fn find_dots(host: &str) -> Option<(usize, usize)> {
 	let len: usize = host.len();
 	if len < 3 || PSL_WILD.contains_key(host) || PSL_MAIN.contains(host) { return None; }
 
+	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.as_bytes().iter().enumerate().filter(|(_, &b)| b'.' == b) {
 		// We know there is at least one more byte.
@@ -483,18 +478,19 @@ fn parse_suffix(host: &str) -> Option<usize> {
 			// suffix. Note: there cannot be a dot at position zero, so the
 			// range is always valid.
 			if exceptions.contains(&unsafe { host.get_unchecked(after_dot..idx) }) {
-				return Some(idx + 1);
+				return Some((dot, idx + 1));
 			}
 			// There has to be a before-before part.
 			else if dot == 0 { return None; }
 			// Otherwise the last chunk is part of the suffix.
-			return Some(after_dot);
+			return Some((last, after_dot));
 		}
 		// This is a normal suffix.
 		else if PSL_MAIN.contains(rest) {
-			return Some(idx + 1);
+			return Some((dot, idx + 1));
 		}
 
+		std::mem::swap(&mut dot, &mut last);
 		dot = idx;
 	}
 
@@ -630,15 +626,16 @@ mod tests {
 		assert_eq!(dom.root(), "xn--85x722f");
 		assert_eq!(dom.suffix(), "xn--fiqs8s");
 		assert_eq!(dom.tld(), "xn--85x722f.xn--fiqs8s");
-		assert_eq!(dom.deref(), "abc.www.xn--85x722f.xn--fiqs8s");
 		assert_eq!(dom.host(), "abc.www.xn--85x722f.xn--fiqs8s");
+
+		// Make sure dereference does the right thing. It should...
+		assert_eq!(dom.host(), dom.deref());
 
 		dom = Domain::parse("blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
-		assert_eq!(dom.deref(), "blobfolio.com");
 		assert_eq!(dom.host(), "blobfolio.com");
 
 		dom = Domain::parse("www.blobfolio.com").unwrap();
@@ -646,17 +643,15 @@ mod tests {
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
-		assert_eq!(dom.deref(), "www.blobfolio.com");
 		assert_eq!(dom.host(), "www.blobfolio.com");
 
-		assert!(dom.has_www());
-		dom = dom.without_www().expect("Dom without www.");
-		assert_eq!(dom.subdomain(), None);
+		// Test a long subdomain.
+		dom = Domain::parse("another.damn.sub.domain.blobfolio.com").unwrap();
+		assert_eq!(dom.subdomain(), Some("another.damn.sub.domain"));
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
-		assert_eq!(dom.deref(), "blobfolio.com");
-		assert_eq!(dom.host(), "blobfolio.com");
+		assert_eq!(dom.host(), "another.damn.sub.domain.blobfolio.com");
 
 		// Also make sure stripping works OK.
 		dom = Domain::parse("    ....blobfolio.com....    ").unwrap();
@@ -664,7 +659,21 @@ mod tests {
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
-		assert_eq!(dom.deref(), "blobfolio.com");
 		assert_eq!(dom.host(), "blobfolio.com");
+	}
+
+	#[test]
+	/// # Test WWW Stripping.
+	fn t_without_www() {
+		let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+		assert!(dom1.has_www());
+
+		let dom2 = dom1.without_www().unwrap();
+		assert_eq!(dom2.subdomain(), None);
+		assert_eq!(dom2.root(), "blobfolio");
+		assert_eq!(dom2.suffix(), "com");
+		assert_eq!(dom2.tld(), "blobfolio.com");
+		assert_eq!(dom2.host(), "blobfolio.com");
+		assert!(! dom2.has_www());
 	}
 }
