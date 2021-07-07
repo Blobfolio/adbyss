@@ -467,21 +467,22 @@ fn parse_suffix(host: &str) -> Option<usize> {
 	let len: usize = host.len();
 	if len < 3 || PSL_WILD.contains_key(host) || PSL_MAIN.contains(host) { return None; }
 
-	let bytes: &[u8] = host.as_bytes();
 	let mut dot: usize = 0;
-	for idx in 0..len {
-		if bytes[idx] != b'.' { continue; }
+	for (idx, _) in host.as_bytes().iter().enumerate().filter(|(_, &b)| b'.' == b) {
+		// We know there is at least one more byte.
+		let rest: &str = unsafe { host.get_unchecked(idx + 1..) };
 
 		// This is a wild extension.
-		if let Some(exceptions) = PSL_WILD.get(&host[idx + 1..]) {
+		if let Some(exceptions) = PSL_WILD.get(rest) {
 			// Our last chunk might start at zero instead of dot-plus-one.
 			let after_dot: usize =
 				if dot == 0 { 0 }
 				else { dot + 1 };
 
 			// This matches an exception, making the found suffix the true
-			// suffix.
-			if exceptions.contains(&&host[after_dot..idx]) {
+			// suffix. Note: there cannot be a dot at position zero, so the
+			// range is always valid.
+			if exceptions.contains(&unsafe { host.get_unchecked(after_dot..idx) }) {
 				return Some(idx + 1);
 			}
 			// There has to be a before-before part.
@@ -490,7 +491,7 @@ fn parse_suffix(host: &str) -> Option<usize> {
 			return Some(after_dot);
 		}
 		// This is a normal suffix.
-		else if PSL_MAIN.contains(&host[idx + 1..]) {
+		else if PSL_MAIN.contains(rest) {
 			return Some(idx + 1);
 		}
 
@@ -505,6 +506,7 @@ fn parse_suffix(host: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use brunch as _;
 
 	#[test]
 	/// # Test TLD Parsing.
@@ -649,6 +651,15 @@ mod tests {
 
 		assert!(dom.has_www());
 		dom = dom.without_www().expect("Dom without www.");
+		assert_eq!(dom.subdomain(), None);
+		assert_eq!(dom.root(), "blobfolio");
+		assert_eq!(dom.suffix(), "com");
+		assert_eq!(dom.tld(), "blobfolio.com");
+		assert_eq!(dom.deref(), "blobfolio.com");
+		assert_eq!(dom.host(), "blobfolio.com");
+
+		// Also make sure stripping works OK.
+		dom = Domain::parse("    ....blobfolio.com....    ").unwrap();
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
