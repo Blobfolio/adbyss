@@ -9,6 +9,8 @@ For hosts that do get parsed, their values will be normalized to lowercase ASCII
 
 Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
+
+
 ## Examples
 
 Initiate a new instance using [`Domain::parse`]. If that works, you then have accesses to the individual components:
@@ -33,6 +35,13 @@ let owned = dom.take(); // "www.mydomain.com"
 ```
 
 A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
+
+
+
+## Optional Crate Features
+
+* `serde`: Enables serialization/deserialization support.
+
 */
 
 #![warn(clippy::filetype_is_file)]
@@ -431,6 +440,31 @@ impl Domain {
 
 
 
+#[cfg(any(test, feature = "serde"))]
+impl serde::Serialize for Domain {
+	/// # Serialize.
+	///
+	/// Use the optional `serde` crate feature to enable serialization support.
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where S: serde::Serializer {
+		self.host.serialize(serializer)
+	}
+}
+
+#[cfg(any(test, feature = "serde"))]
+impl<'de> serde::Deserialize<'de> for Domain {
+	/// # Deserialize.
+	///
+	/// Use the optional `serde` crate feature to enable serialization support.
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where D: serde::de::Deserializer<'de> {
+		let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+		Self::parse(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
+	}
+}
+
+
+
 /// # Find Dots.
 ///
 /// The hardest part of suffix validation is teasing the suffix out of the
@@ -659,5 +693,21 @@ mod tests {
 		assert_eq!(dom2.tld(), "blobfolio.com");
 		assert_eq!(dom2.host(), "blobfolio.com");
 		assert!(! dom2.has_www());
+	}
+
+	#[test]
+	/// # Serde tests.
+	fn t_serde() {
+		let dom1: Domain = Domain::parse("serialize.domain.com")
+			.expect("Domain failed.");
+
+		// Serialize it.
+		let serial: String = serde_json::to_string(&dom1)
+			.expect("Serialize failed.");
+		assert_eq!(serial, "\"serialize.domain.com\"");
+
+		// Deserialize it.
+		let dom2: Domain = serde_json::from_str(&serial).expect("Deserialize failed.");
+		assert_eq!(dom1, dom2);
 	}
 }

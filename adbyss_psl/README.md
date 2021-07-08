@@ -12,6 +12,8 @@ For hosts that do get parsed, their values will be normalized to lowercase ASCII
 
 Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
 
+
+
 ## Examples
 
 Initiate a new instance using `Domain::parse`. If that works, you then have accesses to the individual components:
@@ -37,6 +39,12 @@ let owned = dom.take(); // "www.mydomain.com"
 ```
 
 A `Domain` object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with `Domain::take`.
+
+
+
+## Optional Crate Features
+
+* `serde`: Enables serialization/deserialization support.
 
 
 
