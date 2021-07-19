@@ -458,7 +458,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 	/// Use the optional `serde` crate feature to enable serialization support.
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: serde::de::Deserializer<'de> {
-		let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+		let s: std::borrow::Cow<str> = serde::de::Deserialize::deserialize(deserializer)?;
 		Self::parse(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
 	}
 }
