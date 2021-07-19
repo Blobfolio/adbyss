@@ -632,7 +632,7 @@ impl Shitlist {
 	fn found_separate(&self) -> Vec<String> {
 		let mut found: Vec<String> = self.found.par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
-			.map(std::string::ToString::to_string)
+			.map(ToString::to_string)
 			.collect();
 		found.par_sort();
 		found
