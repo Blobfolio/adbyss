@@ -245,12 +245,12 @@ limitations under the License.
 * [form_urlencoded 1.0.1](https://github.com/servo/rust-url)
 * [idna 0.2.3](https://github.com/servo/rust-url/)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.97](https://github.com/rust-lang/libc)
+* [libc 0.2.98](https://github.com/rust-lang/libc)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
 * [once_cell 1.8.0](https://github.com/matklad/once_cell)
 * [percent-encoding 2.1.0](https://github.com/servo/rust-url/)
-* [proc-macro2 1.0.27](https://github.com/alexcrichton/proc-macro2)
+* [proc-macro2 1.0.28](https://github.com/alexcrichton/proc-macro2)
 * [quote 1.0.9](https://github.com/dtolnay/quote)
 * [rayon 1.5.1](https://github.com/rayon-rs/rayon)
 * [rayon-core 1.9.1](https://github.com/rayon-rs/rayon)
@@ -261,7 +261,7 @@ limitations under the License.
 * [serde 1.0.126](https://github.com/serde-rs/serde)
 * [serde_derive 1.0.126](https://github.com/serde-rs/serde)
 * [serde_yaml 0.8.17](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.73](https://github.com/dtolnay/syn)
+* [syn 1.0.74](https://github.com/dtolnay/syn)
 * [tempfile 3.2.0](https://github.com/Stebalien/tempfile)
 * [unicode-bidi 0.3.5](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.19](https://github.com/unicode-rs/unicode-normalization)
@@ -2018,7 +2018,7 @@ limitations under the License.
 
 **Used By:**
 
-* [tinyvec 1.2.0](https://github.com/Lokathor/tinyvec)
+* [tinyvec 1.3.1](https://github.com/Lokathor/tinyvec)
 
 
 ```
@@ -3053,13 +3053,13 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.4.0](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.4.0](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.4.0](https://github.com/Blobfolio/adbyss)
+* [adbyss 0.4.2](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.4.2](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.4.2](https://github.com/Blobfolio/adbyss)
 * [argyle 0.4.2](https://github.com/Blobfolio/argyle)
 * [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
 * [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
-* [utc2k 0.2.2](https://github.com/Blobfolio/utc2k)
+* [utc2k 0.2.4](https://github.com/Blobfolio/utc2k)
 * [write_atomic 0.1.0](https://github.com/Blobfolio/write_atomic)
 
 

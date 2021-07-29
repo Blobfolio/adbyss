@@ -96,7 +96,7 @@ impl Settings {
 		let mut flags: u8 = FLAG_BACKUP | FLAG_ALL;
 
 		// Other settings.
-		if ! self.backup { flags &= ! FLAG_BACKUP }
+		if ! self.backup { flags &= ! FLAG_BACKUP; }
 		if self.compact { flags |= FLAG_COMPACT; }
 
 		// Remove any disabled sources.

@@ -458,7 +458,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 	/// Use the optional `serde` crate feature to enable serialization support.
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: serde::de::Deserializer<'de> {
-		let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+		let s: std::borrow::Cow<str> = serde::de::Deserialize::deserialize(deserializer)?;
 		Self::parse(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
 	}
 }
@@ -708,6 +708,19 @@ mod tests {
 
 		// Deserialize it.
 		let dom2: Domain = serde_json::from_str(&serial).expect("Deserialize failed.");
+		assert_eq!(dom1, dom2);
+
+		// Check YAML, which is a bit less robust. First from the serial JSON.
+		let dom2: Domain = serde_yaml::from_str(&serial).expect("Deserialize failed.");
+		assert_eq!(dom1, dom2);
+
+		// Re-serialize in YAML format, which is a bit different.
+		let serial: String = serde_yaml::to_string(&dom1)
+			.expect("Serialize failed.");
+		assert_eq!(serial.trim(), "---\nserialize.domain.com");
+
+		// Deserialize once more.
+		let dom2: Domain = serde_yaml::from_str(&serial).expect("Deserialize failed.");
 		assert_eq!(dom1, dom2);
 	}
 }
