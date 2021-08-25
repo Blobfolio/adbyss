@@ -243,9 +243,11 @@ limitations under the License.
 * [either 1.6.1](https://github.com/bluss/either)
 * [flate2 1.0.20](https://github.com/rust-lang/flate2-rs)
 * [form_urlencoded 1.0.1](https://github.com/servo/rust-url)
+* [hashbrown 0.11.2](https://github.com/rust-lang/hashbrown)
 * [idna 0.2.3](https://github.com/servo/rust-url/)
+* [indexmap 1.7.0](https://github.com/bluss/indexmap)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.98](https://github.com/rust-lang/libc)
+* [libc 0.2.100](https://github.com/rust-lang/libc)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
 * [once_cell 1.8.0](https://github.com/matklad/once_cell)
@@ -258,12 +260,12 @@ limitations under the License.
 * [regex-syntax 0.6.25](https://github.com/rust-lang/regex)
 * [scopeguard 1.1.0](https://github.com/bluss/scopeguard)
 * [sct 0.6.1](https://github.com/ctz/sct.rs)
-* [serde 1.0.127](https://github.com/serde-rs/serde)
-* [serde_derive 1.0.127](https://github.com/serde-rs/serde)
-* [serde_yaml 0.8.17](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.74](https://github.com/dtolnay/syn)
+* [serde 1.0.129](https://github.com/serde-rs/serde)
+* [serde_derive 1.0.129](https://github.com/serde-rs/serde)
+* [serde_yaml 0.8.19](https://github.com/dtolnay/serde-yaml)
+* [syn 1.0.75](https://github.com/dtolnay/syn)
 * [tempfile 3.2.0](https://github.com/Stebalien/tempfile)
-* [unicode-bidi 0.3.5](https://github.com/servo/unicode-bidi)
+* [unicode-bidi 0.3.6](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.19](https://github.com/unicode-rs/unicode-normalization)
 * [unicode-xid 0.2.2](https://github.com/unicode-rs/unicode-xid)
 * [url 2.2.2](https://github.com/servo/rust-url)
@@ -2231,7 +2233,7 @@ limitations under the License.
 
 **Used By:**
 
-* [ureq 2.1.1](https://github.com/algesten/ureq)
+* [ureq 2.2.0](https://github.com/algesten/ureq)
 
 
 ```
@@ -2568,7 +2570,7 @@ third-party/chromium/LICENSE.
 **Used By:**
 
 * [aho-corasick 0.7.18](https://github.com/BurntSushi/aho-corasick)
-* [memchr 2.4.0](https://github.com/BurntSushi/rust-memchr)
+* [memchr 2.4.1](https://github.com/BurntSushi/memchr)
 
 
 ```
@@ -2600,7 +2602,7 @@ THE SOFTWARE.
 
 **Used By:**
 
-* [matches 0.1.8](https://github.com/SimonSapin/rust-std-candidates)
+* [matches 0.1.9](https://github.com/SimonSapin/rust-std-candidates)
 
 
 ```
@@ -3053,9 +3055,9 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.4.2](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.4.2](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.4.2](https://github.com/Blobfolio/adbyss)
+* [adbyss 0.4.3](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.4.3](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.4.3](https://github.com/Blobfolio/adbyss)
 * [argyle 0.4.2](https://github.com/Blobfolio/argyle)
 * [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
 * [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
