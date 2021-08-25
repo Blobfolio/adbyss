@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.4.2"
+version = "0.4.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -24,6 +24,6 @@ write_atomic = "0.1.*"
 path = "../adbyss_psl"
 
 [dependencies.ureq]
-version = "2.1.*"
+version = "2.2.*"
 default-features = false
 features = [ "tls" ]

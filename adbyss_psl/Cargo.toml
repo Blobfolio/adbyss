@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.4.2"
+version = "0.4.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2018"
@@ -19,7 +19,7 @@ idna = "0.2.*"
 regex = "1.5.*"
 
 [build-dependencies.ureq]
-version = "2.1.*"
+version = "2.2.*"
 default-features = false
 features = [ "tls" ]
 
@@ -41,6 +41,8 @@ optional = true
 
 [features]
 default = []
+
+# Serde.
 
 # A workaround for Docs.rs; don't enable this if you're a human.
 docs-workaround = []
