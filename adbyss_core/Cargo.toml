@@ -24,6 +24,6 @@ write_atomic = "0.1.*"
 path = "../adbyss_psl"
 
 [dependencies.ureq]
-version = "2.1.*"
+version = "2.2.*"
 default-features = false
 features = [ "tls" ]
