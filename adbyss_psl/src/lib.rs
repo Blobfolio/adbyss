@@ -442,13 +442,12 @@ impl Domain {
 
 #[cfg(any(test, feature = "serde"))]
 impl serde::Serialize for Domain {
+	#[inline]
 	/// # Serialize.
 	///
 	/// Use the optional `serde` crate feature to enable serialization support.
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where S: serde::Serializer {
-		self.host.serialize(serializer)
-	}
+	where S: serde::Serializer { serializer.serialize_str(&self.host) }
 }
 
 #[cfg(any(test, feature = "serde"))]
