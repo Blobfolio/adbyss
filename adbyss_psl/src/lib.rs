@@ -17,7 +17,6 @@ Initiate a new instance using [`Domain::parse`]. If that works, you then have ac
 
 ```
 use adbyss_psl::Domain;
-use std::convert::TryFrom;
 
 // Use `Domain::parse()` or `Domain::try_from()` to get started.
 let dom = Domain::parse("www.MyDomain.com").unwrap();
@@ -78,7 +77,6 @@ use self::list::{
 };
 use std::{
 	cmp::Ordering,
-	convert::TryFrom,
 	fmt,
 	hash::{
 		Hash,
@@ -139,7 +137,6 @@ macro_rules! impl_try {
 ///
 /// ```
 /// use adbyss_psl::Domain;
-/// use std::convert::TryFrom;
 ///
 /// // Use `Domain::parse()` or `Domain::try_from()` to get started.
 /// let dom = Domain::parse("www.MyDomain.com").unwrap();

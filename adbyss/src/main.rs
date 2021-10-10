@@ -112,7 +112,6 @@ use fyi_msg::Msg;
 use dactyl::NiceU64;
 use settings::Settings;
 use std::{
-	convert::TryFrom,
 	ffi::OsStr,
 	os::unix::ffi::OsStrExt,
 	path::PathBuf,
