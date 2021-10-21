@@ -231,7 +231,7 @@ limitations under the License.
 
 **Used By:**
 
-* [ahash 0.7.4](https://github.com/tkaitchuck/ahash)
+* [ahash 0.7.6](https://github.com/tkaitchuck/ahash)
 * [base64 0.13.0](https://github.com/marshallpierce/rust-base64)
 * [cfg-if 1.0.0](https://github.com/alexcrichton/cfg-if)
 * [chunked_transfer 1.4.0](https://github.com/frewsxcv/rust-chunked-transfer)
@@ -241,19 +241,19 @@ limitations under the License.
 * [crossbeam-utils 0.8.5](https://github.com/crossbeam-rs/crossbeam)
 * [dtoa 0.4.8](https://github.com/dtolnay/dtoa)
 * [either 1.6.1](https://github.com/bluss/either)
-* [flate2 1.0.21](https://github.com/rust-lang/flate2-rs)
+* [flate2 1.0.22](https://github.com/rust-lang/flate2-rs)
 * [form_urlencoded 1.0.1](https://github.com/servo/rust-url)
 * [hashbrown 0.11.2](https://github.com/rust-lang/hashbrown)
 * [idna 0.2.3](https://github.com/servo/rust-url/)
 * [indexmap 1.7.0](https://github.com/bluss/indexmap)
 * [lazy_static 1.4.0](https://github.com/rust-lang-nursery/lazy-static.rs)
-* [libc 0.2.101](https://github.com/rust-lang/libc)
+* [libc 0.2.104](https://github.com/rust-lang/libc)
 * [num-traits 0.2.14](https://github.com/rust-num/num-traits)
 * [num_cpus 1.13.0](https://github.com/seanmonstar/num_cpus)
 * [once_cell 1.8.0](https://github.com/matklad/once_cell)
 * [percent-encoding 2.1.0](https://github.com/servo/rust-url/)
-* [proc-macro2 1.0.29](https://github.com/alexcrichton/proc-macro2)
-* [quote 1.0.9](https://github.com/dtolnay/quote)
+* [proc-macro2 1.0.30](https://github.com/alexcrichton/proc-macro2)
+* [quote 1.0.10](https://github.com/dtolnay/quote)
 * [rayon 1.5.1](https://github.com/rayon-rs/rayon)
 * [rayon-core 1.9.1](https://github.com/rayon-rs/rayon)
 * [regex 1.5.4](https://github.com/rust-lang/regex)
@@ -262,10 +262,10 @@ limitations under the License.
 * [sct 0.6.1](https://github.com/ctz/sct.rs)
 * [serde 1.0.130](https://github.com/serde-rs/serde)
 * [serde_derive 1.0.130](https://github.com/serde-rs/serde)
-* [serde_yaml 0.8.20](https://github.com/dtolnay/serde-yaml)
-* [syn 1.0.76](https://github.com/dtolnay/syn)
+* [serde_yaml 0.8.21](https://github.com/dtolnay/serde-yaml)
+* [syn 1.0.80](https://github.com/dtolnay/syn)
 * [tempfile 3.2.0](https://github.com/Stebalien/tempfile)
-* [unicode-bidi 0.3.6](https://github.com/servo/unicode-bidi)
+* [unicode-bidi 0.3.7](https://github.com/servo/unicode-bidi)
 * [unicode-normalization 0.1.19](https://github.com/unicode-rs/unicode-normalization)
 * [unicode-xid 0.2.2](https://github.com/unicode-rs/unicode-xid)
 * [url 2.2.2](https://github.com/servo/rust-url)
@@ -1521,7 +1521,7 @@ limitations under the License.
 
 **Used By:**
 
-* [ppv-lite86 0.2.10](https://github.com/cryptocorrosion/cryptocorrosion)
+* [ppv-lite86 0.2.14](https://github.com/cryptocorrosion/cryptocorrosion)
 
 
 ```
@@ -2020,7 +2020,7 @@ limitations under the License.
 
 **Used By:**
 
-* [tinyvec 1.3.1](https://github.com/Lokathor/tinyvec)
+* [tinyvec 1.5.0](https://github.com/Lokathor/tinyvec)
 
 
 ```
@@ -3055,14 +3055,14 @@ int GFp_bn_from_montgomery_in_place(BN_ULONG r[], size_t num_r, BN_ULONG a[],
 
 **Used By:**
 
-* [adbyss 0.4.4](https://github.com/Blobfolio/adbyss)
-* [adbyss_core 0.4.4](https://github.com/Blobfolio/adbyss)
-* [adbyss_psl 0.4.4](https://github.com/Blobfolio/adbyss)
-* [argyle 0.4.2](https://github.com/Blobfolio/argyle)
-* [dactyl 0.1.8](https://github.com/Blobfolio/dactyl)
-* [fyi_msg 0.8.1](https://github.com/Blobfolio/fyi)
-* [utc2k 0.2.6](https://github.com/Blobfolio/utc2k)
-* [write_atomic 0.1.0](https://github.com/Blobfolio/write_atomic)
+* [adbyss 0.5.0](https://github.com/Blobfolio/adbyss)
+* [adbyss_core 0.5.0](https://github.com/Blobfolio/adbyss)
+* [adbyss_psl 0.5.0](https://github.com/Blobfolio/adbyss)
+* [argyle 0.5.0](https://github.com/Blobfolio/argyle)
+* [dactyl 0.2.0](https://github.com/Blobfolio/dactyl)
+* [fyi_msg 0.9.0](https://github.com/Blobfolio/fyi)
+* [utc2k 0.3.0](https://github.com/Blobfolio/utc2k)
+* [write_atomic 0.2.0](https://github.com/Blobfolio/write_atomic)
 
 
 ```
