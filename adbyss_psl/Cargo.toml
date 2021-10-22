@@ -20,7 +20,7 @@ idna = "0.2.*"
 regex = "1.5.*"
 
 [build-dependencies.ureq]
-version = "2.2.*"
+version = "2.3.*"
 default-features = false
 features = [ "tls" ]
 
