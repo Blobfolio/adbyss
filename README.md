@@ -1,6 +1,7 @@
 # Adbyss
 
 [![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
+[![Dependency Status](https://deps.rs/repo/github/blobfolio/adbyss/status.svg)](https://deps.rs/repo/github/blobfolio/adbyss)
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
