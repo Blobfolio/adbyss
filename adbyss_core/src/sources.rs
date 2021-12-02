@@ -223,7 +223,7 @@ fn download_source(kind: Source) -> Result<String, AdbyssError> {
 				Ok(s)
 			}
 			else {
-				r.into_string().map_err(|e| e.into())
+				r.into_string().map_err(std::convert::Into::into)
 			}
 		)
 		.map_err(|_| AdbyssError::SourceFetch(kind))
