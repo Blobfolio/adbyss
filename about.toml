@@ -14,3 +14,7 @@ targets = [
 
 ignore-build-dependencies = true
 ignore-dev-dependencies = true
+
+workarounds = [
+    "ring",
+]
