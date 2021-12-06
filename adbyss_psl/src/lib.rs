@@ -235,7 +235,6 @@ impl Domain {
 
 /// # Setters.
 impl Domain {
-	#[allow(clippy::option_if_let_else)] // Strings aren't `Copy`.
 	/// # Parse Host.
 	///
 	/// Try to parse a given host. If the result has both a (valid) suffix and
