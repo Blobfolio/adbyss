@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.5.2
-    Generated: 2021-12-03 18:45:45 UTC
+    Version:   0.5.3
+    Generated: 2021-12-14 23:28:52 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.5.2 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.5.2 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.5.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.5.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD OR Apache-2.0 OR MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.7.6 | [Tom Kaitchuck](mailto:Tom.Kaitchuck@gmail.com) | Apache-2.0 OR MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.18 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT OR Unlicense |
@@ -22,7 +22,6 @@
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.5 | The Crossbeam Project Developers | Apache-2.0 OR MIT |
 | [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.5 | The Crossbeam Project Developers | Apache-2.0 OR MIT |
 | [dactyl](https://github.com/Blobfolio/dactyl) | 0.2.1 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [dtoa](https://github.com/dtolnay/dtoa) | 0.4.8 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
 | [either](https://github.com/bluss/either) | 1.6.1 | bluss | Apache-2.0 OR MIT |
 | [flate2](https://github.com/rust-lang/flate2-rs) | 1.0.22 | [Alex Crichton](mailto:alex@alexcrichton.com); [Josh Triplett](mailto:josh@joshtriplett.org) | Apache-2.0 OR MIT |
 | [form_urlencoded](https://github.com/servo/rust-url) | 1.0.1 | The rust-url developers | Apache-2.0 OR MIT |
@@ -34,7 +33,7 @@
 | [indexmap](https://github.com/bluss/indexmap) | 1.7.0 | bluss; [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 OR MIT |
 | [js-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys) | 0.3.55 | The wasm-bindgen Developers | Apache-2.0 OR MIT |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 OR MIT |
-| [libc](https://github.com/rust-lang/libc) | 0.2.108 | The Rust Project Developers | Apache-2.0 OR MIT |
+| [libc](https://github.com/rust-lang/libc) | 0.2.112 | The Rust Project Developers | Apache-2.0 OR MIT |
 | [linked-hash-map](https://github.com/contain-rs/linked-hash-map) | 0.5.4 | [Stepan Koltsov](mailto:stepan.koltsov@gmail.com); [Andrew Paseltiner](mailto:apaseltiner@gmail.com) | Apache-2.0 OR MIT |
 | [log](https://github.com/rust-lang/log) | 0.4.14 | The Rust Project Developers | Apache-2.0 OR MIT |
 | [matches](https://github.com/SimonSapin/rust-std-candidates) | 0.1.9 | [Simon Sapin](mailto:simon.sapin@exyr.org) | MIT |
@@ -43,10 +42,10 @@
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.4.4 | [Frommi](mailto:daniil.liferenko@gmail.com); [oyvindln](mailto:oyvindln@users.noreply.github.com) | Apache-2.0 OR MIT OR Zlib |
 | [num-traits](https://github.com/rust-num/num-traits) | 0.2.14 | The Rust Project Developers | Apache-2.0 OR MIT |
 | [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.13.0 | [Sean McArthur](mailto:sean@seanmonstar.com) | Apache-2.0 OR MIT |
-| [once_cell](https://github.com/matklad/once_cell) | 1.8.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 OR MIT |
+| [once_cell](https://github.com/matklad/once_cell) | 1.9.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 OR MIT |
 | [percent-encoding](https://github.com/servo/rust-url/) | 2.1.0 | The rust-url developers | Apache-2.0 OR MIT |
 | [ppv-lite86](https://github.com/cryptocorrosion/cryptocorrosion) | 0.2.15 | The CryptoCorrosion Contributors | Apache-2.0 OR MIT |
-| [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.32 | [David Tolnay](mailto:dtolnay@gmail.com); [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 OR MIT |
+| [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.34 | [David Tolnay](mailto:dtolnay@gmail.com); [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 OR MIT |
 | [quote](https://github.com/dtolnay/quote) | 1.0.10 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
 | [rand](https://github.com/rust-random/rand) | 0.8.4 | The Rand Project Developers; The Rust Project Developers | Apache-2.0 OR MIT |
 | [rand_chacha](https://github.com/rust-random/rand) | 0.3.1 | The Rand Project Developers; The Rust Project Developers; The CryptoCorrosion Contributors | Apache-2.0 OR MIT |
@@ -60,11 +59,12 @@
 | [remove_dir_all](https://github.com/XAMPPRocky/remove_dir_all.git) | 0.5.3 | [Aaronepower](mailto:theaaronepower@gmail.com) | Apache-2.0 OR MIT |
 | [ring](https://github.com/briansmith/ring) | 0.16.20 | [Brian Smith](mailto:brian@briansmith.org) | Unknown |
 | [rustls](https://github.com/rustls/rustls) | 0.20.2 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0 OR ISC OR MIT |
+| [ryu](https://github.com/dtolnay/ryu) | 1.0.9 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR BSL-1.0 |
 | [scopeguard](https://github.com/bluss/scopeguard) | 1.1.0 | bluss | Apache-2.0 OR MIT |
 | [sct](https://github.com/ctz/sct.rs) | 0.7.0 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0 OR ISC OR MIT |
-| [serde](https://github.com/serde-rs/serde) | 1.0.130 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com); [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
-| [serde_derive](https://github.com/serde-rs/serde) | 1.0.130 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com); [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
-| [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.8.21 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
+| [serde](https://github.com/serde-rs/serde) | 1.0.131 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com); [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
+| [serde_derive](https://github.com/serde-rs/serde) | 1.0.131 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com); [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
+| [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.8.23 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
 | [spin](https://github.com/mvdnes/spin-rs.git) | 0.5.2 | [Mathijs van de Nes](mailto:git@mathijs.vd-nes.nl); [John Ericson](mailto:git@JohnEricson.me) | MIT |
 | [syn](https://github.com/dtolnay/syn) | 1.0.82 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 OR MIT |
 | [tempfile](https://github.com/Stebalien/tempfile) | 3.2.0 | [Steven Allen](mailto:steven@stebalien.com); The Rust Project Developers; [Ashley Mannix](mailto:ashleymannix@live.com.au); [Jason White](mailto:jasonaw0@gmail.com) | Apache-2.0 OR MIT |
@@ -76,7 +76,7 @@
 | [untrusted](https://github.com/briansmith/untrusted) | 0.7.1 | [Brian Smith](mailto:brian@briansmith.org) | ISC |
 | [ureq](https://github.com/algesten/ureq) | 2.3.1 | [Martin Algesten](mailto:martin@algesten.se); [Jacob Hoffman-Andrews](mailto:ureq@hoffman-andrews.com) | Apache-2.0 OR MIT |
 | [url](https://github.com/servo/rust-url) | 2.2.2 | The rust-url developers | Apache-2.0 OR MIT |
-| [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.1 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [wasi](https://github.com/bytecodealliance/wasi) | 0.10.2+wasi-snapshot-preview1 | The Cranelift Project Developers | Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT |
 | [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 OR MIT |
 | [wasm-bindgen-backend](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/backend) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 OR MIT |
