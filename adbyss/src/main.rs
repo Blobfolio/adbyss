@@ -255,19 +255,18 @@ Additional global settings are stored in /etc/adbyss.yaml.
 	));
 }
 
-#[allow(clippy::similar_names)] // There are only two variables; we'll be fine.
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail
 /// if that doesn't work.
 fn require_root() -> Result<(), AdbyssError> {
 	// See what privileges we have.
-	let (uid, euid) = unsafe { (libc::getuid(), libc::geteuid()) };
+	let (uid, e_uid) = unsafe { (libc::getuid(), libc::geteuid()) };
 
 	// We're already root.
-	if uid == 0 && euid == 0 { Ok(()) }
+	if uid == 0 && e_uid == 0 { Ok(()) }
 	// We just need to SETUID.
-	else if euid == 0 {
+	else if e_uid == 0 {
 		unsafe { libc::setuid(0); }
 		Ok(())
 	}

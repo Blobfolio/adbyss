@@ -568,7 +568,6 @@ impl Shitlist {
 		Ok(())
 	}
 
-	#[allow(clippy::comparison_chain)] // We're only matching two branches.
 	/// # Found: Compact.
 	///
 	/// This merges TLDs and their subdomains together to reduce the number of

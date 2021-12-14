@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.5.2"
+version = "0.5.3"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -30,6 +30,7 @@ conf-files = [
 name = "Adbyss"
 bash-dir = "../release/completions"
 man-dir = "../release/man"
+credits-dir = "../"
 
 [[package.metadata.bashman.switches]]
 long = "--disable"

@@ -63,9 +63,6 @@ bench BENCH="":
 
 # Build Debian package!
 @build-deb: credits build
-	# Do completions/man.
-	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
-
 	# cargo-deb doesn't support target_dir flags yet.
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	mv "{{ cargo_dir }}" "{{ justfile_directory() }}/target"
@@ -74,7 +71,7 @@ bench BENCH="":
 	cargo-deb \
 		--no-build \
 		-p {{ pkg_id }} \
-		-o "{{ justfile_directory() }}/release"
+		-o "{{ release_dir }}"
 
 	just _fix-chown "{{ pkg_dir3 }}"
 	just _fix-chown "{{ release_dir }}"
@@ -117,13 +114,10 @@ bench BENCH="":
 
 # Generate CREDITS.
 @credits:
-	# Update CREDITS.html.
-	cargo about \
-		generate \
-		-m "{{ pkg_dir1 }}/Cargo.toml" \
-		"{{ release_dir }}/credits/about.hbs" > "{{ justfile_directory() }}/CREDITS.md"
-
+	# Do completions/man.
+	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
 	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
+	just _fix-chown "{{ release_dir }}"
 
 
 # Build Docs.
