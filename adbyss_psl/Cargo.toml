@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.5.3"
+version = "0.5.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -20,9 +20,9 @@ idna = "0.2.*"
 regex = "1.5.*"
 
 [build-dependencies.ureq]
-version = "2.3.*"
+version = "2.4.*"
 default-features = false
-features = [ "tls" ]
+features = [ "tls", "gzip" ]
 
 [dev-dependencies]
 brunch = "0.2.*"

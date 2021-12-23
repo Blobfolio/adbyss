@@ -208,35 +208,10 @@ impl Source {
 /// possible to reduce the transfer times. All sources currently serve Gzipped
 /// content, so the extra complexity is worth it.
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
-	use flate2::read::GzDecoder;
-	use std::io::Read;
-
 	ureq::get(kind.url())
 		.set("user-agent", "Mozilla/5.0")
 		.set("accept-encoding", "gzip")
 		.call()
-		.and_then(|r|
-			if is_gzip(&r) {
-				let mut gz = GzDecoder::new(r.into_reader());
-				let mut s = String::new();
-				gz.read_to_string(&mut s)?;
-				Ok(s)
-			}
-			else {
-				r.into_string().map_err(std::convert::Into::into)
-			}
-		)
+		.and_then(|r| r.into_string().map_err(std::convert::Into::into))
 		.map_err(|_| AdbyssError::SourceFetch(kind))
-}
-
-/// # Look for Gzip.
-///
-/// We're asking for Gzipped content, so trust that the response is Gzipped if
-/// either the content-encoding or transfer-encoding flags are set.
-fn is_gzip(res: &ureq::Response) -> bool {
-	match res.header("content-encoding") {
-		Some("gzip") => true,
-		Some(h) => h.contains("gzip"),
-		None => false,
-	}
 }
