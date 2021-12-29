@@ -106,20 +106,6 @@ pub const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 1
 
 
 
-/// # Helper: Generate `TryFrom` Implementations.
-macro_rules! impl_try {
-	($($ty:ty),+) => ($(
-		impl TryFrom<$ty> for Domain {
-			type Error = Error;
-			fn try_from(src: $ty) -> Result<Self, Self::Error> {
-				Self::parse(src).ok_or_else(|| ErrorKind::InvalidData.into())
-			}
-		}
-	)+)
-}
-
-
-
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 ///
@@ -194,21 +180,42 @@ impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
-impl PartialEq<str> for Domain {
-	#[inline]
-	fn eq(&self, other: &str) -> bool { self.host == other }
+macro_rules! partial_eq {
+	// Plain.
+	($($cast:ident $ty:ty),+ $(,)?) => ($(
+		impl PartialEq<$ty> for Domain {
+			#[inline]
+			fn eq(&self, other: &$ty) -> bool { self.$cast() == other }
+		}
+
+		impl PartialEq<Domain> for $ty {
+			#[inline]
+			fn eq(&self, other: &Domain) -> bool { other.$cast() == self }
+		}
+	)+);
 }
 
-impl PartialEq<String> for Domain {
-	#[inline]
-	fn eq(&self, other: &String) -> bool { self.host.eq(other) }
-}
+partial_eq!(
+	as_str str,
+	as_str String,
+);
 
 impl PartialOrd for Domain {
 	#[inline]
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 		Some(self.cmp(other))
 	}
+}
+
+macro_rules! impl_try {
+	($($ty:ty),+) => ($(
+		impl TryFrom<$ty> for Domain {
+			type Error = Error;
+			fn try_from(src: $ty) -> Result<Self, Self::Error> {
+				Self::parse(src).ok_or_else(|| ErrorKind::InvalidData.into())
+			}
+		}
+	)+)
 }
 
 // Aliases for Domain::parse.
