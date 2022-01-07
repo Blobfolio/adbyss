@@ -13,13 +13,13 @@ Note: The suffix reference data is baked into this crate at build time. This red
 
 ## Examples
 
-Initiate a new instance using [`Domain::parse`]. If that works, you then have accesses to the individual components:
+Initiate a new instance using [`Domain::new`]. If that works, you then have accesses to the individual components:
 
 ```
 use adbyss_psl::Domain;
 
-// Use `Domain::parse()` or `Domain::try_from()` to get started.
-let dom = Domain::parse("www.MyDomain.com").unwrap();
+// Use `Domain::new()` or `Domain::try_from()` to get started.
+let dom = Domain::new("www.MyDomain.com").unwrap();
 let dom = Domain::try_from("www.MyDomain.com").unwrap();
 
 // Pull out the pieces if you're into that sort of thing.
@@ -118,14 +118,14 @@ pub const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 1
 ///
 /// ## Examples
 ///
-/// Initiate a new instance using [`Domain::parse`]. If that works, you then
+/// Initiate a new instance using [`Domain::new`]. If that works, you then
 /// have accesses to the individual components:
 ///
 /// ```
 /// use adbyss_psl::Domain;
 ///
-/// // Use `Domain::parse()` or `Domain::try_from()` to get started.
-/// let dom = Domain::parse("www.MyDomain.com").unwrap();
+/// // Use `Domain::new()` or `Domain::try_from()` to get started.
+/// let dom = Domain::new("www.MyDomain.com").unwrap();
 /// let dom = Domain::try_from("www.MyDomain.com").unwrap();
 ///
 /// // Pull out the pieces if you're into that sort of thing.
@@ -212,13 +212,13 @@ macro_rules! impl_try {
 		impl TryFrom<$ty> for Domain {
 			type Error = Error;
 			fn try_from(src: $ty) -> Result<Self, Self::Error> {
-				Self::parse(src).ok_or_else(|| ErrorKind::InvalidData.into())
+				Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 			}
 		}
 	)+)
 }
 
-// Aliases for Domain::parse.
+// Aliases for Domain::new.
 impl_try!(&str, String, &String);
 
 /// # Main.
@@ -242,7 +242,7 @@ impl Domain {
 
 /// # Setters.
 impl Domain {
-	/// # Parse Host.
+	/// # New Domain.
 	///
 	/// Try to parse a given host. If the result has both a (valid) suffix and
 	/// a root chunk (i.e. it has a TLD), a `Domain` object will be returned.
@@ -256,17 +256,17 @@ impl Domain {
 	/// use adbyss_psl::Domain;
 	///
 	/// // A regular ASCII domain:
-	/// let dom = Domain::parse("www.MyDomain.com").unwrap();
+	/// let dom = Domain::new("www.MyDomain.com").unwrap();
 	/// assert_eq!(dom.as_str(), "www.mydomain.com");
 	///
 	/// // Non-ASCII domains are normalized to Punycode for consistency:
-	/// let dom = Domain::parse("www.♥.com").unwrap();
+	/// let dom = Domain::new("www.♥.com").unwrap();
 	/// assert_eq!(dom.as_str(), "www.xn--g6h.com");
 	///
 	/// // An incorrectly structured "host" won't parse:
-	/// assert!(Domain::parse("not.a.domain.123").is_none());
+	/// assert!(Domain::new("not.a.domain.123").is_none());
 	/// ```
-	pub fn parse<S>(src: S) -> Option<Self>
+	pub fn new<S>(src: S) -> Option<Self>
 	where S: AsRef<str> {
 		idna::domain_to_ascii_strict(src.as_ref().trim_matches(|c: char| c == '.' || c.is_ascii_whitespace()))
 			.ok()
@@ -281,6 +281,14 @@ impl Domain {
 				})
 			)
 	}
+
+	#[deprecated(since = "0.5.5", note = "Use Domain::new instead.")]
+	#[inline]
+	/// # Parse Host.
+	///
+	/// Alias for [`Domain::new`].
+	pub fn parse<S>(src: S) -> Option<Self>
+	where S: AsRef<str> { Self::new(src) }
 }
 
 /// ## WWW.
@@ -296,14 +304,56 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom1 = Domain::new("www.blobfolio.com").unwrap();
 	/// assert!(dom1.has_www());
 	///
-	/// let dom2 = Domain::parse("blobfolio.com").unwrap();
+	/// let dom2 = Domain::new("blobfolio.com").unwrap();
 	/// assert!(! dom2.has_www());
 	/// ```
 	pub fn has_www(&self) -> bool {
 		self.root.start >= 4 && self.host.starts_with("www.")
+	}
+
+	/// # Remove Leading WWW.
+	///
+	/// Modify the domain in-place to remove any leading "www." subdomain. If
+	/// a change is made, `true` is returned, otherwise `false`.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let mut dom = Domain::new("www.blobfolio.com").unwrap();
+	/// assert!(dom.remove_www());
+	/// assert_eq!(dom.as_str(), "blobfolio.com");
+	/// assert_eq!(dom.remove_www(), false);
+	/// ```
+	pub fn remove_www(&mut self) -> bool {
+		if self.has_www() {
+			// Chop the string.
+			{
+				let v = unsafe { self.host.as_mut_vec() };
+				let len: usize = v.len() - 4;
+				unsafe {
+					std::ptr::copy(
+						v.as_ptr().add(4),
+						v.as_mut_ptr(),
+						len
+					);
+				}
+				v.truncate(len);
+			}
+
+			// Adjust the ranges.
+			self.root.start -= 4;
+			self.root.end -= 4;
+			self.suffix.start -= 4;
+			self.suffix.end -= 4;
+
+			true
+		}
+		else { false }
 	}
 
 	#[must_use]
@@ -317,7 +367,7 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom1 = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom1.as_str(), "www.blobfolio.com");
 	///
 	/// let dom2 = dom1.without_www().unwrap();
@@ -362,7 +412,7 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.host(), "www.blobfolio.com");
 	/// ```
 	pub fn host(&self) -> &str { &self.host }
@@ -378,7 +428,7 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.root(), "blobfolio");
 	/// ```
 	pub fn root(&self) -> &str {
@@ -396,7 +446,7 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.subdomain(), Some("www"));
 	/// ```
 	pub fn subdomain(&self) -> Option<&str> {
@@ -415,7 +465,7 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.suffix(), "com");
 	/// ```
 	pub fn suffix(&self) -> &str {
@@ -433,12 +483,10 @@ impl Domain {
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let dom = Domain::parse("www.blobfolio.com").unwrap();
+	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.tld(), "blobfolio.com");
 	/// ```
-	pub fn tld(&self) -> &str {
-		&self.host[self.root.start..]
-	}
+	pub fn tld(&self) -> &str { &self.host[self.root.start..] }
 }
 
 
@@ -461,7 +509,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: serde::de::Deserializer<'de> {
 		let s: std::borrow::Cow<str> = serde::de::Deserialize::deserialize(deserializer)?;
-		Self::parse(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
+		Self::new(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
 	}
 }
 
@@ -615,7 +663,7 @@ mod tests {
 	fn t_tld_assert(a: &str, b: Option<&str>) {
 		// The test should fail.
 		if b.is_none() {
-			let res = Domain::parse(a);
+			let res = Domain::new(a);
 			assert!(
 				res.is_none(),
 				"Unexpectedly parsed: {:?}\n{:?}\n", a, res
@@ -623,7 +671,7 @@ mod tests {
 		}
 		// We should have a TLD!
 		else {
-			if let Some(dom) = Domain::parse(a) {
+			if let Some(dom) = Domain::new(a) {
 				assert_eq!(
 					dom.tld(),
 					b.unwrap(),
@@ -641,7 +689,7 @@ mod tests {
 	///
 	/// This makes sure that the individual host components line up correctly.
 	fn t_chunks() {
-		let mut dom = Domain::parse("abc.www.食狮.中国").unwrap();
+		let mut dom = Domain::new("abc.www.食狮.中国").unwrap();
 		assert_eq!(dom.subdomain(), Some("abc.www"));
 		assert_eq!(dom.root(), "xn--85x722f");
 		assert_eq!(dom.suffix(), "xn--fiqs8s");
@@ -651,14 +699,14 @@ mod tests {
 		// Make sure dereference does the right thing. It should...
 		assert_eq!(dom.host(), dom.deref());
 
-		dom = Domain::parse("blobfolio.com").unwrap();
+		dom = Domain::new("blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
 		assert_eq!(dom.host(), "blobfolio.com");
 
-		dom = Domain::parse("www.blobfolio.com").unwrap();
+		dom = Domain::new("www.blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), Some("www"));
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
@@ -666,7 +714,7 @@ mod tests {
 		assert_eq!(dom.host(), "www.blobfolio.com");
 
 		// Test a long subdomain.
-		dom = Domain::parse("another.damn.sub.domain.blobfolio.com").unwrap();
+		dom = Domain::new("another.damn.sub.domain.blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), Some("another.damn.sub.domain"));
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
@@ -674,7 +722,7 @@ mod tests {
 		assert_eq!(dom.host(), "another.damn.sub.domain.blobfolio.com");
 
 		// Also make sure stripping works OK.
-		dom = Domain::parse("    ....blobfolio.com....    ").unwrap();
+		dom = Domain::new("    ....blobfolio.com....    ").unwrap();
 		assert_eq!(dom.subdomain(), None);
 		assert_eq!(dom.root(), "blobfolio");
 		assert_eq!(dom.suffix(), "com");
@@ -685,7 +733,7 @@ mod tests {
 	#[test]
 	/// # Test WWW Stripping.
 	fn t_without_www() {
-		let dom1 = Domain::parse("www.blobfolio.com").unwrap();
+		let dom1 = Domain::new("www.blobfolio.com").unwrap();
 		assert!(dom1.has_www());
 
 		let dom2 = dom1.without_www().unwrap();
@@ -700,7 +748,7 @@ mod tests {
 	#[test]
 	/// # Serde tests.
 	fn t_serde() {
-		let dom1: Domain = Domain::parse("serialize.domain.com")
+		let dom1: Domain = Domain::new("serialize.domain.com")
 			.expect("Domain failed.");
 
 		// Serialize it.

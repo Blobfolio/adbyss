@@ -97,7 +97,7 @@ mod tests {
 	/// This ensures the domain is correctly formatted and has a recognized TLD.
 	fn sanitize_domain<S>(dom: S) -> Option<String>
 	where S: AsRef<str> {
-		Domain::parse(dom).map(adbyss_psl::Domain::take)
+		Domain::new(dom).map(adbyss_psl::Domain::take)
 	}
 
 	#[test]
