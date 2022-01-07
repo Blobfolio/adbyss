@@ -67,11 +67,16 @@ A [`Domain`] object can be dereferenced to a string slice representing the sanit
 
 
 
+mod hash;
 mod list {
 	include!(concat!(env!("OUT_DIR"), "/adbyss-list.rs"));
 }
 
-use self::list::{
+pub(crate) use hash::{
+	NoHashState,
+	NoHashU64,
+};
+use list::{
 	PSL_MAIN,
 	PSL_WILD,
 };
@@ -270,7 +275,7 @@ impl Domain {
 	where S: AsRef<str> {
 		idna::domain_to_ascii_strict(src.as_ref().trim_matches(|c: char| c == '.' || c.is_ascii_whitespace()))
 			.ok()
-			.and_then(|host| find_dots(&host)
+			.and_then(|host| find_dots(host.as_bytes())
 				.map(|(mut d, s)| {
 					if 0 < d { d += 1; }
 					Self {
@@ -525,18 +530,19 @@ impl<'de> serde::Deserialize<'de> for Domain {
 ///
 /// If a match is found, the location of the start of the root (its dot, or zero)
 /// is returned along with the starting index of the suffix (after its dot).
-fn find_dots(host: &str) -> Option<(usize, usize)> {
-	let len: usize = host.len();
-	if len < 3 || PSL_WILD.contains_key(host) || PSL_MAIN.contains(host) { return None; }
+fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
+	if host.len() < 3 { return None; }
+	let hash: u64 = NoHashU64::quick_hash(host);
+	if PSL_WILD.contains_key(&hash) || PSL_MAIN.contains(&hash) { return None; }
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
-	for (idx, _) in host.as_bytes().iter().enumerate().filter(|(_, &b)| b'.' == b) {
+	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
 		// We know there is at least one more byte.
-		let rest: &str = unsafe { host.get_unchecked(idx + 1..) };
+		let rest: u64 = NoHashU64::quick_hash(unsafe { host.get_unchecked(idx + 1..) });
 
 		// This is a wild extension.
-		if let Some(exceptions) = PSL_WILD.get(rest) {
+		if let Some(exceptions) = PSL_WILD.get(&rest) {
 			// Our last chunk might start at zero instead of dot-plus-one.
 			let after_dot: usize =
 				if dot == 0 { 0 }
@@ -554,7 +560,7 @@ fn find_dots(host: &str) -> Option<(usize, usize)> {
 			return Some((last, after_dot));
 		}
 		// This is a normal suffix.
-		else if PSL_MAIN.contains(rest) {
+		else if PSL_MAIN.contains(&rest) {
 			return Some((dot, idx + 1));
 		}
 

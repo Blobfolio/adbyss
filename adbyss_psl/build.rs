@@ -139,30 +139,38 @@ fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, Ra
 
 /// # Build PSL_MAIN.
 fn build_psl_main(set: HashSet<String, RandomState>) -> (usize, String) {
-	let mut set: Vec<String> = set.iter()
-		.map(|x| format!("\tout.insert(\"{}\");\n", x))
+	let mut set: Vec<u64> = set.into_iter()
+		.map(|x| quick_hash(x.as_bytes()))
 		.collect();
-	set.sort();
+	set.sort_unstable();
 
-	(
-		set.len(),
-		set.concat(),
-	)
+	let set: Vec<String> = set.into_iter()
+		.map(|x| format!("{}_u64", x))
+		.collect();
+
+	(set.len(), set.join(", "))
 }
 
 /// # Build PSL_WILD.
 fn build_psl_wild(set: HashMap<String, Vec<String>, RandomState>) -> (usize, String) {
-	let mut set: Vec<String> = set.iter()
-		.map(|(k, v)| format!(
-			"\tout.insert(\"{}\", vec![{}]);\n",
-			k,
-			v.iter()
-				.map(|x| format!(r#""{}""#, x))
-				.collect::<Vec<String>>()
-				.join(", ")
-		))
+	let mut set: Vec<(u64, String)> = set.into_iter()
+		.map(|(k, v)| {
+			let hash = quick_hash(k.as_bytes());
+			let extra = format!(
+				"&[{}]",
+				v.iter()
+					.map(|x| format!(r#"b"{}""#, x))
+					.collect::<Vec<String>>()
+					.join(", ")
+			);
+			(hash, extra)
+		})
 		.collect();
-	set.sort();
+	set.sort_by(|a, b| a.0.cmp(&b.0));
+
+	let set: Vec<String> = set.into_iter()
+		.map(|(k, v)| format!("\tout.insert({}_u64, {});\n", k, v))
+		.collect();
 
 	(
 		set.len(),
@@ -215,4 +223,17 @@ fn out_path(name: &str) -> PathBuf {
 	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
 	out.push(name);
 	out
+}
+
+#[must_use]
+#[inline]
+/// # Path Hash.
+///
+/// This hashes a device and inode to produce a more or less unique result.
+/// This is the value we grab for each path and use in the `HashSet`.
+fn quick_hash(raw: &[u8]) -> u64 {
+	use std::hash::Hasher;
+	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
+	hasher.write(raw);
+	hasher.finish()
 }

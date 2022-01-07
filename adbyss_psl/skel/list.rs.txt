@@ -1,21 +1,25 @@
-use ahash::RandomState;
-use crate::AHASH_STATE;
+use crate::NoHashState;
 use once_cell::sync::Lazy;
 use std::collections::{{ HashMap, HashSet }};
 
 
-#[allow(clippy::too_many_lines)]
-/// # Main Suffixes.
-pub(super) static PSL_MAIN: Lazy<HashSet<&'static str, RandomState>> = Lazy::new(|| {{
-	let mut out: HashSet<&'static str, RandomState> = HashSet::with_capacity_and_hasher({main_len}, AHASH_STATE);
 
-{main_inserts}
+type MainMap = HashSet<u64, NoHashState>;
+type WildMap = HashMap<u64, &'static [&'static [u8]], NoHashState>;
+
+#[allow(clippy::too_many_lines)]
+#[allow(clippy::unreadable_literal)]
+/// # Main Suffixes.
+pub(super) static PSL_MAIN: Lazy<MainMap> = Lazy::new(|| {{
+	let mut out: MainMap = HashSet::with_capacity_and_hasher({main_len}, NoHashState::default());
+	out.extend([{main_inserts}]);
 	out
 }});
 
+#[allow(clippy::unreadable_literal)]
 /// # Weird Suffixes.
-pub(super) static PSL_WILD: Lazy<HashMap<&'static str, Vec<&'static str>, RandomState>> = Lazy::new(|| {{
-	let mut out: HashMap<&'static str, Vec<&'static str>, RandomState> = HashMap::with_capacity_and_hasher({wild_len}, AHASH_STATE);
+pub(super) static PSL_WILD: Lazy<WildMap> = Lazy::new(|| {{
+	let mut out: WildMap = HashMap::with_capacity_and_hasher({wild_len}, NoHashState::default());
 
 {wild_inserts}
 	out
