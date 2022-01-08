@@ -3,7 +3,6 @@
 */
 
 use ahash::RandomState;
-use dactyl::NiceU64;
 use regex::Regex;
 use std::{
 	collections::{
@@ -25,7 +24,6 @@ const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 2
 
 type RawMainMap = HashSet<String, RandomState>;
 type RawWildMap = HashMap<String, Vec<String>, RandomState>;
-type HostHashes = HashMap<String, u64, RandomState>;
 
 
 
@@ -43,9 +41,18 @@ pub fn main() {
 	let (psl_main, psl_wild) = load_data();
 	assert!(! psl_main.is_empty(), "No generic PSL entries found.");
 	assert!(! psl_wild.is_empty(), "No wildcard PSL entries found.");
+	for host in psl_wild.keys() {
+		assert!(! psl_main.contains(host), "Duplicate host.");
+	}
 
 	// Reformat it.
-	let (psl_kinds, psl_kind_arms, len, inserts) = build_data(psl_main, psl_wild);
+	let (
+		suffixes,
+		suffix_from_slice,
+		suffixes_wild,
+		suffix_wild_arms,
+		suffix_from_slice_len
+	) = build_list(&psl_main, &psl_wild);
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-list.rs"))
@@ -55,10 +62,11 @@ pub fn main() {
 	write!(
 		&mut file,
 		include_str!("./skel/list.rs.txt"),
-		psl_kinds = psl_kinds,
-		psl_kind_arms = psl_kind_arms,
-		len = len,
-		inserts = inserts,
+		suffixes = suffixes,
+		suffix_from_slice = suffix_from_slice,
+		suffixes_wild = suffixes_wild,
+		suffix_wild_arms = suffix_wild_arms,
+		suffix_from_slice_len = suffix_from_slice_len,
 	)
 		.and_then(|_| file.flush())
 		.expect("Unable to save reference list.");
@@ -142,95 +150,184 @@ fn load_data() -> (RawMainMap, RawWildMap) {
 	(psl_main, psl_wild)
 }
 
-/// # Build Data.
-fn build_data(main: RawMainMap, wild: RawWildMap) -> (String, String, usize, String) {
-	let hashes: HostHashes = host_hashes(&main, &wild);
-	let mut all: HashMap<u64, String, RandomState> = HashMap::with_capacity_and_hasher(hashes.len(), AHASH_STATE);
-	let mut kinds: HashMap<String, String, RandomState> = HashMap::with_hasher(AHASH_STATE);
-	let mut kind_arms: Vec<(String, String)> = Vec::new();
+/// # Build List.
+///
+/// This takes the lightly-processed main and wild lists, and generates all the
+/// actual structures we'll be using within Rust.
+fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, String, String) {
+	// enum name, byte equivalent, length, exception kind
+	let mut opts: Vec<(String, String, usize, String)> = Vec::new();
+	let mut lengths: Vec<usize> = Vec::new();
 
-	// Suck up the main rules first; they're easy.
-	all.extend(
-		main.into_iter()
-			.map(|x| {
-				let hash = hashes.get(&x).unwrap();
-				(*hash, String::from("Normal"))
-			})
-	);
+	// The main entries are easy.
+	for host in main {
+		let hash = quick_hash(host.as_bytes());
+		let len = host.len();
+		lengths.push(len);
+		opts.push((
+			format!("Psl{}", hash),
+			format!("b\"{}\"", host),
+			len,
+			String::new(),
+		));
+	}
 
-	// The wild entries take a little more effort.
-	all.extend(
-		wild.into_iter()
-			.map(|(x, ex)| {
-				let hash = hashes.get(&x).unwrap();
-				if ex.is_empty() {
-					(*hash, String::from("Wild"))
-				}
-				else {
-					let ex: String = format_wild_arm(&ex);
-					if ! kinds.contains_key(&ex) {
-						let kind = format_wild_kind(&ex);
-						let arm =
-							if ex.contains('|') {
-								format!("matches!(src, {})", ex)
-							}
-							else {
-								format!("src == {}", ex)
-							};
-						kinds.insert(ex.clone(), kind.clone());
-						kind_arms.push((kind, arm));
-					}
-					let kind = kinds.get(&ex).unwrap();
-					(*hash, kind.clone())
-				}
-			})
-	);
+	// The wildcards are a bit more dramatic.
+	for (host, ex) in wild {
+		let hash = quick_hash(host.as_bytes());
+		let len = host.len();
+		lengths.push(len);
 
-	// Let's convert the entries into a vector so we can sort them.
-	let len: usize = all.len();
-	let mut all: Vec<(u64, String)> = all.into_iter().collect();
-	all.sort_by(|a, b| a.0.cmp(&b.0));
-	let all: String = all.as_slice().chunks(128)
-		.map(|chunk| {
-			let list: Vec<String> = chunk.iter()
-				.map(|(hash, kind)| format!(
-					"({}_u64, Psl::{}), ",
-					NiceU64::from(*hash).as_str().replace(",", "_"),
-					kind
-				))
+		let ex =
+			if ex.is_empty() { String::from("false") }
+			else {
+				let ex: String = format_wild_arm(ex);
+				if ex.contains('|') { format!("matches!(src, {})", ex) }
+				else { format!("src == {}", ex) }
+			};
+
+		opts.push((
+			format!("Psl{}", hash),
+			format!("b\"{}\"", host),
+			len,
+			ex,
+		));
+	}
+
+	opts.sort_by(|a, b| a.1.cmp(&b.1));
+	lengths.sort_unstable();
+	lengths.dedup();
+
+	// Set up the inner from_slice functions, and build the arms of the outer
+	// one.
+	let mut arms: Vec<String> = Vec::with_capacity(lengths.len());
+	let mut from_slice_len: Vec<String> = Vec::with_capacity(lengths.len());
+
+	for len in lengths {
+		let name = format!("from_slice{}", len);
+		arms.push(format!("\t\t\t{} => Self::{}(src),", len, name));
+
+		// Find out how many we're dealing with.
+		let size: usize = opts.iter()
+			.filter(|(_, _, l, _)| *l == len)
+			.count();
+
+		// If there's more than 100 entries in this section, let's split it
+		// into two.
+		if size > 200 {
+			let start_bytes: Vec<u8> = opts.iter()
+				.filter_map(|(_, b, l, _)|
+					if *l == len { Some(b.as_bytes()[2]) }
+					else { None }
+				)
 				.collect();
-			format!("\t\t{}", list.concat())
-		})
-		.collect::<Vec<String>>()
-		.join("\n");
+			assert_eq!(size, start_bytes.len());
 
-	// The kinds, likewise, can be collapsed and reformatted.
-	let mut kinds: Vec<String> = kinds.values()
-		.map(|v| format!("\t{},", v))
-		.collect();
-	kinds.sort_unstable();
-	let kinds: String = kinds.join("\n");
+			// Find a good byte to break on, starting at the midway point, and
+			// going down as far as 1:2.
+			let mut idx = (size / 2) + 1;
+			let mut byte: u8 = 0;
+			while idx >= size / 3 {
+				if start_bytes[idx] != start_bytes[idx - 1] {
+					byte = start_bytes[idx];
+					break;
+				}
+				idx -= 1;
+			}
 
-	// The kind arms can also be formatted, etc.
-	kind_arms.sort_by(|a, b| a.0.cmp(&b.0));
-	let kind_arms: String = kind_arms.into_iter()
-		.map(|(kind, cond)| format!("\t\t\tSelf::{} => {},", kind, cond))
-		.collect::<Vec<String>>()
-		.join("\n");
+			// Proceed with the complicated version if we found a good byte.
+			if byte != 0 {
+				let mut left: Vec<String> = Vec::new();
+				let mut right: Vec<String> = Vec::new();
+				for (e, b, l, _) in &opts {
+					if *l == len {
+						let line = format!("\t\t\t{} => Some(Self::{}),", b, e);
+						if b.as_bytes()[2] < byte { left.push(line); }
+						else { right.push(line); }
+					}
+				}
+				left.push(String::from("\t\t\t_ => None,"));
+				right.push(String::from("\t\t\t_ => None,"));
 
-	(kinds, kind_arms, len, all)
-}
+				from_slice_len.push(format!(
+					"\tconst fn {}(src: &[u8]) -> Option<Self> {{\n\t\tif src[0] < {} {{ Self::{}a(src) }}\n\t\telse {{ Self::{}b(src) }}\n\t}}",
+					name,
+					byte,
+					name,
+					name,
+				));
+				from_slice_len.push(format!(
+					"\tconst fn {}a(src: &[u8]) -> Option<Self> {{\n\t\tmatch src {{\n{}\n\t\t}}\n\t}}",
+					name,
+					left.join("\n"),
+				));
+				from_slice_len.push(format!(
+					"\tconst fn {}b(src: &[u8]) -> Option<Self> {{\n\t\tmatch src {{\n{}\n\t\t}}\n\t}}",
+					name,
+					right.join("\n"),
+				));
 
-/// # Host Hashes.
-fn host_hashes(main: &RawMainMap, wild: &RawWildMap) -> HostHashes {
-	let mut out: HostHashes = HashMap::with_capacity_and_hasher(
-		main.len() + wild.len(),
-		AHASH_STATE,
+				continue;
+			}
+		}
+
+		// Otherwise let's leave it be.
+		let mut tmp: Vec<String> = Vec::new();
+		for (e, b, l, _) in &opts {
+			if *l == len {
+				tmp.push(format!("\t\t\t{} => Some(Self::{}),", b, e));
+			}
+		}
+		tmp.push(String::from("\t\t\t_ => None,"));
+
+		from_slice_len.push(format!(
+			"\tconst fn {}(src: &[u8]) -> Option<Self> {{\n\t\tmatch src {{\n{}\n\t\t}}\n\t}}",
+			name,
+			tmp.join("\n"),
+		));
+	}
+
+	// Build the outer from_slice function.
+	arms.push(String::from("\t\t\t_ => None,"));
+	let from_slice: String = format!(
+		"\tpub(super) const fn from_slice(src: &[u8]) -> Option<Self> {{\n\t\tmatch src.len() {{\n{}\n\t\t}}\n\t}}",
+		arms.join("\n"),
 	);
+	let from_slice_len = from_slice_len.join("\n");
 
-	out.extend(main.iter().map(|x| (x.to_string(), quick_hash(x.as_bytes()))));
-	out.extend(wild.keys().map(|x| (x.to_string(), quick_hash(x.as_bytes()))));
-	out
+	// Build the definition list.
+	let mut list: Vec<String> = opts.iter().map(|(e, _, _, _)| format!("\t{},", e)).collect();
+	list.sort_unstable();
+	let list: String = list.join("\n");
+
+	// Build the wild-matching list!
+	let mut wilds: HashMap<&str, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
+	for (e, _, _, a) in &opts {
+		if ! a.is_empty() && a != "false" {
+			wilds.entry(a).or_insert_with(Vec::new).push(format!("Self::{}", e));
+		}
+	}
+	let mut wilds: Vec<(Vec<String>, &str)> = wilds.into_iter()
+		.map(|(k, v)| (v, k))
+		.collect();
+	wilds.sort_by(|a, b| a.0.len().cmp(&b.0.len()));
+	let mut wild_arms: Vec<String> = wilds.into_iter()
+		.map(|(hosts, arm)| format!("\t\t\t{} => {},", hosts.join(" | "), arm))
+		.collect();
+	wild_arms.push(String::from("\t\t\t_ => false,"));
+	let wild_arms: String = wild_arms.join("\n");
+
+	// Find the wild suffixes real quick.
+	let mut wilds: Vec<String> = opts.iter()
+		.filter_map(|(e, _, _, a)|
+			if a.is_empty() { None }
+			else { Some(format!("Self::{}", e)) }
+		)
+		.collect();
+	wilds.sort_unstable();
+	let wilds: String = wilds.join(" | ");
+
+	(list, from_slice, wilds, wild_arms, from_slice_len)
 }
 
 #[cfg(not(feature = "docs-workaround"))]
@@ -277,12 +374,6 @@ fn format_wild_arm(src: &[String]) -> String {
 		.collect();
 	out.sort();
 	out.join(" | ")
-}
-
-/// # Format Exception Name.
-fn format_wild_kind(src: &str) -> String {
-	let hash = quick_hash(src.as_bytes());
-	format!("Wild{}", hash)
 }
 
 /// # Out path.

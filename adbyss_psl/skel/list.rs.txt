@@ -1,35 +1,24 @@
-use crate::NoHashState;
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
-
-
-
-/// # Suffix List.
-type Map = HashMap<u64, Psl, NoHashState>;
-
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-/// # Suffix Kinds.
-pub(super) enum Psl {{
-	Normal,
-	Wild,
-{psl_kinds}
+/// # Suffix List.
+pub(super) enum Suffix {{
+{suffixes}
 }}
 
-impl Psl {{
-	/// # Is Wildcard Match?
-	pub(super) fn is_wild_match(self, src: &[u8]) -> bool {{
+impl Suffix {{
+	/// # From Slice.
+{suffix_from_slice}
+
+	/// # Is Wild?
+	pub(super) const fn is_wild(self) -> bool {{
+		matches!(self, {suffixes_wild})
+	}}
+
+	/// # Wild Match.
+	pub(super) fn wild(self, src: &[u8]) -> bool {{
 		match self {{
-{psl_kind_arms}
-			Self::Normal | Self::Wild => false,
+{suffix_wild_arms}
 		}}
 	}}
-}}
 
-/// # Weird Suffixes.
-pub(super) static MAP: Lazy<Map> = Lazy::new(|| {{
-	let mut out: Map = HashMap::with_capacity_and_hasher({len}, NoHashState::default());
-	out.extend([
-{inserts}
-	]);
-	out
-}});
+{suffix_from_slice_len}
+}}
