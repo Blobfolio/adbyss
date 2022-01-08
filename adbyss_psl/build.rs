@@ -3,6 +3,7 @@
 */
 
 use ahash::RandomState;
+use dactyl::NiceU64;
 use regex::Regex;
 use std::{
 	collections::{
@@ -22,6 +23,10 @@ use std::{
 // Hash State.
 const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
 
+type RawMainMap = HashSet<String, RandomState>;
+type RawWildMap = HashMap<String, Vec<String>, RandomState>;
+type HostHashes = HashMap<String, u64, RandomState>;
+
 
 
 /// # Build Suffix RS.
@@ -34,37 +39,37 @@ pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/list.rs.txt");
 
+	// Pull the raw data.
+	let (psl_main, psl_wild) = load_data();
+	assert!(! psl_main.is_empty(), "No generic PSL entries found.");
+	assert!(! psl_wild.is_empty(), "No wildcard PSL entries found.");
+
+	// Reformat it.
+	let (psl_kinds, psl_kind_arms, len, inserts) = build_data(psl_main, psl_wild);
+
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-list.rs"))
 		.expect("Unable to create adbyss-list.rs");
 
-	// Compile the data.
-	let (psl_main, psl_wild) = load_data();
-	let (main_len, main_inserts) = build_psl_main(psl_main);
-	let (wild_len, wild_inserts) = build_psl_wild(psl_wild);
-
-	// Make sure they aren't empty.
-	assert!(0 < main_len, "Invalid PSL.");
-	assert!(0 < wild_len, "Invalid PSL.");
-
+	// Save it!
 	write!(
 		&mut file,
 		include_str!("./skel/list.rs.txt"),
-		main_len = main_len,
-		main_inserts = main_inserts,
-		wild_len = wild_len,
-		wild_inserts = wild_inserts
+		psl_kinds = psl_kinds,
+		psl_kind_arms = psl_kind_arms,
+		len = len,
+		inserts = inserts,
 	)
 		.and_then(|_| file.flush())
-		.unwrap();
+		.expect("Unable to save reference list.");
 }
 
 #[cfg(not(feature = "docs-workaround"))]
 /// # Load Data.
-fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, RandomState>) {
+fn load_data() -> (RawMainMap, RawWildMap) {
 	// Let's build the thing we'll be writing about building.
-	let mut psl_main: HashSet<String, RandomState> = HashSet::with_hasher(AHASH_STATE);
-	let mut psl_wild: HashMap<String, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
+	let mut psl_main: RawMainMap = HashSet::with_hasher(AHASH_STATE);
+	let mut psl_wild: RawWildMap = HashMap::with_hasher(AHASH_STATE);
 
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
@@ -127,55 +132,105 @@ fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, Ra
 ///
 /// Don't try to compile this library with the `docs-workaround` feature or the
 /// library won't work properly.
-fn load_data() -> (HashSet<String, RandomState>, HashMap<String, Vec<String>, RandomState>) {
-	let mut psl_main: HashSet<String, RandomState> = HashSet::with_hasher(AHASH_STATE);
+fn load_data() -> (RawMainMap, RawWildMap) {
+	let mut psl_main: RawMainMap = HashSet::with_hasher(AHASH_STATE);
 	psl_main.insert(String::from("com"));
 
-	let mut psl_wild: HashMap<String, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
+	let mut psl_wild: RawWildMap = HashMap::with_hasher(AHASH_STATE);
 	psl_wild.insert(String::from("bd"), Vec::new());
 
 	(psl_main, psl_wild)
 }
 
-/// # Build PSL_MAIN.
-fn build_psl_main(set: HashSet<String, RandomState>) -> (usize, String) {
-	let mut set: Vec<u64> = set.into_iter()
-		.map(|x| quick_hash(x.as_bytes()))
-		.collect();
-	set.sort_unstable();
+/// # Build Data.
+fn build_data(main: RawMainMap, wild: RawWildMap) -> (String, String, usize, String) {
+	let hashes: HostHashes = host_hashes(&main, &wild);
+	let mut all: HashMap<u64, String, RandomState> = HashMap::with_capacity_and_hasher(hashes.len(), AHASH_STATE);
+	let mut kinds: HashMap<String, String, RandomState> = HashMap::with_hasher(AHASH_STATE);
+	let mut kind_arms: Vec<(String, String)> = Vec::new();
 
-	let set: Vec<String> = set.into_iter()
-		.map(|x| format!("{}_u64", x))
-		.collect();
+	// Suck up the main rules first; they're easy.
+	all.extend(
+		main.into_iter()
+			.map(|x| {
+				let hash = hashes.get(&x).unwrap();
+				(*hash, String::from("Normal"))
+			})
+	);
 
-	(set.len(), set.join(", "))
+	// The wild entries take a little more effort.
+	all.extend(
+		wild.into_iter()
+			.map(|(x, ex)| {
+				let hash = hashes.get(&x).unwrap();
+				if ex.is_empty() {
+					(*hash, String::from("Wild"))
+				}
+				else {
+					let ex: String = format_wild_arm(&ex);
+					if ! kinds.contains_key(&ex) {
+						let kind = format_wild_kind(&ex);
+						let arm =
+							if ex.contains('|') {
+								format!("matches!(src, {})", ex)
+							}
+							else {
+								format!("src == {}", ex)
+							};
+						kinds.insert(ex.clone(), kind.clone());
+						kind_arms.push((kind, arm));
+					}
+					let kind = kinds.get(&ex).unwrap();
+					(*hash, kind.clone())
+				}
+			})
+	);
+
+	// Let's convert the entries into a vector so we can sort them.
+	let len: usize = all.len();
+	let mut all: Vec<(u64, String)> = all.into_iter().collect();
+	all.sort_by(|a, b| a.0.cmp(&b.0));
+	let all: String = all.as_slice().chunks(128)
+		.map(|chunk| {
+			let list: Vec<String> = chunk.iter()
+				.map(|(hash, kind)| format!(
+					"({}_u64, Psl::{}), ",
+					NiceU64::from(*hash).as_str().replace(",", "_"),
+					kind
+				))
+				.collect();
+			format!("\t\t{}", list.concat())
+		})
+		.collect::<Vec<String>>()
+		.join("\n");
+
+	// The kinds, likewise, can be collapsed and reformatted.
+	let mut kinds: Vec<String> = kinds.values()
+		.map(|v| format!("\t{},", v))
+		.collect();
+	kinds.sort_unstable();
+	let kinds: String = kinds.join("\n");
+
+	// The kind arms can also be formatted, etc.
+	kind_arms.sort_by(|a, b| a.0.cmp(&b.0));
+	let kind_arms: String = kind_arms.into_iter()
+		.map(|(kind, cond)| format!("\t\t\tSelf::{} => {},", kind, cond))
+		.collect::<Vec<String>>()
+		.join("\n");
+
+	(kinds, kind_arms, len, all)
 }
 
-/// # Build PSL_WILD.
-fn build_psl_wild(set: HashMap<String, Vec<String>, RandomState>) -> (usize, String) {
-	let mut set: Vec<(u64, String)> = set.into_iter()
-		.map(|(k, v)| {
-			let hash = quick_hash(k.as_bytes());
-			let extra = format!(
-				"&[{}]",
-				v.iter()
-					.map(|x| format!(r#"b"{}""#, x))
-					.collect::<Vec<String>>()
-					.join(", ")
-			);
-			(hash, extra)
-		})
-		.collect();
-	set.sort_by(|a, b| a.0.cmp(&b.0));
+/// # Host Hashes.
+fn host_hashes(main: &RawMainMap, wild: &RawWildMap) -> HostHashes {
+	let mut out: HostHashes = HashMap::with_capacity_and_hasher(
+		main.len() + wild.len(),
+		AHASH_STATE,
+	);
 
-	let set: Vec<String> = set.into_iter()
-		.map(|(k, v)| format!("\tout.insert({}_u64, {});\n", k, v))
-		.collect();
-
-	(
-		set.len(),
-		set.concat(),
-	)
+	out.extend(main.iter().map(|x| (x.to_string(), quick_hash(x.as_bytes()))));
+	out.extend(wild.keys().map(|x| (x.to_string(), quick_hash(x.as_bytes()))));
+	out
 }
 
 #[cfg(not(feature = "docs-workaround"))]
@@ -215,6 +270,21 @@ fn fetch_suffixes() -> String {
 	raw
 }
 
+/// # Format Exception Match Conditions.
+fn format_wild_arm(src: &[String]) -> String {
+	let mut out: Vec<String> = src.iter()
+		.map(|x| format!(r#"b"{}""#, x))
+		.collect();
+	out.sort();
+	out.join(" | ")
+}
+
+/// # Format Exception Name.
+fn format_wild_kind(src: &str) -> String {
+	let hash = quick_hash(src.as_bytes());
+	format!("Wild{}", hash)
+}
+
 /// # Out path.
 ///
 /// This generates a (file/dir) path relative to `OUT_DIR`.
@@ -225,8 +295,6 @@ fn out_path(name: &str) -> PathBuf {
 	out
 }
 
-#[must_use]
-#[inline]
 /// # Path Hash.
 ///
 /// This hashes a device and inode to produce a more or less unique result.

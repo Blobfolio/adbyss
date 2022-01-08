@@ -68,18 +68,11 @@ A [`Domain`] object can be dereferenced to a string slice representing the sanit
 
 
 mod hash;
-mod list {
+mod psl {
 	include!(concat!(env!("OUT_DIR"), "/adbyss-list.rs"));
 }
 
-pub(crate) use hash::{
-	NoHashState,
-	NoHashU64,
-};
-use list::{
-	PSL_MAIN,
-	PSL_WILD,
-};
+pub(crate) use hash::NoHashState;
 use std::{
 	cmp::Ordering,
 	fmt,
@@ -531,44 +524,61 @@ impl<'de> serde::Deserialize<'de> for Domain {
 /// If a match is found, the location of the start of the root (its dot, or zero)
 /// is returned along with the starting index of the suffix (after its dot).
 fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
-	if host.len() < 3 { return None; }
-	let hash: u64 = NoHashU64::quick_hash(host);
-	if PSL_WILD.contains_key(&hash) || PSL_MAIN.contains(&hash) { return None; }
+	if host.len() < 3 || psl::MAP.contains_key(&quick_hash(host)) { return None; }
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
-	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
+	for (idx, _) in host.iter().enumerate().skip(1).filter(|(_, &b)| b'.' == b) {
 		// We know there is at least one more byte.
-		let rest: u64 = NoHashU64::quick_hash(unsafe { host.get_unchecked(idx + 1..) });
+		let hash: u64 = quick_hash(unsafe { host.get_unchecked(idx + 1..) });
 
-		// This is a wild extension.
-		if let Some(exceptions) = PSL_WILD.get(&rest) {
-			// Our last chunk might start at zero instead of dot-plus-one.
-			let after_dot: usize =
-				if dot == 0 { 0 }
-				else { dot + 1 };
+		match psl::MAP.get(&hash) {
+			// We found the normal suffix.
+			Some(psl::Psl::Normal) => return Some((dot, idx + 1)),
+			// This isn't anything yet.
+			None => {
+				std::mem::swap(&mut dot, &mut last);
+				dot = idx;
+			},
+			// This is a generic wildcard; so long as we have a previous chunk,
+			// we're good to go.
+			Some(psl::Psl::Wild) =>
+				if dot == 0 { return None; }
+				else { return Some((last, dot + 1)); },
+			// This is a specific wildcard of some kind.
+			Some(kind) => {
+				// Our last chunk might start at zero instead of dot-plus-one.
+				let after_dot: usize =
+					if dot == 0 { 0 }
+					else { dot + 1 };
 
-			// This matches an exception, making the found suffix the true
-			// suffix. Note: there cannot be a dot at position zero, so the
-			// range is always valid.
-			if exceptions.contains(&unsafe { host.get_unchecked(after_dot..idx) }) {
-				return Some((dot, idx + 1));
-			}
-			// There has to be a before-before part.
-			else if dot == 0 { return None; }
-			// Otherwise the last chunk is part of the suffix.
-			return Some((last, after_dot));
+				// This matches a wildcard exception, making the found
+				// suffix the true suffix. Note: there cannot be a dot at
+				//  position zero, so the range is always valid.
+				if kind.is_wild_match(unsafe { host.get_unchecked(after_dot..idx) }) {
+					return Some((dot, idx + 1));
+				}
+
+				// There has to be a before-before part.
+				if dot == 0 { return None; }
+
+				// Otherwise the last chunk is part of the suffix.
+				return Some((last, after_dot));
+			},
 		}
-		// This is a normal suffix.
-		else if PSL_MAIN.contains(&rest) {
-			return Some((dot, idx + 1));
-		}
-
-		std::mem::swap(&mut dot, &mut last);
-		dot = idx;
 	}
 
 	None
+}
+
+/// # Host Hash.
+///
+/// Turns out it is faster to compare pre-calculated `u64` hashes than direct
+/// byte slices.
+fn quick_hash(raw: &[u8]) -> u64 {
+	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
+	hasher.write(raw);
+	hasher.finish()
 }
 
 

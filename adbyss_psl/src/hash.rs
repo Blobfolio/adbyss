@@ -59,16 +59,3 @@ impl Hasher for NoHashU64 {
 	/// # Finish.
 	fn finish(&self) -> u64 { self.0 }
 }
-
-impl NoHashU64 {
-	#[must_use]
-	/// # Path Hash.
-	///
-	/// This hashes a device and inode to produce a more or less unique result.
-	/// This is the value we grab for each path and use in the `HashSet`.
-	pub(crate) fn quick_hash(raw: &[u8]) -> u64 {
-		let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-		hasher.write(raw);
-		hasher.finish()
-	}
-}

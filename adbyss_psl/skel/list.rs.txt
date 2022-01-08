@@ -1,26 +1,35 @@
 use crate::NoHashState;
 use once_cell::sync::Lazy;
-use std::collections::{{ HashMap, HashSet }};
+use std::collections::HashMap;
 
 
 
-type MainMap = HashSet<u64, NoHashState>;
-type WildMap = HashMap<u64, &'static [&'static [u8]], NoHashState>;
+/// # Suffix List.
+type Map = HashMap<u64, Psl, NoHashState>;
 
-#[allow(clippy::too_many_lines)]
-#[allow(clippy::unreadable_literal)]
-/// # Main Suffixes.
-pub(super) static PSL_MAIN: Lazy<MainMap> = Lazy::new(|| {{
-	let mut out: MainMap = HashSet::with_capacity_and_hasher({main_len}, NoHashState::default());
-	out.extend([{main_inserts}]);
-	out
-}});
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+/// # Suffix Kinds.
+pub(super) enum Psl {{
+	Normal,
+	Wild,
+{psl_kinds}
+}}
 
-#[allow(clippy::unreadable_literal)]
+impl Psl {{
+	/// # Is Wildcard Match?
+	pub(super) fn is_wild_match(self, src: &[u8]) -> bool {{
+		match self {{
+{psl_kind_arms}
+			Self::Normal | Self::Wild => false,
+		}}
+	}}
+}}
+
 /// # Weird Suffixes.
-pub(super) static PSL_WILD: Lazy<WildMap> = Lazy::new(|| {{
-	let mut out: WildMap = HashMap::with_capacity_and_hasher({wild_len}, NoHashState::default());
-
-{wild_inserts}
+pub(super) static MAP: Lazy<Map> = Lazy::new(|| {{
+	let mut out: Map = HashMap::with_capacity_and_hasher({len}, NoHashState::default());
+	out.extend([
+{inserts}
+	]);
 	out
 }});
