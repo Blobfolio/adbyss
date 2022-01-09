@@ -351,7 +351,9 @@ impl Domain {
 	pub fn strip_www(&mut self, recurse: bool) -> bool {
 		let mut res: bool = false;
 		while self.has_www() {
-			// Chop the string.
+			// Chop the string. We know the byte slice starts with "www.", so
+			// it should be perfectly safe to shift the pointers down four
+			// slots.
 			{
 				let v = unsafe { self.host.as_mut_vec() };
 				let len: usize = v.len() - 4;
@@ -545,21 +547,23 @@ impl<'de> serde::Deserialize<'de> for Domain {
 /// If a match is found, the location of the start of the root (its dot, or zero)
 /// is returned along with the starting index of the suffix (after its dot).
 fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
+	// We can avoid all this if the host is too short or only consists of a TLD.
 	if host.len() < 3 || Suffix::from_slice(host).is_some() { return None; }
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.iter().enumerate().skip(1).filter(|(_, &b)| b'.' == b) {
 		if let Some(suffix) = Suffix::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
+			// Wildcard suffixes might have additional requirements.
 			if suffix.is_wild() {
 				// Our last chunk might start at zero instead of dot-plus-one.
 				let after_dot: usize =
 					if dot == 0 { 0 }
 					else { dot + 1 };
 
-				// This matches a wildcard exception, making the found
-				// suffix the true suffix. Note: there cannot be a dot at
-				//  position zero, so the range is always valid.
+				// This matches a wildcard exception, making the found suffix
+				// the true suffix. Note: there cannot be a dot at position
+				// zero, so the range is always valid.
 				if suffix.wild_match(unsafe { host.get_unchecked(after_dot..idx) }) {
 					return Some((dot, idx + 1));
 				}
@@ -571,6 +575,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 				return Some((last, after_dot));
 			}
 
+			// The suffix is what it is.
 			return Some((dot, idx + 1));
 		}
 
@@ -583,20 +588,19 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 
 /// # IDNA.
 ///
-/// This is a wrapper around `idna::domain_to_ascii_strict` that avoids much of
-/// its overhead in idealized — hopefully common — circumstances. The `idna`
-/// crate itself attempts something similar, but not quite as effectively.
+/// This is a wrapper around `idna::domain_to_ascii_strict` that short-circuits
+/// expensive operations in certain idealized — and hopefully common —
+/// circumstances.
 ///
-/// If the source isn't quite so simple, it is sent to the `idna` crate for
-/// full processing.
+/// But if it has to do things the hard way, it will.
 ///
-/// Note: this method only covers the pre-processing stage; additional work
-/// must later be done to ensure this is a somewhat valid domain.
+/// Note: this is a pre-processing phase. Later methods will apply additional
+/// checks to ensure everything is on the up-and-up.
 fn idna(src: &str) -> Option<String> {
 	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
 	if src.is_empty() { return None; }
 
-	// Try for simple?
+	// Are things looking nice and simple?
 	let bytes = src.as_bytes();
 	let mut cap: bool = false;
 	let mut dot: bool = false;
@@ -613,10 +617,15 @@ fn idna(src: &str) -> Option<String> {
 				dot = true;
 				true
 			},
+			// Dashes might be fine, but we should leave a note as we'll have
+			// to verify a few additional things.
 			b'-' => {
 				dash = true;
 				true
 			}
+			// We'll ultimately want to return a lowercase host string, so we
+			// should make note if there are any characters requiring
+			// conversion.
 			b'A'..=b'Z' => {
 				cap = true;
 				true
@@ -626,7 +635,9 @@ fn idna(src: &str) -> Option<String> {
 		}) &&
 		// There is at least one dot somewhere in the middle.
 		dot &&
-		// None of the between-dot chunks are empty or too long.
+		// None of the between-dot chunks are empty or too long, and if there
+		// are dashes, they can't be at the start or end, and there can't be
+		// two adjacent ones (which might require PUNY verification).
 		bytes.split(|b| b'.'.eq(b))
 			.all(|chunk|
 				! chunk.is_empty() &&
@@ -644,6 +655,7 @@ fn idna(src: &str) -> Option<String> {
 		if cap { Some(src.to_ascii_lowercase()) }
 		else { Some(src.to_owned()) }
 	}
+	// Send it to `idna` for some tough love.
 	else {
 		idna::domain_to_ascii_strict(src).ok()
 	}

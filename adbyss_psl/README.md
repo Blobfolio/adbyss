@@ -16,14 +16,14 @@ Note: The suffix reference data is baked into this crate at build time. This red
 
 ## Examples
 
-Initiate a new instance using `Domain::parse`. If that works, you then have accesses to the individual components:
+Initiate a new instance using `Domain::new`. If that works, you then have accesses to the individual components:
 
 ```rust
 use adbyss_psl::Domain;
 use std::convert::TryFrom;
 
-// Use `Domain::parse()` or `Domain::try_from()` to get started.
-let dom = Domain::parse("www.MyDomain.com").unwrap();
+// Use `Domain::new()` or `Domain::try_from()` to get started.
+let dom = Domain::new("www.MyDomain.com").unwrap();
 let dom = Domain::try_from("www.MyDomain.com").unwrap();
 
 // Pull out the pieces if you're into that sort of thing.
