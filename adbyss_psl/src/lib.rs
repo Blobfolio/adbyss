@@ -167,6 +167,19 @@ impl PartialEq for Domain {
 }
 
 macro_rules! partial_eq {
+	// Dereference.
+	(deref: $($cast:ident $ty:ty),+ $(,)?) => ($(
+		impl PartialEq<$ty> for Domain {
+			#[inline]
+			fn eq(&self, other: &$ty) -> bool { self.$cast() == *other }
+		}
+
+		impl PartialEq<Domain> for $ty {
+			#[inline]
+			fn eq(&self, other: &Domain) -> bool { other.$cast() == *self }
+		}
+	)+);
+
 	// Plain.
 	($($cast:ident $ty:ty),+ $(,)?) => ($(
 		impl PartialEq<$ty> for Domain {
@@ -184,6 +197,12 @@ macro_rules! partial_eq {
 partial_eq!(
 	as_str str,
 	as_str String,
+);
+
+partial_eq!(
+	deref:
+	as_str &str,
+	as_str &String,
 );
 
 impl PartialOrd for Domain {
