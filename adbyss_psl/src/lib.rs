@@ -136,6 +136,11 @@ impl AsRef<str> for Domain {
 	fn as_ref(&self) -> &str { self.as_str() }
 }
 
+impl AsRef<[u8]> for Domain {
+	#[inline]
+	fn as_ref(&self) -> &[u8] { self.as_bytes() }
+}
+
 impl Deref for Domain {
 	type Target = str;
 	#[inline]
