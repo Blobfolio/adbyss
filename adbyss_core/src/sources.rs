@@ -2,12 +2,10 @@
 # `Adbyss`: Sources
 */
 
-use adbyss_psl::{
-	AHASH_STATE,
-	Domain,
-};
+use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
+	AHASH_STATE,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_STEVENBLACK,

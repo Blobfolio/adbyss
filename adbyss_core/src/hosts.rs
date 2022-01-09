@@ -2,12 +2,10 @@
 # `Adbyss`: Hosts
 */
 
-use adbyss_psl::{
-	AHASH_STATE,
-	Domain,
-};
+use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
+	AHASH_STATE,
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_Y,

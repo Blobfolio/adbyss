@@ -2,7 +2,6 @@
 # Adbyss: Public Suffix - Build
 */
 
-use ahash::RandomState;
 use regex::Regex;
 use std::{
 	collections::{
@@ -19,11 +18,8 @@ use std::{
 
 
 
-// Hash State.
-const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
-
-type RawMainMap = HashSet<String, RandomState>;
-type RawWildMap = HashMap<String, Vec<String>, RandomState>;
+type RawMainMap = HashSet<String>;
+type RawWildMap = HashMap<String, Vec<String>>;
 
 
 
@@ -76,8 +72,8 @@ pub fn main() {
 /// # Load Data.
 fn load_data() -> (RawMainMap, RawWildMap) {
 	// Let's build the thing we'll be writing about building.
-	let mut psl_main: RawMainMap = HashSet::with_hasher(AHASH_STATE);
-	let mut psl_wild: RawWildMap = HashMap::with_hasher(AHASH_STATE);
+	let mut psl_main: RawMainMap = HashSet::new();
+	let mut psl_wild: RawWildMap = HashMap::new();
 
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
@@ -141,10 +137,10 @@ fn load_data() -> (RawMainMap, RawWildMap) {
 /// Don't try to compile this library with the `docs-workaround` feature or the
 /// library won't work properly.
 fn load_data() -> (RawMainMap, RawWildMap) {
-	let mut psl_main: RawMainMap = HashSet::with_hasher(AHASH_STATE);
+	let mut psl_main: RawMainMap = HashSet::new();
 	psl_main.insert(String::from("com"));
 
-	let mut psl_wild: RawWildMap = HashMap::with_hasher(AHASH_STATE);
+	let mut psl_wild: RawWildMap = HashMap::new();
 	psl_wild.insert(String::from("bd"), Vec::new());
 
 	(psl_main, psl_wild)
@@ -156,16 +152,15 @@ fn load_data() -> (RawMainMap, RawWildMap) {
 /// actual structures we'll be using within Rust.
 fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, String, String) {
 	// enum name, byte equivalent, length, exception kind
-	let mut opts: Vec<(String, String, usize, String)> = Vec::new();
+	let mut opts: Vec<(String, String, usize, String)> = Vec::with_capacity(main.len() + wild.len());
 	let mut lengths: Vec<usize> = Vec::new();
 
 	// The main entries are easy.
 	for host in main {
-		let hash = quick_hash(host.as_bytes());
 		let len = host.len();
 		lengths.push(len);
 		opts.push((
-			format!("Psl{}", hash),
+			format!("Psl{:04}", opts.len()),
 			format!("b\"{}\"", host),
 			len,
 			String::new(),
@@ -174,7 +169,6 @@ fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, 
 
 	// The wildcards are a bit more dramatic.
 	for (host, ex) in wild {
-		let hash = quick_hash(host.as_bytes());
 		let len = host.len();
 		lengths.push(len);
 
@@ -187,7 +181,7 @@ fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, 
 			};
 
 		opts.push((
-			format!("Psl{}", hash),
+			format!("Psl{:04}", opts.len()),
 			format!("b\"{}\"", host),
 			len,
 			ex,
@@ -301,7 +295,7 @@ fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, 
 	let list: String = list.join("\n");
 
 	// Build the wild-matching list!
-	let mut wilds: HashMap<&str, Vec<String>, RandomState> = HashMap::with_hasher(AHASH_STATE);
+	let mut wilds: HashMap<&str, Vec<String>> = HashMap::new();
 	for (e, _, _, a) in &opts {
 		if ! a.is_empty() && a != "false" {
 			wilds.entry(a).or_insert_with(Vec::new).push(format!("Self::{}", e));
@@ -384,15 +378,4 @@ fn out_path(name: &str) -> PathBuf {
 	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
 	out.push(name);
 	out
-}
-
-/// # Path Hash.
-///
-/// This hashes a device and inode to produce a more or less unique result.
-/// This is the value we grab for each path and use in the `HashSet`.
-fn quick_hash(raw: &[u8]) -> u64 {
-	use std::hash::Hasher;
-	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-	hasher.write(raw);
-	hasher.finish()
 }
