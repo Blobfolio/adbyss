@@ -266,8 +266,7 @@ impl Domain {
 	/// ```
 	pub fn new<S>(src: S) -> Option<Self>
 	where S: AsRef<str> {
-		idna::domain_to_ascii_strict(src.as_ref().trim_matches(|c: char| c == '.' || c.is_ascii_whitespace()))
-			.ok()
+		idna(src.as_ref())
 			.and_then(|host| find_dots(host.as_bytes())
 				.map(|(mut d, s)| {
 					if 0 < d { d += 1; }
@@ -558,6 +557,71 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	}
 
 	None
+}
+
+/// # IDNA.
+///
+/// This is a wrapper around `idna::domain_to_ascii_strict` that avoids much of
+/// its overhead in idealized — hopefully common — circumstances. The `idna`
+/// crate itself attempts something similar, but not quite as effectively.
+///
+/// If the source isn't quite so simple, it is sent to the `idna` crate for
+/// full processing.
+///
+/// Note: this method only covers the pre-processing stage; additional work
+/// must later be done to ensure this is a somewhat valid domain.
+fn idna(src: &str) -> Option<String> {
+	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
+	if src.is_empty() { return None; }
+
+	// Try for simple?
+	let bytes = src.as_bytes();
+	let mut cap: bool = false;
+	let mut dot: bool = false;
+	let mut dash: bool = false;
+	if
+		// Not too long.
+		bytes.len() < 254 &&
+		// Everything is alphanumeric or a dot.
+		bytes.iter().all(|&b| match b {
+			b'.' => {
+				dot = true;
+				true
+			},
+			b'-' => {
+				dash = true;
+				true
+			}
+			b'A'..=b'Z' => {
+				cap = true;
+				true
+			},
+			b'a'..=b'z' | b'0'..=b'9' => true,
+			_ => false,
+		}) &&
+		// There is at least one dot somewhere in the middle.
+		dot &&
+		// None of the between-dot chunks are empty or too long.
+		bytes.split(|b| b'.'.eq(b))
+			.all(|chunk|
+				! chunk.is_empty() &&
+				chunk.len() < 64 &&
+				(
+					! dash || (
+						! chunk.starts_with(b"-") &&
+						! chunk.ends_with(b"-")
+					)
+				)
+			) &&
+		// There aren't any double-dashes.
+		(! dash || ! src.contains("--"))
+	{
+		if cap { Some(src.to_ascii_lowercase()) }
+		else { Some(src.to_owned()) }
+	}
+	else {
+		idna::domain_to_ascii_strict(src).ok()
+	}
 }
 
 
