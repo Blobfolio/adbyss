@@ -14,7 +14,7 @@ impl Suffix {{
 	}}
 
 	/// # Wild Match.
-	pub(super) fn wild(self, src: &[u8]) -> bool {{
+	pub(super) fn wild_match(self, src: &[u8]) -> bool {{
 		match self {{
 {suffix_wild_arms}
 		}}

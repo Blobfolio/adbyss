@@ -560,7 +560,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 				// This matches a wildcard exception, making the found
 				// suffix the true suffix. Note: there cannot be a dot at
 				//  position zero, so the range is always valid.
-				if suffix.wild(unsafe { host.get_unchecked(after_dot..idx) }) {
+				if suffix.wild_match(unsafe { host.get_unchecked(after_dot..idx) }) {
 					return Some((dot, idx + 1));
 				}
 
