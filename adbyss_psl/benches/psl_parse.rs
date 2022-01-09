@@ -18,7 +18,7 @@ benches!(
 		.timed(Duration::from_secs(2))
 		.with(|| Domain::new("www.blobfolio.com")),
 
-	Bench::new("adbyss_psl::Domain", "new(another.sub.domain.blobfolio.com)")
+	Bench::new("adbyss_psl::Domain", "new(食狮.com.cn)")
 		.timed(Duration::from_secs(2))
-		.with(|| Domain::new("another.sub.domain.blobfolio.com")),
+		.with(|| Domain::new("食狮.com.cn")),
 );
