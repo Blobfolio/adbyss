@@ -320,21 +320,34 @@ impl Domain {
 
 	/// # Remove Leading WWW.
 	///
-	/// Modify the domain in-place to remove any leading "www." subdomain. If
+	/// Modify the domain in-place to remove the leading WWW subdomain. If
 	/// a change is made, `true` is returned, otherwise `false`.
+	///
+	/// By default, only the first leading "www." is stripped; if `recurse` is
+	/// true, it will also strip back-to-back occurrences like those in
+	/// `www.www.foobar.com`.
 	///
 	/// ## Examples
 	///
 	/// ```
 	/// use adbyss_psl::Domain;
 	///
-	/// let mut dom = Domain::new("www.blobfolio.com").unwrap();
-	/// assert!(dom.remove_www());
-	/// assert_eq!(dom.as_str(), "blobfolio.com");
-	/// assert_eq!(dom.remove_www(), false);
+	/// let mut dom = Domain::new("www.www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.strip_www(false), true);
+	/// assert_eq!(dom, "www.blobfolio.com");
+	/// assert_eq!(dom.strip_www(false), true);
+	/// assert_eq!(dom, "blobfolio.com");
+	/// assert_eq!(dom.strip_www(false), false);
+	///
+	/// // Recursive stripping in one operation:
+	/// let mut dom = Domain::new("www.www.blobfolio.com").unwrap();
+	/// assert_eq!(dom.strip_www(true), true);
+	/// assert_eq!(dom, "blobfolio.com");
+	/// assert_eq!(dom.strip_www(false), false);
 	/// ```
-	pub fn remove_www(&mut self) -> bool {
-		if self.has_www() {
+	pub fn strip_www(&mut self, recurse: bool) -> bool {
+		let mut res: bool = false;
+		while self.has_www() {
 			// Chop the string.
 			{
 				let v = unsafe { self.host.as_mut_vec() };
@@ -355,16 +368,22 @@ impl Domain {
 			self.suffix.start -= 4;
 			self.suffix.end -= 4;
 
-			true
+			if ! recurse { return true; }
+			res = true;
 		}
-		else { false }
+
+		res
 	}
 
 	#[must_use]
 	/// # Clone Without Leading WWW.
 	///
 	/// This will return a clone of the instance without the leading WWW if it
-	/// has one, otherwise `None`.
+	/// happens to have one, otherwise `None`.
+	///
+	/// Note: this only removes the first instance of a WWW subdomain. Use
+	/// [`Domain::strip_www`] with the `recurse` flag to fully remove all
+	/// leading WWW nonsense.
 	///
 	/// ## Examples
 	///
@@ -372,22 +391,19 @@ impl Domain {
 	/// use adbyss_psl::Domain;
 	///
 	/// let dom1 = Domain::new("www.blobfolio.com").unwrap();
-	/// assert_eq!(dom1.as_str(), "www.blobfolio.com");
+	/// assert_eq!(dom1, "www.blobfolio.com");
+	/// assert_eq!(dom1.without_www().unwrap(), "blobfolio.com");
 	///
-	/// let dom2 = dom1.without_www().unwrap();
-	/// assert_eq!(dom2.as_str(), "blobfolio.com");
+	/// // This will only strip off the first one.
+	/// let dom1 = Domain::new("www.www.blobfolio.com").unwrap();
+	/// assert_eq!(dom1, "www.www.blobfolio.com");
+	/// assert_eq!(dom1.without_www().unwrap(), "www.blobfolio.com");
 	/// ```
 	pub fn without_www(&self) -> Option<Self> {
 		if self.has_www() {
-			// Manual assignment via clone/split works around a strange issue
-			// affecting string slice indexing of the host value in cargo-test
-			// in 1.53.0. The problem doesn't trigger in nightly, so we might
-			// revert after the next release.
-			Some(Self {
-				host: self.host[4..].into(),
-				root: self.root.start - 4..self.root.end - 4,
-				suffix: self.suffix.start - 4..self.suffix.end - 4,
-			})
+			let mut new = self.clone();
+			new.strip_www(false);
+			Some(new)
 		}
 		else { None }
 	}
@@ -589,7 +605,10 @@ fn idna(src: &str) -> Option<String> {
 	if
 		// Not too long.
 		bytes.len() < 254 &&
-		// Everything is alphanumeric or a dot.
+		// Everything is alphanumeric, a dash, or a dot. During the check,
+		// we'll check to make sure there is at least one dot, and note
+		// whether there are any uppercase characters or dashes, which would
+		// require aditional checking.
 		bytes.iter().all(|&b| match b {
 			b'.' => {
 				dot = true;
