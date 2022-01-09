@@ -212,9 +212,7 @@ partial_eq!(
 
 impl PartialOrd for Domain {
 	#[inline]
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 macro_rules! impl_try {
@@ -358,11 +356,7 @@ impl Domain {
 				let v = unsafe { self.host.as_mut_vec() };
 				let len: usize = v.len() - 4;
 				unsafe {
-					std::ptr::copy(
-						v.as_ptr().add(4),
-						v.as_mut_ptr(),
-						len
-					);
+					std::ptr::copy(v.as_ptr().add(4), v.as_mut_ptr(), len);
 				}
 				v.truncate(len);
 			}
