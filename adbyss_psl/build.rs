@@ -4,6 +4,7 @@
 
 use regex::Regex;
 use std::{
+	cmp::Ordering,
 	collections::{
 		HashMap,
 		HashSet,
@@ -162,6 +163,30 @@ fn build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String, 
 						else { right.push(line); }
 					}
 				}
+
+				// Prioritize com, net, org.
+				if len == 3 {
+					let special = ["com", "net", "org"];
+					left.sort_by(|a, b| {
+						let a_special = special.contains(&&a[5..8]);
+						let b_special = special.contains(&&b[5..8]);
+						if a_special == b_special {
+							a.cmp(&b)
+						}
+						else if a_special { Ordering::Less }
+						else { Ordering::Greater }
+					});
+					right.sort_by(|a, b| {
+						let a_special = special.contains(&&a[5..8]);
+						let b_special = special.contains(&&b[5..8]);
+						if a_special == b_special {
+							a.cmp(&b)
+						}
+						else if a_special { Ordering::Less }
+						else { Ordering::Greater }
+					});
+				}
+
 				left.push(String::from("\t\t\t_ => None,"));
 				right.push(String::from("\t\t\t_ => None,"));
 
