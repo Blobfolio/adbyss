@@ -552,7 +552,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
-	for (idx, _) in host.iter().enumerate().skip(1).filter(|(_, &b)| b'.' == b) {
+	for (idx, _) in host.iter().enumerate().filter(|(_, b)| b'.'.eq(b)) {
 		if let Some(suffix) = Suffix::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
 			// Wildcard suffixes might have additional requirements.
 			if suffix.is_wild() {
@@ -589,10 +589,8 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 /// # IDNA.
 ///
 /// This is a wrapper around `idna::domain_to_ascii_strict` that short-circuits
-/// expensive operations in certain idealized — and hopefully common —
-/// circumstances.
-///
-/// But if it has to do things the hard way, it will.
+/// expensive operations in certain idealized — and hopefully common — cases,
+/// only doing things the hard way if it has to.
 ///
 /// Note: this is a pre-processing phase. Later methods will apply additional
 /// checks to ensure everything is on the up-and-up.
