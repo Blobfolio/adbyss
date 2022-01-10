@@ -36,7 +36,6 @@ pub use sources::Source;
 
 
 
-#[doc(hidden)]
 /// # (Not) Random State.
 ///
 /// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
