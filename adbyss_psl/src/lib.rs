@@ -642,15 +642,10 @@ fn idna(src: &str) -> Option<String> {
 			.all(|chunk|
 				! chunk.is_empty() &&
 				chunk.len() < 64 &&
-				(
-					! dash || (
-						! chunk.starts_with(b"-") &&
-						! chunk.ends_with(b"-")
-					)
-				)
+				(! dash || (! chunk.starts_with(b"-") && ! chunk.ends_with(b"-")))
 			) &&
-		// There aren't any double-dashes.
-		(! dash || ! src.contains("--"))
+		// This isn't PUNY-encoded.
+		(! dash || ! src.contains("xn--"))
 	{
 		if cap { Some(src.to_ascii_lowercase()) }
 		else { Some(src.to_owned()) }
