@@ -41,7 +41,7 @@ static DELIMITER: char = '-';
 #[derive(Default)]
 /// # Decoder!
 pub(super) struct Decoder {
-	insertions: Vec<(usize, char)>,
+	inserts: Vec<(u32, char)>,
 }
 
 impl Decoder {
@@ -50,32 +50,32 @@ impl Decoder {
 	/// Split the input string and return a vector with encoded character
 	/// insertions.
 	pub(super) fn decode<'a>(&'a mut self, input: &'a str) -> Option<Decode<'a>> {
-		self.insertions.clear();
+		self.inserts.clear();
 
 		// Handle basic ASCII codepoints, which are encoded as-are before the
 		// last delimiter.
-		let (base, input) = match input.rfind(DELIMITER) {
+		let (base, input): (&str, &str) = match input.rfind(DELIMITER) {
 			None => ("", input),
-			Some(position) => (
-				&input[..position],
-				if position > 0 { &input[position + 1..] }
+			Some(pos) => (
+				&input[..pos],
+				if pos > 0 { &input[pos + 1..] }
 				else { input },
 			),
 		};
 
 		if ! base.is_ascii() { return None; }
 
-		let base_len = base.len();
-		let mut length = base_len as u32;
-		let mut code_point = INITIAL_N;
-		let mut bias = INITIAL_BIAS;
-		let mut i = 0;
+		let base_len: usize = base.len();
+		let mut length: u32 = base_len as u32;
+		let mut code_point: u32 = INITIAL_N;
+		let mut bias: u32 = INITIAL_BIAS;
+		let mut i: u32 = 0;
 		let mut iter = input.bytes();
 		loop {
-			let previous_i = i;
-			let mut weight = 1;
-			let mut k = BASE;
-			let mut byte = match iter.next() {
+			let previous_i: u32 = i;
+			let mut weight: u32 = 1;
+			let mut k: u32 = BASE;
+			let mut byte: u8 = match iter.next() {
 				None => break,
 				Some(byte) => byte,
 			};
@@ -124,34 +124,34 @@ impl Decoder {
 			i %= length + 1;
 			let c = char::from_u32(code_point)?;
 
-			// Move earlier insertions farther out into the string.
-			for (idx, _) in &mut self.insertions {
-				if *idx >= i as usize {
+			// Move earlier inserts farther out into the string.
+			for (idx, _) in &mut self.inserts {
+				if *idx >= i {
 					*idx += 1;
 				}
 			}
-			self.insertions.push((i as usize, c));
+			self.inserts.push((i, c));
 			length += 1;
 			i += 1;
 		}
 
-		self.insertions.sort_by_key(|(i, _)| *i);
+		self.inserts.sort_by_key(|(i, _)| *i);
 		Some(Decode {
 			base: base.chars(),
-			insertions: &self.insertions,
+			inserts: &self.inserts,
 			inserted: 0,
-			position: 0,
-			len: base_len + self.insertions.len(),
+			pos: 0,
+			len: base_len + self.inserts.len(),
 		})
 	}
 }
 
 /// # Decode Iterator.
 pub(super) struct Decode<'a> {
-	base: std::str::Chars<'a>,
-	insertions: &'a [(usize, char)],
-	inserted: usize,
-	position: usize,
+	base: Chars<'a>,
+	inserts: &'a [(u32, char)],
+	inserted: u32,
+	pos: u32,
 	len: usize,
 }
 
@@ -160,43 +160,44 @@ impl<'a> Iterator for Decode<'a> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		loop {
-			match self.insertions.get(self.inserted) {
-				Some((pos, c)) if *pos == self.position => {
+			match self.inserts.get(self.inserted as usize) {
+				Some((p, c)) if self.pos.eq(p) => {
 					self.inserted += 1;
-					self.position += 1;
+					self.pos += 1;
 					return Some(*c);
 				},
 				_ => {},
 			}
 
 			if let Some(c) = self.base.next() {
-				self.position += 1;
+				self.pos += 1;
 				return Some(c);
 			}
 
-			if self.inserted >= self.insertions.len() {
+			if self.inserted as usize >= self.inserts.len() {
 				return None;
 			}
 		}
 	}
 
+	#[inline]
 	fn size_hint(&self) -> (usize, Option<usize>) {
-		let len = self.len - self.position;
+		let len = self.len - self.pos as usize;
 		(len, Some(len))
 	}
 }
 
 impl<'a> ExactSizeIterator for Decode<'a> {
 	#[inline]
-	fn len(&self) -> usize { self.len - self.position }
+	fn len(&self) -> usize { self.len - self.pos as usize }
 }
 
 #[allow(clippy::comparison_chain)] // We're only matching 2/3 arms.
 /// # Encode!
 pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 	// We can gather a lot of preliminary information in a single iteration.
-	let mut input_length = 0;
-	let mut basic_length = 0;
+	let mut input_length: u32 = 0;
+	let mut basic_length: u32 = 0;
 	for c in input.clone() {
 		input_length += 1;
 		if c.is_ascii() {
@@ -209,10 +210,10 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		output.push('-');
 	}
 
-	let mut code_point = INITIAL_N;
-	let mut delta = 0;
-	let mut bias = INITIAL_BIAS;
-	let mut processed = basic_length;
+	let mut code_point: u32 = INITIAL_N;
+	let mut delta: u32 = 0;
+	let mut bias: u32 = INITIAL_BIAS;
+	let mut processed: u32 = basic_length;
 	while processed < input_length {
 		// Find the next largest codepoint.
 		let min_code_point = input.clone()
@@ -239,7 +240,6 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 			}
 
 			else if c == code_point {
-				// Represent delta as a generalized variable-length integer.
 				let mut q = delta;
 				let mut k = BASE;
 				loop {

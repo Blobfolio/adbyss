@@ -1,18 +1,5 @@
-use ahash::RandomState;
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
-
-
-
 static MAP_STR: &str = "{map_str}";
-static MAP_ONE: Lazy<HashMap<char, CharKind, RandomState>> = Lazy::new(|| {{
-	let mut out: HashMap<char, CharKind, RandomState> = HashMap::with_capacity_and_hasher(
-		{map_one_len},
-		RandomState::with_seeds(13, 19, 23, 71),
-	);
-{map_one}
-	out
-}});
+{map}
 
 #[derive(Clone, Copy)]
 pub(super) struct MapIdx {{
@@ -41,8 +28,8 @@ pub(super) enum CharKind {{
 impl CharKind {{
 	#[allow(clippy::too_many_lines)]
 	pub(super) fn from_char(ch: char) -> Option<Self> {{
-		if let Some(x) = MAP_ONE.get(&ch) {{
-			return Some(*x);
+		if let Some(x) = map_get(ch) {{
+			return Some(x);
 		}}
 
 		match ch {{

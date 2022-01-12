@@ -73,7 +73,7 @@ mod puny;
 
 
 use idna::CharKind;
-use psl::Suffix;
+use psl::SuffixKind;
 use std::{
 	cmp::Ordering,
 	fmt,
@@ -560,35 +560,35 @@ impl<'de> serde::Deserialize<'de> for Domain {
 /// is returned along with the starting index of the suffix (after its dot).
 fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	// We can avoid all this if the host is too short or only consists of a TLD.
-	if host.len() < 3 || Suffix::from_slice(host).is_some() { return None; }
+	if host.len() < 3 || SuffixKind::from_slice(host).is_some() { return None; }
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
-		if let Some(suffix) = Suffix::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
-			// Wildcard suffixes might have additional requirements.
-			if suffix.is_wild() {
-				// Our last chunk might start at zero instead of dot-plus-one.
-				let after_dot: usize =
-					if dot == 0 { 0 }
-					else { dot + 1 };
+		if let Some(suffix) = SuffixKind::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
+			return match suffix {
+				SuffixKind::Tld => Some((dot, idx + 1)),
+				SuffixKind::Wild =>
+					if dot == 0 { None }
+					else { Some((last, dot + 1)) },
+				SuffixKind::WildEx(ex) => {
+					// Our last chunk might start at zero instead of dot-plus-one.
+					let after_dot: usize =
+						if dot == 0 { 0 }
+						else { dot + 1 };
 
-				// This matches a wildcard exception, making the found suffix
-				// the true suffix. Note: there cannot be a dot at position
-				// zero, so the range is always valid.
-				if suffix.wild_match(unsafe { host.get_unchecked(after_dot..idx) }) {
-					return Some((dot, idx + 1));
-				}
-
-				// There has to be a before-before part.
-				if dot == 0 { return None; }
-
-				// Otherwise the last chunk is part of the suffix.
-				return Some((last, after_dot));
-			}
-
-			// The suffix is what it is.
-			return Some((dot, idx + 1));
+					// This matches a wildcard exception, making the found suffix
+					// the true suffix. Note: there cannot be a dot at position
+					// zero, so the range is always valid.
+					if ex.is_match(unsafe { host.get_unchecked(after_dot..idx) }) {
+						Some((dot, idx + 1))
+					}
+					// There has to be a before-before part.
+					else if dot == 0 { None }
+					// Otherwise the last chunk is part of the suffix.
+					else { Some((last, after_dot)) }
+				},
+			};
 		}
 
 		std::mem::swap(&mut dot, &mut last);

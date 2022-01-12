@@ -1,25 +1,31 @@
-#[repr(u16)]
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-/// # Suffix List.
-pub(super) enum Suffix {{
-{suffixes}
+{map}
+
+#[derive(Clone, Copy)]
+/// # Suffix Kinds.
+pub(super) enum SuffixKind {{
+	Tld,
+	Wild,
+	WildEx(WildKind),
 }}
 
-impl Suffix {{
-	/// # From Slice.
-{suffix_from_slice}
-
-	/// # Is Wild?
-	pub(super) const fn is_wild(self) -> bool {{
-		matches!(self, {suffixes_wild})
+impl SuffixKind {{
+	#[inline]
+	pub(super) fn from_slice(src: &[u8]) -> Option<Self> {{
+		if src == b"com" || src == b"net" || src == b"org" {{ Some(Self::Tld) }}
+		else {{ map_get(src) }}
 	}}
+}}
 
-	/// # Wild Match.
-	pub(super) fn wild_match(self, src: &[u8]) -> bool {{
+#[derive(Clone, Copy)]
+/// # Suffix Kinds.
+pub(super) enum WildKind {{
+{wild_kinds}
+}}
+
+impl WildKind {{
+	pub(super) fn is_match(self, src: &[u8]) -> bool {{
 		match self {{
-{suffix_wild_arms}
+{wild_arms}
 		}}
 	}}
-
-{suffix_from_slice_len}
 }}
