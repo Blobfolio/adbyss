@@ -40,7 +40,6 @@ A [`Domain`] object can be dereferenced to a string slice representing the sanit
 ## Optional Crate Features
 
 * `serde`: Enables serialization/deserialization support.
-
 */
 
 #![warn(clippy::filetype_is_file)]
@@ -67,11 +66,13 @@ A [`Domain`] object can be dereferenced to a string slice representing the sanit
 
 
 
-#[allow(clippy::too_many_lines)]
-mod psl {
-	include!(concat!(env!("OUT_DIR"), "/adbyss-list.rs"));
-}
+mod idna;
+mod psl;
+mod puny;
 
+
+
+use idna::CharKind;
 use psl::Suffix;
 use std::{
 	cmp::Ordering,
@@ -88,7 +89,18 @@ use std::{
 		Deref,
 		Range,
 	},
+	str::Chars,
 };
+use unicode_bidi::{
+	bidi_class,
+	BidiClass,
+};
+use unicode_normalization::UnicodeNormalization;
+
+
+
+/// # Punycode Prefix.
+const PREFIX: &str = "xn--";
 
 
 
@@ -276,7 +288,7 @@ impl Domain {
 	/// ```
 	pub fn new<S>(src: S) -> Option<Self>
 	where S: AsRef<str> {
-		idna(src.as_ref())
+		idna_to_ascii(src.as_ref())
 			.and_then(|host| find_dots(host.as_bytes())
 				.map(|(mut d, s)| {
 					if 0 < d { d += 1; }
@@ -552,7 +564,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
-	for (idx, _) in host.iter().enumerate().filter(|(_, b)| b'.'.eq(b)) {
+	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
 		if let Some(suffix) = Suffix::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
 			// Wildcard suffixes might have additional requirements.
 			if suffix.is_wild() {
@@ -586,15 +598,14 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	None
 }
 
-/// # IDNA.
+/// # Domain to ASCII.
 ///
-/// This is a wrapper around `idna::domain_to_ascii_strict` that short-circuits
-/// expensive operations in certain idealized — and hopefully common — cases,
-/// only doing things the hard way if it has to.
+/// Normalize a domain according to the IDNA/Punycode guidelines, and return
+/// the result.
 ///
-/// Note: this is a pre-processing phase. Later methods will apply additional
-/// checks to ensure everything is on the up-and-up.
-fn idna(src: &str) -> Option<String> {
+/// Note: this does not enforce public suffix rules; that is processed
+/// elsewhere.
+fn idna_to_ascii(src: &str) -> Option<String> {
 	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
 	if src.is_empty() { return None; }
 
@@ -648,9 +659,316 @@ fn idna(src: &str) -> Option<String> {
 		if cap { Some(src.to_ascii_lowercase()) }
 		else { Some(src.to_owned()) }
 	}
-	// Send it to `idna` for some tough love.
-	else {
-		idna::domain_to_ascii_strict(src).ok()
+	// Do it the hard way!
+	else { idna_to_ascii_slow(src) }
+}
+
+/// # To ASCII (Slow).
+///
+/// This method is called by [`to_ascii`] when a string is too complicated to
+/// verify on-the-fly.
+fn idna_to_ascii_slow(src: &str) -> Option<String> {
+	// Keep two string buffers. We'll switch back and forth as we process the
+	// string.
+	let mut scratch = String::with_capacity(src.len());
+	let mut normalized = String::with_capacity(src.len());
+
+	// Normalize the unicode.
+	if ! idna_normalize(src, &mut scratch, &mut normalized) {
+		return None;
+	}
+
+	// Reset the scratch buffer to store our ASCIIfied output.
+	scratch.truncate(0);
+	let mut first = true;
+	let mut parts: u8 = 0;
+	for label in normalized.split('.') {
+		parts += 1;
+		if first { first = false; }
+		else { scratch.push('.'); }
+
+		// ASCII is nice and easy.
+		if label.is_ascii() { scratch.push_str(label); }
+		// Unicode requires Punyfication.
+		else {
+			let start = scratch.len();
+			scratch.push_str(PREFIX);
+			if ! puny::encode_into(&label.chars(), &mut scratch) || scratch.len() - start > 63 {
+				return None;
+			}
+		}
+	}
+
+	// One last validation pass.
+	if parts < 2 || scratch.len() > 253 {
+		return None;
+	}
+
+	Some(scratch)
+}
+
+#[allow(clippy::similar_names)]
+/// BIDI Checks.
+///
+/// This runs extra checks for any domains containing BIDI control characters.
+///
+/// See also: <http://tools.ietf.org/html/rfc5893#section-2>
+fn idna_check_bidi(label: &str) -> bool {
+	let mut chars = label.chars();
+
+	// Check the first character.
+	let first_char_class = match chars.next() {
+		Some(c) => bidi_class(c),
+		None => return true,
+	};
+
+	match first_char_class {
+		// LTR label
+		BidiClass::L => {
+			// Rule 5
+			if chars.any(idna_check_bidi_ltr) {
+				return false;
+			}
+
+			// Rule 6
+			// must end in L or EN followed by 0 or more NSM
+			let mut rev_chars = label.chars().rev();
+			let mut last_non_nsm = rev_chars.next();
+			loop {
+				match last_non_nsm {
+					Some(c) if bidi_class(c) == BidiClass::NSM => {
+						last_non_nsm = rev_chars.next();
+						continue;
+					},
+					_ => break,
+				}
+			}
+			match last_non_nsm {
+				Some(c) if matches!(bidi_class(c), BidiClass::L | BidiClass::EN) => {},
+				Some(_) => return false,
+				_ => {},
+			}
+		},
+
+		// RTL label
+		BidiClass::R | BidiClass::AL => {
+			let mut found_en = false;
+			let mut found_an = false;
+
+			// Rule 2
+			for c in chars {
+				match bidi_class(c) {
+					BidiClass::EN => {
+						found_en = true;
+						if found_an { return false; }
+					},
+					BidiClass::AN => {
+						found_an = true;
+						if found_en { return false; }
+					},
+					BidiClass::AL | BidiClass::BN | BidiClass::CS | BidiClass::ES |
+					BidiClass::ET | BidiClass::NSM | BidiClass::ON | BidiClass::R => {},
+					_ => return false,
+				}
+			}
+
+			// Rule 3
+			let mut rev_chars = label.chars().rev();
+			let mut last = rev_chars.next();
+			loop {
+				// must end in L or EN followed by 0 or more NSM
+				match last {
+					Some(c) if bidi_class(c) == BidiClass::NSM => {
+						last = rev_chars.next();
+						continue;
+					},
+					_ => break,
+				}
+			}
+			match last {
+				Some(c) if matches!(
+					bidi_class(c),
+					BidiClass::R | BidiClass::AL | BidiClass::EN | BidiClass::AN
+				) => {},
+				_ => return false,
+			}
+		},
+
+		// Rule 1: Should start with L or R/AL
+		_ => return false,
+	}
+
+	true
+}
+
+#[inline]
+/// # LTR BIDI Invalid Characters.
+///
+/// Make sure no conflicting BIDI characters are present.
+fn idna_check_bidi_ltr(ch: char) -> bool {
+	! matches!(
+		bidi_class(ch),
+		BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
+		BidiClass::ET | BidiClass::L | BidiClass::NSM | BidiClass::ON
+	)
+}
+
+/// Check Validity.
+///
+/// This method checks to ensure the part is not empty, does not begin or end
+/// with a dash, does not begin with a combining mark, and does not otherwise
+/// contain any restricted characters.
+///
+/// See also: <http://www.unicode.org/reports/tr46/#Validity_Criteria>
+fn idna_check_validity(label: &str, deep: bool) -> bool {
+	let first_char = match label.chars().next() {
+		Some(ch) => ch,
+		None => return false,
+	};
+
+	! (
+		label.starts_with('-') ||
+		label.ends_with('-') ||
+		unicode_normalization::char::is_combining_mark(first_char)
+	) &&
+	(
+		! deep ||
+		label.chars().all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
+	)
+}
+
+/// # Has BIDI?
+///
+/// This method checks for the presence of BIDI control characters.
+fn idna_has_bidi(s: &str) -> bool {
+	s.chars()
+		.any(|c|
+			! c.is_ascii_graphic() &&
+			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
+		)
+}
+
+/// # Normalize Domain.
+///
+/// This is a preprocessing stage that gives us a level playing field to work
+/// from. This method also catches most formatting errors, returning `false` if
+/// the domain is invalid.
+///
+/// See also: <http://www.unicode.org/reports/tr46/#Processing>
+fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bool {
+	// Normalize the characters.
+	let mut err: bool = false;
+	normalized.extend(
+		IdnaChars {
+			chars: src.chars(),
+			slice: None,
+			err: &mut err,
+		}
+		.nfc()
+	);
+	if err || normalized.starts_with('.') || normalized.ends_with('.') { return false; }
+
+	// We'll probably need to deal with puny.
+	let mut decoder = puny::Decoder::default();
+	let mut first = true;
+	let mut is_bidi = false;
+	for label in normalized.split('.') {
+		// Replace the dot lost in the split.
+		if first { first = false; }
+		else { output.push('.'); }
+
+		// Handle PUNY chunk.
+		if let Some(chunk) = label.strip_prefix(PREFIX) {
+			let decode = match decoder.decode(chunk) {
+				Some(d) => d,
+				None => return false,
+			};
+			let start = output.len();
+			output.extend(decode);
+			let decoded_label = &output[start..];
+
+			// Check for BIDI again.
+			if ! is_bidi && idna_has_bidi(decoded_label) { is_bidi = true; }
+
+			// Make sure the decoded version didn't introduce anything
+			// illegal.
+			if
+				! unicode_normalization::is_nfc(decoded_label) ||
+				! idna_check_validity(decoded_label, true)
+			{
+				return false;
+			}
+		}
+		// Handle normal chunk.
+		else {
+			// Can't be too big or too small.
+			if label.len() > 63 { return false; }
+
+			// Check for BIDI.
+			if ! is_bidi && idna_has_bidi(label) { is_bidi = true; }
+
+			// This is already NFC, but might be weird in other ways.
+			if ! idna_check_validity(label, false) { return false; }
+
+			output.push_str(label);
+		}
+	}
+
+	// Apply BIDI checks or we're done!
+	! is_bidi || output.split('.').all(idna_check_bidi)
+}
+
+
+
+/// # IDNA Character Walker.
+///
+/// This is a very crude character traversal iterator that checks for character
+/// legality and applies any mapping substitutions as needed before yielding.
+///
+/// This is an interator rather than a collector to take advantage of the
+/// `UnicodeNormalization::nfc` trait.
+///
+/// The internal `err` field holds a reference to a shared error state, so that
+/// afterwards it can be known whether or not the process actually finished.
+struct IdnaChars<'a> {
+	chars: Chars<'a>,
+	slice: Option<Chars<'static>>,
+	err: &'a mut bool,
+}
+
+impl<'a> Iterator for IdnaChars<'a> {
+	type Item = char;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		// This shouldn't happen, but just in case.
+		if *self.err { return None; }
+
+		// Read from the mapping slice first, if present.
+		if let Some(s) = &mut self.slice {
+			if let Some(c) = s.next() { return Some(c); }
+			self.slice = None;
+		}
+
+		let ch = self.chars.next()?;
+
+		// Short-circuit standard alphanumeric inputs that are totally fine.
+		if let '.' | '-' | 'a'..='z' | '0'..='9' = ch {
+			return Some(ch);
+		}
+
+		// Otherwise determine the char/status from the terrible mapping table.
+		match CharKind::from_char(ch) {
+			Some(CharKind::Valid) => Some(ch),
+			Some(CharKind::Ignored) => self.next(),
+			Some(CharKind::Mapped(idx)) => {
+				self.slice.replace(idx.as_str().chars());
+				self.next()
+			},
+			None => {
+				*self.err = true;
+				None
+			},
+		}
 	}
 }
 
@@ -861,5 +1179,33 @@ mod tests {
 		// Deserialize once more.
 		let dom2: Domain = serde_yaml::from_str(&serial).expect("Deserialize failed.");
 		assert_eq!(dom1, dom2);
+	}
+
+	#[test]
+	fn t_idna_valid() {
+		assert!(matches!(CharKind::from_char('-'), Some(CharKind::Valid)));
+		assert!(matches!(CharKind::from_char('.'), Some(CharKind::Valid)));
+		for c in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] {
+			assert!(matches!(CharKind::from_char(c), Some(CharKind::Valid)));
+		}
+		for c in [
+			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+			'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+		] {
+			assert!(matches!(CharKind::from_char(c), Some(CharKind::Valid)));
+		}
+	}
+
+	#[test]
+	fn t_idna() {
+		let raw = std::fs::read_to_string(concat!(env!("OUT_DIR"), "/adbyss-idna-tests.rs"))
+			.expect("Missing IDNA unit tests.");
+		for line in raw.lines() {
+			let mut split = line.split_ascii_whitespace();
+			if let Some(input) = split.next() {
+				let output = split.next().map(String::from);
+				assert_eq!(idna_to_ascii(input), output, "Translation failed with input: {:?}", input);
+			}
+		}
 	}
 }

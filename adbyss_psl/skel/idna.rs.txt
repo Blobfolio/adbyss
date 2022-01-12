@@ -1,0 +1,53 @@
+use ahash::RandomState;
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+
+
+
+static MAP_STR: &str = "{map_str}";
+static MAP_ONE: Lazy<HashMap<char, CharKind, RandomState>> = Lazy::new(|| {{
+	let mut out: HashMap<char, CharKind, RandomState> = HashMap::with_capacity_and_hasher(
+		{map_one_len},
+		RandomState::with_seeds(13, 19, 23, 71),
+	);
+{map_one}
+	out
+}});
+
+#[derive(Clone, Copy)]
+pub(super) struct MapIdx {{
+	a: u8,
+	b: u8,
+	l: u8,
+}}
+
+impl MapIdx {{
+	#[inline]
+	pub(super) fn as_str(self) -> &'static str {{
+		let start = u16::from_le_bytes([self.a, self.b]) as usize;
+		unsafe {{ MAP_STR.get_unchecked(start..start + self.l as usize) }}
+	}}
+}}
+
+#[repr(u8)]
+#[derive(Clone, Copy)]
+/// # Char Kinds.
+pub(super) enum CharKind {{
+	Valid,
+	Ignored,
+	Mapped(MapIdx),
+}}
+
+impl CharKind {{
+	#[allow(clippy::too_many_lines)]
+	pub(super) fn from_char(ch: char) -> Option<Self> {{
+		if let Some(x) = MAP_ONE.get(&ch) {{
+			return Some(*x);
+		}}
+
+		match ch {{
+{from_char}
+			_ => None,
+		}}
+	}}
+}}
