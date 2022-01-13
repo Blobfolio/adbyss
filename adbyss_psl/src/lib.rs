@@ -301,7 +301,7 @@ impl Domain {
 			)
 	}
 
-	#[deprecated(since = "0.5.5", note = "Use Domain::new instead.")]
+	#[deprecated(since = "0.6.0", note = "Use Domain::new instead.")]
 	#[inline]
 	/// # Parse Host.
 	///
