@@ -2,12 +2,10 @@
 # `Adbyss`: Hosts
 */
 
-use adbyss_psl::{
-	AHASH_STATE,
-	Domain,
-};
+use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
+	AHASH_STATE,
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_Y,
@@ -259,7 +257,7 @@ impl Shitlist {
 	/// sources don't know about.
 	pub fn include<I>(&mut self, extras: I)
 	where I: IntoIterator<Item=String> {
-		self.found.extend(extras.into_iter().filter_map(Domain::parse));
+		self.found.extend(extras.into_iter().filter_map(Domain::new));
 		let _res = self.build_out();
 	}
 
@@ -270,7 +268,7 @@ impl Shitlist {
 	/// an address you want to be able to visit, e.g. `supportxmr.com`.
 	pub fn exclude<I>(&mut self, excludes: I)
 	where I: IntoIterator<Item=String> {
-		self.exclude.extend(excludes.into_iter().filter_map(Domain::parse));
+		self.exclude.extend(excludes.into_iter().filter_map(Domain::new));
 	}
 
 	/// # Exclude Entries (Regular Expression).
@@ -735,7 +733,7 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 				// If the first entry is an IP address, parse all subsequent
 				// entries as possible hosts.
 				if split.next().and_then(|x| x.parse::<std::net::IpAddr>().ok()).is_some() {
-					Some(split.filter_map(Domain::parse).collect::<Vec<Domain>>())
+					Some(split.filter_map(Domain::new).collect::<Vec<Domain>>())
 				}
 				else { None }
 			})

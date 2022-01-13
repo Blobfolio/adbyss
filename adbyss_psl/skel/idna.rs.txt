@@ -1,0 +1,40 @@
+static MAP_STR: &str = "{map_str}";
+{map}
+
+#[derive(Clone, Copy)]
+pub(super) struct MapIdx {{
+	a: u8,
+	b: u8,
+	l: u8,
+}}
+
+impl MapIdx {{
+	#[inline]
+	pub(super) fn as_str(self) -> &'static str {{
+		let start = u16::from_le_bytes([self.a, self.b]) as usize;
+		unsafe {{ MAP_STR.get_unchecked(start..start + self.l as usize) }}
+	}}
+}}
+
+#[repr(u8)]
+#[derive(Clone, Copy)]
+/// # Char Kinds.
+pub(super) enum CharKind {{
+	Valid,
+	Ignored,
+	Mapped(MapIdx),
+}}
+
+impl CharKind {{
+	#[allow(clippy::too_many_lines)]
+	pub(super) fn from_char(ch: char) -> Option<Self> {{
+		if let Some(x) = map_get(ch) {{
+			return Some(x);
+		}}
+
+		match ch {{
+{from_char}
+			_ => None,
+		}}
+	}}
+}}

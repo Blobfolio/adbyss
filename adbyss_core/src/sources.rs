@@ -2,12 +2,10 @@
 # `Adbyss`: Sources
 */
 
-use adbyss_psl::{
-	AHASH_STATE,
-	Domain,
-};
+use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
+	AHASH_STATE,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_STEVENBLACK,
@@ -189,8 +187,8 @@ impl Source {
 					if let Some(("0.0.0.0", y)) = x.split_once(' ') {
 						y.split_once(|c: char| '#' == c || c.is_whitespace())
 							.map_or_else(
-								|| Domain::parse(y),
-								|(z, _)| Domain::parse(z)
+								|| Domain::new(y),
+								|(z, _)| Domain::new(z)
 							)
 					}
 					else { None }
@@ -210,7 +208,6 @@ impl Source {
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
 	ureq::get(kind.url())
 		.set("user-agent", "Mozilla/5.0")
-		.set("accept-encoding", "gzip")
 		.call()
 		.and_then(|r| r.into_string().map_err(std::convert::Into::into))
 		.map_err(|_| AdbyssError::SourceFetch(kind))

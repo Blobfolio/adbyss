@@ -36,6 +36,15 @@ pub use sources::Source;
 
 
 
+/// # (Not) Random State.
+///
+/// Using a fixed seed value for `AHashSet`/`AHashMap` drops a few dependencies
+/// and prevents Valgrind complaining about 64 lingering bytes from the runtime
+/// static that would be used otherwise.
+///
+/// For our purposes, the variability of truly random keys isn't really needed.
+pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seeds(13, 19, 23, 71);
+
 /// # Flag: All Sources.
 ///
 /// This flag enables all shitlist sources.
@@ -97,7 +106,7 @@ mod tests {
 	/// This ensures the domain is correctly formatted and has a recognized TLD.
 	fn sanitize_domain<S>(dom: S) -> Option<String>
 	where S: AsRef<str> {
-		Domain::parse(dom).map(adbyss_psl::Domain::take)
+		Domain::new(dom).map(adbyss_psl::Domain::take)
 	}
 
 	#[test]

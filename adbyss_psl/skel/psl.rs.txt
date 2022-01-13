@@ -1,0 +1,31 @@
+{map}
+
+#[derive(Clone, Copy)]
+/// # Suffix Kinds.
+pub(super) enum SuffixKind {{
+	Tld,
+	Wild,
+	WildEx(WildKind),
+}}
+
+impl SuffixKind {{
+	#[inline]
+	pub(super) fn from_slice(src: &[u8]) -> Option<Self> {{
+		if src == b"com" || src == b"net" || src == b"org" {{ Some(Self::Tld) }}
+		else {{ map_get(src) }}
+	}}
+}}
+
+#[derive(Clone, Copy)]
+/// # Suffix Kinds.
+pub(super) enum WildKind {{
+{wild_kinds}
+}}
+
+impl WildKind {{
+	pub(super) fn is_match(self, src: &[u8]) -> bool {{
+		match self {{
+{wild_arms}
+		}}
+	}}
+}}
