@@ -703,11 +703,8 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	}
 
 	// One last validation pass.
-	if parts < 2 || scratch.len() > 253 {
-		return None;
-	}
-
-	Some(scratch)
+	if 1 < parts && scratch.len() < 254 { Some(scratch) }
+	else { None }
 }
 
 #[allow(clippy::similar_names)]
