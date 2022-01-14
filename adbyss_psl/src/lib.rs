@@ -826,19 +826,22 @@ fn idna_check_bidi_ltr(ch: char) -> bool {
 ///
 /// See also: <http://www.unicode.org/reports/tr46/#Validity_Criteria>
 fn idna_check_validity(part: &str, deep: bool) -> bool {
-	let first = match part.chars().next() {
+	let mut chars = part.chars();
+	let first = match chars.next() {
 		Some(ch) => ch,
 		None => return false,
 	};
 
-	! (
-		part.starts_with('-') ||
-		part.ends_with('-') ||
-		unicode_normalization::char::is_combining_mark(first)
-	) &&
+	part.len() < 64 &&
+	first != '-' &&
+	! part.ends_with('-') &&
+	! unicode_normalization::char::is_combining_mark(first) &&
 	(
 		! deep ||
-		part.chars().all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
+		(
+			matches!(CharKind::from_char(first), Some(CharKind::Valid)) &&
+			chars.all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
+		)
 	)
 }
 
