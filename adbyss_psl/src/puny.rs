@@ -38,158 +38,62 @@ static DELIMITER: char = '-';
 
 
 
-#[derive(Default)]
-/// # Decoder!
-pub(super) struct Decoder {
-	inserts: Vec<(u32, char)>,
-}
+#[allow(clippy::many_single_char_names)]
+/// # Decode!
+pub(super) fn decode(input: &str) -> Option<String> {
+	if ! input.is_ascii() { return None; }
 
-impl Decoder {
-	/// # Decode Iterator
-	///
-	/// Split the input string and return a vector with encoded character
-	/// insertions.
-	pub(super) fn decode<'a>(&'a mut self, input: &'a str) -> Option<Decode<'a>> {
-		self.inserts.clear();
+	let (mut output, input): (Vec<char>, &str) = input.rfind(DELIMITER).map_or_else(
+		|| (Vec::new(), input),
+		|pos| (input[..pos].chars().collect(), &input[pos + 1..])
+	);
 
-		// Handle basic ASCII codepoints, which are encoded as-are before the
-		// last delimiter.
-		let (base, input): (&str, &str) = match input.rfind(DELIMITER) {
-			None => ("", input),
-			Some(pos) => (
-				&input[..pos],
-				if pos > 0 { &input[pos + 1..] }
-				else { input },
-			),
-		};
+	let mut n: u32 = INITIAL_N;
+	let mut i: u32 = 0;
+	let mut bias: u32 = INITIAL_BIAS;
 
-		if ! base.is_ascii() { return None; }
+	let mut it = input.chars().peekable();
+	while it.peek() != None {
+		let old_i = i;
+		let mut weight = 1;
 
-		let base_len: usize = base.len();
-		let mut length: u32 = base_len as u32;
-		let mut code_point: u32 = INITIAL_N;
-		let mut bias: u32 = INITIAL_BIAS;
-		let mut i: u32 = 0;
-		let mut iter = input.bytes();
-		loop {
-			let previous_i: u32 = i;
-			let mut weight: u32 = 1;
-			let mut k: u32 = BASE;
-			let mut byte: u8 = match iter.next() {
-				None => break,
-				Some(byte) => byte,
-			};
-
-			// Decode a generalized variable-length integer into delta,
-			// which gets added to i.
-			loop {
-				let digit = match byte {
-					byte @ b'0'..=b'9' => byte - b'0' + 26,
-					byte @ b'A'..=b'Z' => byte - b'A',
-					byte @ b'a'..=b'z' => byte - b'a',
-					_ => return None,
-				} as u32;
-
-				// Overflow.
-				if digit > (u32::MAX - i) / weight {
-					return None;
-				}
-
-				i += digit * weight;
-				let t =
-					if k <= bias { T_MIN }
-					else if k >= bias + T_MAX { T_MAX }
-					else { k - bias };
-
-				if digit < t { break; }
-
-				// Overflow.
-				if weight > u32::MAX / (BASE - t) {
-					return None;
-				}
-
-				weight *= BASE - t;
-				k += BASE;
-				byte = iter.next()?;
-			}
-
-			bias = adapt(i - previous_i, length + 1, previous_i == 0);
-
-			// Overflow.
-			if i / (length + 1) > u32::MAX - code_point {
+		for k in 1.. {
+			let c = it.next()?;
+			let k = k * BASE;
+			let digit = decode_digit(c);
+			if digit == BASE {
 				return None;
 			}
 
-			code_point += i / (length + 1);
-			i %= length + 1;
-			let c = char::from_u32(code_point)?;
+			if digit > (u32::MAX - i) / weight { return None; }
+			i += digit * weight;
 
-			// Move earlier inserts farther out into the string.
-			for (idx, _) in &mut self.inserts {
-				if *idx >= i {
-					*idx += 1;
-				}
-			}
-			self.inserts.push((i, c));
-			length += 1;
-			i += 1;
+			let t =
+				if T_MIN + bias >= k { T_MIN }
+				else if T_MAX + bias <= k { T_MAX }
+				else { k - bias };
+
+			if digit < t { break; }
+
+			if BASE > (u32::MAX - t) / weight { return None; }
+			weight *= BASE - t;
 		}
 
-		self.inserts.sort_by_key(|(i, _)| *i);
-		Some(Decode {
-			base: base.chars(),
-			inserts: &self.inserts,
-			inserted: 0,
-			pos: 0,
-			len: base_len + self.inserts.len(),
-		})
-	}
-}
+		let len = (output.len() + 1) as u32;
+		bias = adapt(i - old_i, len, old_i == 0);
 
-/// # Decode Iterator.
-pub(super) struct Decode<'a> {
-	base: Chars<'a>,
-	inserts: &'a [(u32, char)],
-	inserted: u32,
-	pos: u32,
-	len: usize,
-}
+		let il = i / len;
+		if n > u32::MAX - il { return None; }
+		n += il;
+		i %= len;
 
-impl<'a> Iterator for Decode<'a> {
-	type Item = char;
+		let c = char::from_u32(n)?;
+		output.insert(i as usize, c);
 
-	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			match self.inserts.get(self.inserted as usize) {
-				Some((p, c)) if self.pos.eq(p) => {
-					self.inserted += 1;
-					self.pos += 1;
-					return Some(*c);
-				},
-				_ => {},
-			}
-
-			if let Some(c) = self.base.next() {
-				self.pos += 1;
-				return Some(c);
-			}
-
-			if self.inserted as usize >= self.inserts.len() {
-				return None;
-			}
-		}
+		i += 1;
 	}
 
-	#[inline]
-	fn size_hint(&self) -> (usize, Option<usize>) {
-		let len = self.len - self.pos as usize;
-		(len, Some(len))
-	}
-}
-
-impl<'a> ExactSizeIterator for Decode<'a> {
-	#[inline]
-	fn len(&self) -> usize { self.len - self.pos as usize }
+	Some(output.into_iter().collect())
 }
 
 #[allow(clippy::comparison_chain)] // We're only matching 2/3 arms.
@@ -281,6 +185,16 @@ fn adapt(mut delta: u32, num_points: u32, first_time: bool) -> u32 {
 		k += BASE;
 	}
 	k + (((BASE - T_MIN + 1) * delta) / (delta + SKEW))
+}
+
+fn decode_digit(c: char) -> u32 {
+	let cp = c as u32;
+	match c {
+		'0'..='9' => cp - ('0' as u32) + 26,
+		'A'..='Z' => cp - ('A' as u32),
+		'a'..='z' => cp - ('a' as u32),
+		_ => BASE,
+	}
 }
 
 #[inline]

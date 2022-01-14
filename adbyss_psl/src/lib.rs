@@ -876,8 +876,6 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 	);
 	if err || normalized.starts_with('.') || normalized.ends_with('.') { return false; }
 
-	// We'll probably need to deal with puny.
-	let mut decoder = puny::Decoder::default();
 	let mut first = true;
 	let mut is_bidi = false;
 	for part in normalized.split('.') {
@@ -887,25 +885,24 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 
 		// Handle PUNY chunk.
 		if let Some(chunk) = part.strip_prefix(PREFIX) {
-			let decode = match decoder.decode(chunk) {
-				Some(d) => d,
+			let decoded_part = match puny::decode(chunk) {
+				Some(s) => s,
 				None => return false,
 			};
-			let start = output.len();
-			output.extend(decode);
-			let decoded_part = &output[start..];
 
 			// Check for BIDI again.
-			if ! is_bidi && idna_has_bidi(decoded_part) { is_bidi = true; }
+			if ! is_bidi && idna_has_bidi(&decoded_part) { is_bidi = true; }
 
 			// Make sure the decoded version didn't introduce anything
 			// illegal.
 			if
-				! unicode_normalization::is_nfc(decoded_part) ||
-				! idna_check_validity(decoded_part, true)
+				! unicode_normalization::is_nfc(&decoded_part) ||
+				! idna_check_validity(&decoded_part, true)
 			{
 				return false;
 			}
+
+			output.push_str(&decoded_part);
 		}
 		// Handle normal chunk.
 		else {
