@@ -673,13 +673,14 @@ fn idna_to_ascii(src: &str) -> Option<String> {
 /// This method is called by [`to_ascii`] when a string is too complicated to
 /// verify on-the-fly.
 fn idna_to_ascii_slow(src: &str) -> Option<String> {
-	// Keep two string buffers. We'll switch back and forth as we process the
-	// string.
 	let mut scratch = String::with_capacity(src.len());
-	let mut normalized = String::with_capacity(src.len());
+	if ! idna_normalize_a(src, &mut scratch) { return None; }
+	if ! scratch.contains("xn--") {
+		return idna_normalize_c(&scratch);
+	}
 
-	// Normalize the unicode.
-	if ! idna_normalize(src, &mut scratch, &mut normalized) {
+	let mut normalized = String::with_capacity(scratch.len());
+	if ! idna_normalize_b(&scratch, &mut normalized) {
 		return None;
 	}
 
@@ -696,11 +697,8 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 		if part.is_ascii() { scratch.push_str(part); }
 		// Unicode requires Punyfication.
 		else {
-			let start = scratch.len();
 			scratch.push_str(PREFIX);
-			if ! puny::encode_into(&part.chars(), &mut scratch) || scratch.len() - start > 63 {
-				return None;
-			}
+			if ! puny::encode_into(&part.chars(), &mut scratch) { return None; }
 		}
 	}
 
@@ -856,17 +854,15 @@ fn idna_has_bidi(part: &str) -> bool {
 		)
 }
 
-/// # Normalize Domain.
+/// # Normalize Domain (A).
 ///
-/// This is a preprocessing stage that gives us a level playing field to work
-/// from. This method also catches most formatting errors, returning `false` if
-/// the domain is invalid.
+/// This first pass builds up a normalized string, applying any IDNA mapping
+/// and exclusion rules, etc.
 ///
 /// See also: <http://www.unicode.org/reports/tr46/#Processing>
-fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bool {
-	// Normalize the characters.
+fn idna_normalize_a(src: &str, out: &mut String) -> bool {
 	let mut err: bool = false;
-	normalized.extend(
+	out.extend(
 		IdnaChars {
 			chars: src.chars(),
 			slice: None,
@@ -874,14 +870,22 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 		}
 		.nfc()
 	);
-	if err || normalized.starts_with('.') || normalized.ends_with('.') { return false; }
+	! (err || out.starts_with('.') || out.ends_with('.'))
+}
 
+/// # Normalize Domain (B).
+///
+/// This pass checks each part of a domain, decoding any PUNY it finds, and
+/// ensures each part passes all the rules it's supposed to pass.
+///
+/// See also: <http://www.unicode.org/reports/tr46/#Processing>
+fn idna_normalize_b(src: &str, out: &mut String) -> bool {
 	let mut first = true;
 	let mut is_bidi = false;
-	for part in normalized.split('.') {
+	for part in src.split('.') {
 		// Replace the dot lost in the split.
 		if first { first = false; }
-		else { output.push('.'); }
+		else { out.push('.'); }
 
 		// Handle PUNY chunk.
 		if let Some(chunk) = part.strip_prefix(PREFIX) {
@@ -902,7 +906,7 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 				return false;
 			}
 
-			output.push_str(&decoded_part);
+			out.push_str(&decoded_part);
 		}
 		// Handle normal chunk.
 		else {
@@ -914,12 +918,50 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 			// This is already NFC, but might be weird in other ways.
 			if ! idna_check_validity(part, false) { return false; }
 
-			output.push_str(part);
+			out.push_str(part);
 		}
 	}
 
 	// Apply BIDI checks or we're done!
-	! is_bidi || output.split('.').all(idna_check_bidi)
+	! is_bidi || out.split('.').all(idna_check_bidi)
+}
+
+/// # Normalize Domain (C).
+///
+/// This pass is used when no PUNY decoding is necessary.
+fn idna_normalize_c(src: &str) -> Option<String> {
+	let mut out = String::with_capacity(src.len());
+	let mut first = true;
+	let mut parts: u8 = 0;
+	let is_bidi: bool = idna_has_bidi(src);
+	for part in src.split('.') {
+		// Replace the dot lost in the split.
+		if first { first = false; }
+		else { out.push('.'); }
+
+		// This is already NFC, but might be weird in other ways.
+		if
+			! idna_check_validity(part, false) ||
+			(is_bidi && ! idna_check_bidi(part))
+		{
+			return None;
+		}
+
+		// We can pass it straight through.
+		if part.is_ascii() {
+			out.push_str(part);
+		}
+		// We have to encode it.
+		else {
+			out.push_str(PREFIX);
+			if ! puny::encode_into(&part.chars(), &mut out) { return None; }
+		}
+
+		parts += 1;
+	}
+
+	if parts > 1 && out.len() < 254 { Some(out) }
+	else { None }
 }
 
 

@@ -106,6 +106,7 @@ pub(super) fn decode(input: &str) -> Option<String> {
 /// the specified buffer.
 pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 	// We can gather a lot of preliminary information in a single iteration.
+	let mut written: u8 = 0;
 	let mut input_length: u32 = 0;
 	let mut basic_length: u32 = 0;
 	for c in input.clone() {
@@ -113,10 +114,14 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		if c.is_ascii() {
 			output.push(c);
 			basic_length += 1;
+			written += 1;
 		}
 	}
 
-	if basic_length > 0 { output.push(DELIMITER); }
+	if basic_length > 0 {
+		output.push(DELIMITER);
+		written += 1;
+	}
 
 	let mut code_point: u32 = INITIAL_N;
 	let mut delta: u32 = 0;
@@ -160,10 +165,12 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 
 					let value = t + ((q - t) % (BASE - t));
 					output.push(value_to_digit(value));
+					written += 1;
 					q = (q - t) / (BASE - t);
 					k += BASE;
 				}
 				output.push(value_to_digit(q));
+				written += 1;
 				bias = adapt(delta, processed + 1, processed == basic_length);
 				delta = 0;
 				processed += 1;
@@ -174,7 +181,7 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		code_point += 1;
 	}
 
-	true
+	0 < written && written <= 59
 }
 
 
