@@ -40,6 +40,9 @@ static DELIMITER: char = '-';
 
 #[allow(clippy::many_single_char_names)]
 /// # Decode!
+///
+/// Note: this method has to allocate because PUNYCODE requires some weird
+/// shuffling; we can't just pop things directly where they need to go.
 pub(super) fn decode(input: &str) -> Option<String> {
 	if ! input.is_ascii() { return None; }
 
@@ -98,6 +101,9 @@ pub(super) fn decode(input: &str) -> Option<String> {
 
 #[allow(clippy::comparison_chain)] // We're only matching 2/3 arms.
 /// # Encode!
+///
+/// This converts Unicode into PUNYCODE ASCII, writing the output directly to
+/// the specified buffer.
 pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 	// We can gather a lot of preliminary information in a single iteration.
 	let mut input_length: u32 = 0;
