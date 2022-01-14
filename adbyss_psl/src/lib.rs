@@ -651,10 +651,15 @@ fn idna_to_ascii(src: &str) -> Option<String> {
 			.all(|chunk|
 				! chunk.is_empty() &&
 				chunk.len() < 64 &&
-				(! dash || (! chunk.starts_with(b"-") && ! chunk.ends_with(b"-")))
-			) &&
-		// This isn't PUNY-encoded.
-		(! dash || ! src.contains("xn--"))
+				(
+					! dash ||
+					(
+						! chunk.starts_with(b"xn--") &&
+						chunk[0] != b'-' &&
+						chunk[chunk.len() - 1] != b'-'
+					)
+				)
+			)
 	{
 		if cap { Some(src.to_ascii_lowercase()) }
 		else { Some(src.to_owned()) }
