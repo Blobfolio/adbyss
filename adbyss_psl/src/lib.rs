@@ -687,18 +687,18 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	scratch.truncate(0);
 	let mut first = true;
 	let mut parts: u8 = 0;
-	for label in normalized.split('.') {
+	for part in normalized.split('.') {
 		parts += 1;
 		if first { first = false; }
 		else { scratch.push('.'); }
 
 		// ASCII is nice and easy.
-		if label.is_ascii() { scratch.push_str(label); }
+		if part.is_ascii() { scratch.push_str(part); }
 		// Unicode requires Punyfication.
 		else {
 			let start = scratch.len();
 			scratch.push_str(PREFIX);
-			if ! puny::encode_into(&label.chars(), &mut scratch) || scratch.len() - start > 63 {
+			if ! puny::encode_into(&part.chars(), &mut scratch) || scratch.len() - start > 63 {
 				return None;
 			}
 		}
@@ -718,8 +718,8 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 /// This runs extra checks for any domains containing BIDI control characters.
 ///
 /// See also: <http://tools.ietf.org/html/rfc5893#section-2>
-fn idna_check_bidi(label: &str) -> bool {
-	let mut chars = label.chars();
+fn idna_check_bidi(part: &str) -> bool {
+	let mut chars = part.chars();
 
 	// Check the first character.
 	let first_char_class = match chars.next() {
@@ -737,7 +737,7 @@ fn idna_check_bidi(label: &str) -> bool {
 
 			// Rule 6
 			// must end in L or EN followed by 0 or more NSM
-			let mut rev_chars = label.chars().rev();
+			let mut rev_chars = part.chars().rev();
 			let mut last_non_nsm = rev_chars.next();
 			loop {
 				match last_non_nsm {
@@ -778,7 +778,7 @@ fn idna_check_bidi(label: &str) -> bool {
 			}
 
 			// Rule 3
-			let mut rev_chars = label.chars().rev();
+			let mut rev_chars = part.chars().rev();
 			let mut last = rev_chars.next();
 			loop {
 				// must end in L or EN followed by 0 or more NSM
@@ -825,28 +825,28 @@ fn idna_check_bidi_ltr(ch: char) -> bool {
 /// contain any restricted characters.
 ///
 /// See also: <http://www.unicode.org/reports/tr46/#Validity_Criteria>
-fn idna_check_validity(label: &str, deep: bool) -> bool {
-	let first_char = match label.chars().next() {
+fn idna_check_validity(part: &str, deep: bool) -> bool {
+	let first = match part.chars().next() {
 		Some(ch) => ch,
 		None => return false,
 	};
 
 	! (
-		label.starts_with('-') ||
-		label.ends_with('-') ||
-		unicode_normalization::char::is_combining_mark(first_char)
+		part.starts_with('-') ||
+		part.ends_with('-') ||
+		unicode_normalization::char::is_combining_mark(first)
 	) &&
 	(
 		! deep ||
-		label.chars().all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
+		part.chars().all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
 	)
 }
 
 /// # Has BIDI?
 ///
 /// This method checks for the presence of BIDI control characters.
-fn idna_has_bidi(s: &str) -> bool {
-	s.chars()
+fn idna_has_bidi(part: &str) -> bool {
+	part.chars()
 		.any(|c|
 			! c.is_ascii_graphic() &&
 			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
@@ -877,45 +877,42 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 	let mut decoder = puny::Decoder::default();
 	let mut first = true;
 	let mut is_bidi = false;
-	for label in normalized.split('.') {
+	for part in normalized.split('.') {
 		// Replace the dot lost in the split.
 		if first { first = false; }
 		else { output.push('.'); }
 
 		// Handle PUNY chunk.
-		if let Some(chunk) = label.strip_prefix(PREFIX) {
+		if let Some(chunk) = part.strip_prefix(PREFIX) {
 			let decode = match decoder.decode(chunk) {
 				Some(d) => d,
 				None => return false,
 			};
 			let start = output.len();
 			output.extend(decode);
-			let decoded_label = &output[start..];
+			let decoded_part = &output[start..];
 
 			// Check for BIDI again.
-			if ! is_bidi && idna_has_bidi(decoded_label) { is_bidi = true; }
+			if ! is_bidi && idna_has_bidi(decoded_part) { is_bidi = true; }
 
 			// Make sure the decoded version didn't introduce anything
 			// illegal.
 			if
-				! unicode_normalization::is_nfc(decoded_label) ||
-				! idna_check_validity(decoded_label, true)
+				! unicode_normalization::is_nfc(decoded_part) ||
+				! idna_check_validity(decoded_part, true)
 			{
 				return false;
 			}
 		}
 		// Handle normal chunk.
 		else {
-			// Can't be too big or too small.
-			if label.len() > 63 { return false; }
-
 			// Check for BIDI.
-			if ! is_bidi && idna_has_bidi(label) { is_bidi = true; }
+			if ! is_bidi && idna_has_bidi(part) { is_bidi = true; }
 
 			// This is already NFC, but might be weird in other ways.
-			if ! idna_check_validity(label, false) { return false; }
+			if ! idna_check_validity(part, false) { return false; }
 
-			output.push_str(label);
+			output.push_str(part);
 		}
 	}
 
