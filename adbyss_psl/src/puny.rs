@@ -110,9 +110,7 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		}
 	}
 
-	if basic_length > 0 {
-		output.push('-');
-	}
+	if basic_length > 0 { output.push(DELIMITER); }
 
 	let mut code_point: u32 = INITIAL_N;
 	let mut delta: u32 = 0;
