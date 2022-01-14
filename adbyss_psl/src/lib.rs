@@ -907,7 +907,9 @@ fn idna_normalize(src: &str, normalized: &mut String, output: &mut String) -> bo
 		// Handle normal chunk.
 		else {
 			// Check for BIDI.
-			if ! is_bidi && idna_has_bidi(part) { is_bidi = true; }
+			if ! is_bidi && ! part.is_ascii() && idna_has_bidi(part) {
+				is_bidi = true;
+			}
 
 			// This is already NFC, but might be weird in other ways.
 			if ! idna_check_validity(part, false) { return false; }
