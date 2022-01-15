@@ -92,13 +92,38 @@ fn idna() {
 /// * A single static string containing all possible mapping replacements. There are a few duplicates, so keeping it contiguous cuts down on the size of the data.
 /// * A nested `match` branch to identify ranged-character entries.
 fn idna_build(raw: RawIdna) -> (String, String, String) {
-	// Build a map substitution string.
-	let mut map_str = String::new();
-	for (_, _, _, sub) in &raw {
-		if ! sub.is_empty() && ! map_str.contains(sub) {
-			map_str.push_str(sub);
+	// Build a map substitution string containing each possible substitution,
+	// with the occasional overlap allowed.
+	let map_str: String = {
+		// First build a list of all the unique replacements.
+		let mut map_str: Vec<&str> = raw.iter()
+			.filter_map(|(_, _, _, sub)|
+				if sub.is_empty() { None }
+				else { Some(sub.as_ref()) }
+			)
+			.collect::<HashSet<&str>>()
+			.into_iter()
+			.collect::<Vec<&str>>();
+
+		// Since we can overlap repeated ranges, starting with the longest
+		// string first is a good, simple compression strategy.
+		map_str.sort_by(|a, b|
+			match b.len().cmp(&a.len()) {
+				std::cmp::Ordering::Equal => a.cmp(b),
+				cmp => cmp,
+			}
+		);
+
+		// Build up a contiguous slice, containing any substrings that are
+		// already represented anywhere within.
+		let mut out = String::new();
+		for line in map_str {
+			if ! out.contains(line) {
+				out.push_str(line);
+			}
 		}
-	}
+		out
+	};
 
 	// This just lets us quickly find the indexes and lengths of strings in the
 	// `map_str` table we created above.
