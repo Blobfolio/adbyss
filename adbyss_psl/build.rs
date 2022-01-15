@@ -114,7 +114,7 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			}
 		);
 
-		// Build up a contiguous slice, containing any substrings that are
+		// Build up a contiguous slice, ignoring any substrings that are
 		// already represented anywhere within.
 		let mut out = String::new();
 		for line in map_str {
@@ -156,6 +156,13 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 
 			continue;
 		}
+
+		// Skip the following very common ranges; we'll specialize them!
+		if
+			(first == '-' as u32 && last == '.' as u32) ||
+			(first == 'a' as u32 && last == 'z' as u32) ||
+			(first == '0' as u32 && last == '9' as u32)
+		{ continue; }
 
 		// Ranged.
 		let rg_label =
