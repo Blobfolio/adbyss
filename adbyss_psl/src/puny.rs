@@ -203,6 +203,7 @@ fn adapt(mut delta: u32, num_points: u32, first_time: bool) -> u32 {
 	k + (((BASE - T_MIN + 1) * delta) / (delta + SKEW))
 }
 
+#[inline]
 fn decode_digit(c: char) -> u32 {
 	let cp = c as u32;
 	match c {
