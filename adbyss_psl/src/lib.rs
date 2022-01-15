@@ -1281,12 +1281,17 @@ mod tests {
 	fn t_idna() {
 		let raw = std::fs::read_to_string(concat!(env!("OUT_DIR"), "/adbyss-idna-tests.rs"))
 			.expect("Missing IDNA unit tests.");
+
+		let mut any: bool = false;
 		for line in raw.lines() {
 			let mut split = line.split_ascii_whitespace();
 			if let Some(input) = split.next() {
+				any = true;
 				let output = split.next().map(String::from);
 				assert_eq!(idna_to_ascii(input), output, "Translation failed with input: {:?}", input);
 			}
 		}
+
+		assert_eq!(any, true, "No IDNA/Unicode tests ran.");
 	}
 }
