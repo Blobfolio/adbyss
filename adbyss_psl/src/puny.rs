@@ -1,19 +1,10 @@
 /*!
 # Adbyss PSL - IDNA
 
-This is a reworking of the punycode handling provided by the excellent [idna](https://github.com/servo/rust-url/) crate.
-
-Unused functionality has been removed, types and arguments have been adjusted
-and tweaked based on our specific use cases, etc.
-
-The original license:
-
-Copyright 2016 The rust-url developers.
-
-Licensed under the Apache License, Version 2.0 [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0)
-or the [MIT license](http://opensource.org/licenses/MIT) at your option.
-This file may not be copied, modified, or distributed except according to
-those terms.
+This module includes a `decode` method for converting PUNYCODE into Unicode,
+and an `encode_into` method that converts Unicode into PUNYCODE. This library
+ultimately only cares about ASCII, but validation requires checking the
+underlying Unicode, so we have to do both when the source contains PUNYCODE.
 */
 
 #![allow(clippy::cast_lossless)]
@@ -40,6 +31,9 @@ static DELIMITER: char = '-';
 
 #[allow(clippy::many_single_char_names)]
 /// # Decode!
+///
+/// This method decodes an existing PUNYCODE chunk, converting it back into the
+/// original Unicode.
 ///
 /// Note: this method has to allocate because PUNYCODE requires some weird
 /// shuffling; we can't just pop things directly where they need to go.
@@ -104,6 +98,17 @@ pub(super) fn decode(input: &str) -> Option<String> {
 ///
 /// This converts Unicode into PUNYCODE ASCII, writing the output directly to
 /// the specified buffer.
+///
+/// This method is a reworking of the encoding methods provided by the `idna`
+/// crate. It is close enough to the original that it bears mention. Their
+/// license is as follows:
+///
+/// Copyright 2016 The rust-url developers.
+///
+/// Licensed under the Apache License, Version 2.0 [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0)
+/// or the [MIT license](http://opensource.org/licenses/MIT) at your option.
+/// This file may not be copied, modified, or distributed except according to
+/// those terms.
 pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 	// We can gather a lot of preliminary information in a single iteration.
 	let mut written: u8 = 0;

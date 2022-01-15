@@ -26,7 +26,7 @@ use std::{
 
 
 
-type RawIdna = Vec<(u32, u32, String, String)>;
+type RawIdna = Vec<(u32, u32, IdnaLabel, String)>;
 type RawMainMap = HashSet<String>;
 type RawWildMap = HashMap<String, Vec<String>>;
 
@@ -40,9 +40,13 @@ const SUFFIX_URL: &str = "https://publicsuffix.org/list/public_suffix_list.dat";
 
 /// # Build Resources!
 ///
-/// This monstrous build script downloads and parses the raw suffix and IDNA
-/// datasets and writes them into Rust scripts our library can directly
-/// include.
+/// Apologies for such a massive build script, but the more crunching we can do
+/// at build time, the faster the runtime experience will be.
+///
+/// This method triggers the building of three components:
+/// * Public Suffix List;
+/// * IDNA/Unicode Tables;
+/// * IDNA/Unicode unit tests;
 pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/idna.rs.txt");
@@ -53,9 +57,12 @@ pub fn main() {
 	psl();
 }
 
-/// # Build IDNA Table.
+/// # Build IDNA/Unicode Table.
 ///
-/// Pull down the IDNA/PUNYCODE data to build out valid Rust code.
+/// This method handles all operations related to the IDNA/Unicode table.
+/// Ultimately, it collects a bunch of Rust "code" represented as strings, and
+/// writes them to a pre-formatted template. The generated script is then
+/// included by the library.
 fn idna() {
 	let raw = idna_load_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
@@ -78,6 +85,12 @@ fn idna() {
 		.expect("Unable to save reference list.");
 }
 
+/// # Crunch IDNA/Unicode Table.
+///
+/// This builds:
+/// * A static hash map of all single-character entries (valid, ignored, mapped);
+/// * A single static string containing all possible mapping replacements. There are a few duplicates, so keeping it contiguous cuts down on the size of the data.
+/// * A nested `match` branch to identify ranged-character entries.
 fn idna_build(raw: RawIdna) -> (String, String, String) {
 	// Build a map substitution string.
 	let mut map_str = String::new();
@@ -87,6 +100,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		}
 	}
 
+	// This just lets us quickly find the indexes and lengths of strings in the
+	// `map_str` table we created above.
 	let find_map_str = |src: &str| -> Option<(u8, u8, u8)> {
 		let idx = map_str.find(src)? as u16;
 		let [lo, hi] = idx.to_le_bytes();
@@ -94,65 +109,49 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		Some((lo, hi, len))
 	};
 
-	// For now, these will hold patterns x..=y.
-	let mut valid: Vec<String> = Vec::new();
-	let mut ignored: Vec<String> = Vec::new();
-
-	// These are grouped by branch, just in case more than one branch is shared
-	// between discontiguous points. type=>[x..=y]
-	let mut mapped: HashMap<String, Vec<String>> = HashMap::new();
-
 	// Single-char entries are stored as (char, type).
 	let mut builder = CharMap::default();
 
+	// Ranged values are handled separately.
+	let mut ranged: Vec<(u32, u32, String)> = Vec::new();
+
+	// Separate the raw data into single and ranged entries.
 	for (first, last, label, sub) in raw {
-		// Single-character.
+		// Single.
 		if first == last {
 			if sub.is_empty() {
-				builder.insert(first, format!("CharKind::{}", label));
+				builder.insert(first, label.global().to_string());
 			}
 			else if let Some((lo, hi, len)) = find_map_str(&sub) {
-				builder.insert(first, format!("CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})", lo, hi, len));
+				builder.insert(
+					first,
+					format!("CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})", lo, hi, len)
+				);
 			}
 
 			continue;
 		}
 
-		// Range.
-		match label.as_str() {
-			"Valid" => valid.push(format!(
-				"'\\u{{{:x}}}'..='\\u{{{:x}}}'",
-				first,
-				last,
-			)),
-			"Ignored" => ignored.push(format!(
-				"'\\u{{{:x}}}'..='\\u{{{:x}}}'",
-				first,
-				last,
-			)),
-			_ => {
-				if let Some((lo, hi, len)) = find_map_str(&sub) {
-					let key = format!(
-						"Self::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
-						lo,
-						hi,
-						len,
-					);
-
-					let rg = format!(
-						"'\\u{{{:x}}}'..='\\u{{{:x}}}'",
-						first,
-						last,
-					);
-
-					mapped.entry(key).or_insert_with(Vec::new).push(rg);
-				}
-			},
-		}
+		// Ranged.
+		let rg_label =
+			match label {
+				IdnaLabel::Valid | IdnaLabel::Ignored => label.local().to_string(),
+				IdnaLabel::Mapped =>
+					if let Some((lo, hi, len)) = find_map_str(&sub) {
+						format!(
+							"Self::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
+							lo,
+							hi,
+							len,
+						)
+					}
+					else { continue; },
+			};
+		ranged.push((first, last, rg_label));
 	}
 
 	// We actually need to re-format the map string so it uses char notation or
-	// else the linter would complain.
+	// else the linter will complain.
 	let map_str: String = map_str.chars()
 		.map(|c|
 			if c.is_ascii() { String::from(c) }
@@ -160,23 +159,105 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		)
 		.collect();
 
-	// Turn the ranged values into arms.
-	let valid = format!("\t\t\t{} => Some(Self::Valid),", valid.join(" | "));
-	let ignored = format!("\t\t\t{} => Some(Self::Ignored),", ignored.join(" | "));
-	let mapped = mapped.into_iter()
-		.map(|(k, e)| format!("\t\t\t{} => Some({}),", e.join(" | "), k))
-		.collect::<Vec<String>>()
-		.join("\n");
+	// Done!
+	(map_str, builder.build(), idna_build_ranged(ranged))
+}
 
-	let from_char = format!("{}\n{}\n{}", ignored, valid, mapped);
+/// # Build Ranged Code.
+///
+/// This compiles a nested `match` to efficiently determine whether or not a
+/// given character falls within any of the 1000 or so discrete ranges the
+/// IDNA/Unicode table comes with.
+///
+/// The outer arms represent the absolute min/max of its inner arms, and the
+/// inner arms are grouped by output kind (valid, ignored, mapped).
+///
+/// Nesting is a pain in the ass, but cuts down on processing time by around
+/// 20%.
+fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
+	// Sort!
+	raw.sort_by(|a, b| a.0.cmp(&b.0));
 
-	(map_str, builder.build(), from_char)
+	// Come up with some buckets. We'll try to wind up with about
+	// 128 entries per bucket, but we don't want more than 32 total
+	// buckets. The actual number of buckets may be +/- one, but will be at
+	// least one.
+	let buckets = u32::try_from(raw.len().wrapping_div(128))
+		.expect("Bucket size exceeds hash size.")
+		.min(32)
+		.max(1);
+
+	// Unlike the other static maps, this one is branched in an ordered fashion
+	// rather than using any hashing trickery.
+	let chunks = raw.len() / buckets as usize;
+	if chunks == 0 { panic!("Not enough entries for buckets."); }
+	let mut out: Vec<Vec<(u32, u32, String)>> = raw.chunks(chunks)
+		.map(|x| x.to_vec())
+		.collect();
+
+	// Find the ranges for each bucket, lowest low and highest high.
+	let ranges: Vec<(u32, u32)> = out.iter()
+		.map(|x| {
+			let min = x.iter().map(|(n, _, _)| *n).min().unwrap();
+			let max = x.iter().map(|(_, n, _)| *n).max().unwrap();
+			(min, max)
+		})
+		.collect();
+
+	// Now build out the nested arms. The min/max `ranges` form the outer arms,
+	// and each pattern that falls within that range makes up the inner arms.
+	let mut arms: Vec<String> = Vec::new();
+	for (low, high) in ranges {
+		// We need to resort the inners by output kind.
+		let mut inner: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
+		for (first, last, kind) in out.remove(0) {
+			inner.entry(kind).or_insert_with(Vec::new).push((first, last));
+		}
+
+		// Move it back to a vec so we can sort it properly.
+		let mut inner: Vec<(u32, String)> = inner.into_iter()
+			.map(|(kind, set)| {
+				let first = set[0].0;
+				let set = set.into_iter()
+					.map(|(f, l)| format!(
+						"{}_u32..={}_u32",
+						NiceU32::from(f).as_str().replace(",", "_"),
+						NiceU32::from(l).as_str().replace(",", "_"),
+					))
+					.collect::<Vec<String>>()
+					.join(" | ");
+				(first, format!("\t\t\t\t{} => Some({}),", set, kind))
+			})
+			.collect();
+		inner.sort_by(|a, b| a.0.cmp(&b.0));
+		inner.push((0, String::from("\t\t\t\t_ => None,")));
+
+		// Finally push it to the arm!
+		arms.push(format!(
+			"\t\t\t{}_u32..={}_u32 => match ch {{\n{}\n\t\t\t}},",
+			NiceU32::from(low).as_str().replace(",", "_"),
+			NiceU32::from(high).as_str().replace(",", "_"),
+			inner.into_iter()
+				.map(|(_, x)| x)
+				.collect::<Vec<String>>()
+				.join("\n"),
+		));
+	}
+
+	arms.join("\n")
 }
 
 /// # Load Data.
+///
+/// This loads the raw IDNA/Unicode table data. With the exception of `docs.rs`
+/// builds — which just pull a stale copy included with this library — the data
+/// is downloaded fresh from `unicode.org`.
+///
+/// At the moment, version `14.0.0` is used, but that will change as new
+/// standards are released.
 fn idna_load_data() -> RawIdna {
 	// First pass: parse each line, and group by type.
-	let mut tbd: HashMap<String, RawIdna> = HashMap::new();
+	let mut tbd: HashMap<IdnaLabel, RawIdna> = HashMap::new();
 	for mut line in download("IdnaMappingTable.txt", IDNA_URL).lines().filter(|x| ! x.starts_with('#') && ! x.trim().is_empty()) {
 		// Strip comments.
 		if let Some(idx) = line.bytes().position(|b| b == b'#') {
@@ -199,7 +280,7 @@ fn idna_load_data() -> RawIdna {
 		};
 
 		let sub =
-			if label != "Mapped" { String::new() }
+			if label != IdnaLabel::Mapped { String::new() }
 			else if let Some(sub) = line.get(2) {
 				sub.split_ascii_whitespace()
 					.map(|x| u32::from_str_radix(x, 16).expect("Invalid u32."))
@@ -209,7 +290,7 @@ fn idna_load_data() -> RawIdna {
 			else { continue };
 
 		// Group everything by type.
-		tbd.entry(label.clone()).or_insert_with(Vec::new).push((
+		tbd.entry(label).or_insert_with(Vec::new).push((
 			first, last, label, sub
 		));
 	}
@@ -248,20 +329,29 @@ fn idna_load_data() -> RawIdna {
 
 /// # Parse Labels.
 ///
-/// This condenses the various IDNA labels into the succinct set used by our
-/// library.
-fn idna_parse_label(src: &str) -> Option<String> {
+/// The raw IDNA/Unicode tables have a lot of different types to accommodate
+/// different standards releases (backward compatibility, etc.). Because this
+/// library is highly opinionated, we can boil them down to just three kinds:
+/// * Valid: the character can be passed through as-is.
+/// * Ignored: the character is silently discarded.
+/// * Mapped: the character is transformed into one or more alternative characters.
+fn idna_parse_label(src: &str) -> Option<IdnaLabel> {
 	match src {
-		"valid" | "deviation" => Some(String::from("Valid")),
-		"ignored"=> Some(String::from("Ignored")),
-		"mapped" => Some(String::from("Mapped")),
+		"valid" | "deviation" => Some(IdnaLabel::Valid),
+		"ignored"=> Some(IdnaLabel::Ignored),
+		"mapped" => Some(IdnaLabel::Mapped),
 		_ => None,
 	}
 }
 
 /// # Parse Range.
 ///
-/// This parses a hex range (or single value) into proper pairs of u32.
+/// The raw IDNA/Unicode tables represent characters as 32-bit hex, either
+/// individually — a single code point — or as a range. This method tries to
+/// tease the true `u32` values from such strings.
+///
+/// This method always returns a start and (inclusive) end. If this represents
+/// a single value rather than a range, the start and end will be equal.
 fn idna_parse_range(src: &str) -> Option<(u32, u32)> {
 	let (first, last) =
 		if src.contains("..") {
@@ -285,8 +375,20 @@ fn idna_parse_range(src: &str) -> Option<(u32, u32)> {
 
 /// # Build IDNA Tests.
 ///
-/// The spec is big and terrible; we want to make sure we're testing as many
-/// edge cases as possible to avoid bugs.
+/// The IDNA/Unicode spec is very complicated and it is incredibly easy to mess
+/// up the parsing, particularly when PUNY decoding or encoding is required.
+///
+/// Thankfully, they publish comprehensive unit tests with each version.
+///
+/// Unfortunately, the format isn't easily digestible, so this method attempts
+/// to parse and normalize it. The `idna` crate is used (during build) to
+/// provide a trusted second opinion on what a given string _should_ parse to.
+///
+/// As our library only deals with ASCII, `idna` is made to crunch in that
+/// mode.
+///
+/// It is worth noting that there are a couple "extra" things we do, so a few
+/// of the tests will be discarded.
 fn idna_tests() {
 	let raw = idna_load_test_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
@@ -307,6 +409,14 @@ fn idna_tests() {
 }
 
 /// # Load Data.
+///
+/// For typical builds, this downloads the raw unit tests from `unicode.org`,
+/// but for `docs.rs`, a stale copy provided by this library is used instead.
+///
+/// As mentioned in [`idna_tests`] above, the `idna` crate is leveraged to
+/// give us a trusted second opinion on how the lines should be parsed,
+/// however there are a couple cases where Adbyss intentionally disagrees;
+/// those tests are simply discarded.
 fn idna_load_test_data() -> Vec<(String, Option<String>)> {
 	download("IdnaTestV2.txt", IDNA_TEST_URL)
 		.lines()
@@ -344,10 +454,10 @@ fn idna_load_test_data() -> Vec<(String, Option<String>)> {
 
 /// # Build Suffix RS.
 ///
-/// This parses the raw lines of `public_suffix_list.dat` to build out valid
-/// Rust code that can be included in `lib.rs`.
-///
-/// It's a bit ugly, but saves having to do this at runtime!
+/// This method handles all operations related to the Public Suffix List data.
+/// Ultimately, it collects a bunch of Rust "code" represented as strings, and
+/// writes them to a pre-formatted template. The generated script is then
+/// included by the library.
 fn psl() {
 	// Pull the raw data.
 	let (psl_main, psl_wild) = psl_load_data();
@@ -382,8 +492,13 @@ fn psl() {
 
 /// # Build List.
 ///
-/// This takes the lightly-processed main and wild lists, and generates all the
-/// actual structures we'll be using within Rust.
+/// This method crunches the (pre-filtered) Public Suffix data into a static
+/// hash map we can query at runtime.
+///
+/// Ultimately, there are three kinds of entries:
+/// * TLD: a normal TLD.
+/// * Wild: a TLD that comprises both the explicit entry, as well as any arbitrary "subdomain".
+/// * Wild-But: a Wild entry that contains one or more exceptions to chunks that may preceed it.
 fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String) {
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
@@ -412,6 +527,11 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 }
 
 /// # Build Wild Enum.
+///
+/// There aren't very many wildcard exceptions, so we end up storing them as a
+/// static enum at runtime. A matcher function is generated with the
+/// appropriate branch tests, which will either be a straight slice comparison
+/// or a `[].contains`-type match.
 fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String) {
 	// Let's start with the wild kinds and wild arms.
 	let mut tmp: Vec<String> = wild.values()
@@ -450,7 +570,11 @@ fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String
 
 /// # Fetch Suffixes.
 ///
-/// This downloads and lightly cleans the raw public suffix list.
+/// This downloads and lightly cleans the raw Public Suffix List data, except
+/// when building for `docs.rs`, in which case it just grabs (and lightly
+/// cleans) a stale copy included with the library.
+///
+/// The "cleaning" is really just a simple line trim.
 fn psl_fetch_suffixes() -> String {
 	let raw = download("public_suffix_list.dat", SUFFIX_URL);
 	let re = Regex::new(r"(?m)^\s*").unwrap();
@@ -459,7 +583,12 @@ fn psl_fetch_suffixes() -> String {
 
 /// # Format Wild Exceptions.
 ///
-/// This converts an array of exception hosts into a consistent string.
+/// This builds the match condition for a wildcard exception, which will either
+/// take the form of a straight slice comparison, or a `[].contains` match.
+///
+/// Not all wildcards have exceptions. Just in case, this method will return an
+/// empty string in such cases, but those will get filtered out during
+/// processing.
 fn psl_format_wild(src: &[String]) -> String {
 	if src.is_empty() { String::new() }
 	else if src.len() == 1 {
@@ -477,6 +606,14 @@ fn psl_format_wild(src: &[String]) -> String {
 }
 
 /// # Load Data.
+///
+/// This loads the raw Public Suffix List data, and splits it into two parts:
+/// normal and wildcard.
+///
+/// As with all other "load" methods, this will either download the raw data
+/// fresh from `publicsuffix.org`, or when building for `docs.rs` — which
+/// doesn't support network actions — pull a stale copy included with this
+/// library.
 fn psl_load_data() -> (RawMainMap, RawWildMap) {
 	// Let's build the thing we'll be writing about building.
 	let mut psl_main: RawMainMap = HashSet::new();
@@ -540,8 +677,10 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 #[cfg(feature = "docs-workaround")]
 /// # (FAKE) Download File.
 ///
-/// This is a workaround for Docs.rs that pulls a local (saved) copy of the
-/// file rather than fetching the latest from a remote source.
+/// This is a workaround for `docs.rs`, which does not support network activity
+/// during the build process. This library ships with stale copies of each data
+/// file required by the library. This version of the [`download`] method just
+/// pulls them straight from disk.
 fn download(name: &str, _url: &str) -> String {
 	let mut path = PathBuf::from("./skel/raw");
 	path.push(name);
@@ -554,7 +693,16 @@ fn download(name: &str, _url: &str) -> String {
 #[cfg(not(feature = "docs-workaround"))]
 /// # Download File.
 ///
-/// This downloads and caches a remote data file used by the build.
+/// This downloads and caches a remote data file used by the build. There are
+/// three difference sources we need to pull:
+/// * Public Suffix List
+/// * IDNA/Unicode tables
+/// * IDNA/Unicode unit tests
+///
+/// The files get cached locally in the `target` directory for up to an hour to
+/// keep network traffic from being obnoxious during repeated builds. If a
+/// cached entry outlives that hour, or if the `target` directory is cleaned,
+/// it will just download it anew.
 fn download(name: &str, url: &str) -> String {
 	// Cache this locally for up to an hour.
 	let cache = out_path(name);
@@ -591,6 +739,13 @@ fn out_path(name: &str) -> PathBuf {
 }
 
 /// # Try Cache.
+///
+/// The downloaded files are cached locally in the `target` directory, but we
+/// don't want to run the risk of those growing stale if they persist between
+/// sessions, etc.
+///
+/// At the moment, cached files are used if they are less than an hour old,
+/// otherwise the cache is ignored and they're downloaded fresh.
 fn try_cache(path: &Path) -> Option<String> {
 	std::fs::metadata(path)
 		.ok()
@@ -602,11 +757,55 @@ fn try_cache(path: &Path) -> Option<String> {
 
 
 
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+/// # IDNA Label.
+///
+/// This enum is used to associate individual IDNA/Unicode entries by type
+/// without having to rely on string slices. These entries correspond to the
+/// [`CharKind`] type published in the library, except that the indexes for
+/// [`IdnaLabel::Mapped`] have to be specified separately (during later
+/// processing).
+enum IdnaLabel {
+	Valid,
+	Ignored,
+	Mapped,
+}
+
+impl IdnaLabel {
+	/// # Self Label.
+	fn local(self) -> &'static str {
+		match self {
+			Self::Valid => "Self::Valid",
+			Self::Ignored => "Self::Ignored",
+			Self::Mapped => "Self::Mapped",
+		}
+	}
+
+	/// # Global Label.
+	fn global(self) -> &'static str {
+		match self {
+			Self::Valid => "CharKind::Valid",
+			Self::Ignored => "CharKind::Ignored",
+			Self::Mapped => "CharKind::Mapped",
+		}
+	}
+}
+
+
+
 /// # Helper: Static Map.
 ///
-/// This is a crude static hash map builder. Content will be split into static
-/// arrays (buckets) called MAP0, MAP1, etc., and a companion map_get() method
-/// will be generated to fetch matches.
+/// Both the Public Suffix and IDNA/Unicode data require gigantic lookup tables
+/// to do their thing at runtime. In order to avoid the runtime cost of
+/// instantiating a dynamic lookup table — e.g. a `Lazy<HashMap>` — we build
+/// these statically.
+///
+/// The approach is similar to that used by `phf`, except we avoid the structs,
+/// and push each bucket to its own static array. A lookup method is generated
+/// with all the branching logic hard-coded, so it's really quite zippy!
+///
+/// Anyhoo, this macro generates a struct used by the builder to keep track of
+/// the entries and generate the appropriate `Rust` code when the time comes.
 macro_rules! map_builder {
 	($name: ident, $ty:ty, $dactyl:ty, $k_type: ty, $v_type: ty, $hash_func:literal) => (
 		#[derive(Default)]
@@ -750,6 +949,10 @@ map_builder!(CharMap, u32, NiceU32, char, CharKind, "let hash = src as u32;");
 ///
 /// This is just a simple wrapper to convert a slice into a u64, used by the
 /// suffix map builder.
+///
+/// In testing, the `ahash` algorithm is far and away the fastest, so that is
+/// what we use, both during build and at runtime (i.e. search needles) during
+/// lookup matching.
 fn hash_tld(src: &[u8]) -> u64 {
 	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
 	hasher.write(src);
