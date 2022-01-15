@@ -673,12 +673,38 @@ fn idna_to_ascii(src: &str) -> Option<String> {
 /// This method is called by [`to_ascii`] when a string is too complicated to
 /// verify on-the-fly.
 fn idna_to_ascii_slow(src: &str) -> Option<String> {
-	let mut scratch = String::with_capacity(src.len());
-	if ! idna_normalize_a(src, &mut scratch) { return None; }
-	if ! scratch.contains("xn--") {
+	// Walk through the string character by character, mapping and normalizing
+	// as we go.
+	let mut error: bool = false;
+	let iter = IdnaChars {
+		chars: src.chars(),
+		slice: None,
+		error: &mut error,
+	}
+	.nfc();
+
+	// Suck it into a string buffer, but also note whether we have any
+	// instances of PUNY prefixes.
+	let mut prefix: IdnaPrefix = IdnaPrefix::Dot;
+	let mut scratch = String::with_capacity(253);
+	for c in iter {
+		scratch.push(c);
+		prefix = prefix.advance(c);
+	}
+
+	// Abort if there was an error, or we've ended up with trailing or leading
+	// dots.
+	if error || scratch.starts_with('.') || scratch.ends_with('.') {
+		return None;
+	}
+
+	// If there were no PUNY prefixes anywhere, we can jump straight to
+	// building the output string.
+	if ! matches!(prefix, IdnaPrefix::Dash2) {
 		return idna_normalize_c(&scratch);
 	}
 
+	// Otherwise we have to decode and validate each entry first.
 	let mut normalized = String::with_capacity(scratch.len());
 	if ! idna_normalize_b(&scratch, &mut normalized) {
 		return None;
@@ -833,6 +859,7 @@ fn idna_check_validity(part: &str, deep: bool) -> bool {
 	! unicode_normalization::char::is_combining_mark(first) &&
 	(
 		! deep ||
+		// When we've decoded a chunk, we have to re-check it for correctness.
 		(
 			matches!(CharKind::from_char(first), Some(CharKind::Valid)) &&
 			chars.all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
@@ -849,25 +876,6 @@ fn idna_has_bidi(part: &str) -> bool {
 			! c.is_ascii_graphic() &&
 			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
 		)
-}
-
-/// # Normalize Domain (A).
-///
-/// This first pass builds up a normalized string, applying any IDNA mapping
-/// and exclusion rules, etc.
-///
-/// See also: <http://www.unicode.org/reports/tr46/#Processing>
-fn idna_normalize_a(src: &str, out: &mut String) -> bool {
-	let mut err: bool = false;
-	out.extend(
-		IdnaChars {
-			chars: src.chars(),
-			slice: None,
-			err: &mut err,
-		}
-		.nfc()
-	);
-	! (err || out.starts_with('.') || out.ends_with('.'))
 }
 
 /// # Normalize Domain (B).
@@ -976,7 +984,7 @@ fn idna_normalize_c(src: &str) -> Option<String> {
 struct IdnaChars<'a> {
 	chars: Chars<'a>,
 	slice: Option<Chars<'static>>,
-	err: &'a mut bool,
+	error: &'a mut bool,
 }
 
 impl<'a> Iterator for IdnaChars<'a> {
@@ -984,7 +992,7 @@ impl<'a> Iterator for IdnaChars<'a> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		// This shouldn't happen, but just in case.
-		if *self.err { return None; }
+		if *self.error { return None; }
 
 		// Read from the mapping slice first, if present.
 		if let Some(s) = &mut self.slice {
@@ -1008,9 +1016,39 @@ impl<'a> Iterator for IdnaChars<'a> {
 				self.next()
 			},
 			None => {
-				*self.err = true;
+				*self.error = true;
 				None
 			},
+		}
+	}
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy)]
+/// # IDNA Prefix.
+///
+/// All this does is look for the pattern `b".xn--"` while iterating through a
+/// stream of chars. The goal is to discover whether or not it exists at all,
+/// so once [`IdnaPrefix::Dash2`] is set, it never goes away.
+enum IdnaPrefix {
+	Na,
+	Dot,
+	Ex,
+	En,
+	Dash1,
+	Dash2,
+}
+
+impl IdnaPrefix {
+	/// # Advance.
+	const fn advance(self, ch: char) -> Self {
+		match (ch, self) {
+			(_, Self::Dash2) | ('-', Self::Dash1) => Self::Dash2,
+			('.', _) => Self::Dot,
+			('x', Self::Dot) => Self::Ex,
+			('n', Self::Ex) => Self::En,
+			('-', Self::En) => Self::Dash1,
+			_ => Self::Na,
 		}
 	}
 }
