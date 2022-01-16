@@ -96,7 +96,7 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 	// with the occasional overlap allowed.
 	let map_str: String = {
 		// First build a list of all the unique replacements.
-		let mut map_str: Vec<&str> = raw.iter()
+		let map_str: Vec<&str> = raw.iter()
 			.filter_map(|(_, _, _, sub)|
 				if sub.is_empty() { None }
 				else { Some(sub.as_ref()) }
@@ -105,24 +105,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			.into_iter()
 			.collect::<Vec<&str>>();
 
-		// Since we can overlap repeated ranges, starting with the longest
-		// string first is a good, simple compression strategy.
-		map_str.sort_by(|a, b|
-			match b.len().cmp(&a.len()) {
-				std::cmp::Ordering::Equal => a.cmp(b),
-				cmp => cmp,
-			}
-		);
-
-		// Build up a contiguous slice, ignoring any substrings that are
-		// already represented anywhere within.
-		let mut out = String::new();
-		for line in map_str {
-			if ! out.contains(line) {
-				out.push_str(line);
-			}
-		}
-		out
+		// Use a bit of brute-force to compact the output further.
+		idna_crunch_superstring(&map_str)
 	};
 
 	// This just lets us quickly find the indexes and lengths of strings in the
@@ -182,8 +166,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		ranged.push((first, last, rg_label));
 	}
 
-	// We actually need to re-format the map string so it uses char notation or
-	// else the linter will complain.
+	// We actually need to re-format the map string so it uses char notation to
+	// keep the linter from complaining once this is included as proper Rust.
 	let map_str: String = map_str.chars()
 		.map(|c|
 			if c.is_ascii() { String::from(c) }
@@ -277,6 +261,139 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
 	}
 
 	arms.join("\n")
+}
+
+/// # Parse Superstring.
+///
+/// Because we're representing the IDNA/Unicode remappings as indexes of a
+/// single static string, we can save space by overlapping repeated ranges.
+///
+/// This method takes a (unique) set of replacement strings and:
+/// * Strips out entries that exist as substrings of other entries;
+/// * Calculates the optimal pair-joining by looking at the overlap of each pair's end/start characters;
+///
+/// This has to strike a balance between computation time and total savings,
+/// so it does not compare different orderings with identical savings (as that
+/// would take hours or days to complete), and instead focuses solely on
+/// merging all entries that have the same, largest amount of overlap for each
+/// given round.
+///
+/// Even so, it is still able to shrink the output by ~15%.
+fn idna_crunch_superstring(set: &[&str]) -> String {
+	// Build up a vector of vectors, ignoring any entries that are substrings
+	// of other entries.
+	let set: Vec<Vec<char>> = {
+		let mut out: Vec<Vec<char>> = Vec::with_capacity(set.len());
+		let tmp = &(*set);
+		for line in set {
+			if ! tmp.iter().any(|x| line != x && x.contains(line)) {
+				out.push(line.chars().collect());
+			}
+		}
+		out
+	};
+
+	// By process of elimination, we know that none of the single-length
+	// entries can be combined in a useful way, so let's separate them out
+	// to shorten the coming loops.
+	let (singles, mut set): (Vec<Vec<char>>, Vec<Vec<char>>) = set.into_iter()
+		.partition(|a| a.len() == 1);
+
+	// Loop the loop the loop.
+	while set.len() > 1 {
+		// Sort by longest first. This isn't strictly necessary, but helps keep
+		// the results consistent from run-to-run.
+		set.sort_by(|a, b| match b.len().cmp(&a.len()) {
+			std::cmp::Ordering::Equal => a.cmp(b),
+			cmp => cmp,
+		});
+
+		// Examine all pairs to see how much overlap exists between the end of
+		// the first with the beginning of the second. If any, we'll store the
+		// amount saved along with the relevant indexes for later.
+		let mut saved: Vec<(usize, usize, usize)> = Vec::with_capacity(set.len());
+		for i in 0..set.len() {
+			for j in 0..set.len() {
+				if i == j { continue; }
+
+				// Common length.
+				let len = usize::min(set[i].len(), set[j].len());
+
+				// How much overlap is there?
+				let diff = set[i].iter().rev().take(len)
+					.zip(set[j].iter().take(len))
+					.take_while(|(a, b)| a == b)
+					.count();
+
+				// Record if non-zero.
+				if diff > 0 {
+					saved.push((diff, i, j));
+				}
+			}
+		}
+
+		// We're done!
+		if saved.is_empty() { break; }
+
+		// Sort saved by total savings desc, total size desc, alpha asc, again
+		// mostly to keep savings consistent from run to run.
+		saved.sort_by(|a, b| match b.0.cmp(&a.0) {
+			std::cmp::Ordering::Equal => {
+				let a_len = set[a.1].len() + set[a.2].len() - a.0;
+				let b_len = set[b.1].len() + set[b.2].len() - b.0;
+				match b_len.cmp(&a_len) {
+					std::cmp::Ordering::Equal => set[a.1].cmp(&set[b.1]),
+					cmp => cmp,
+				}
+			},
+			cmp => cmp,
+		});
+
+		// Find the round's highest savings.
+		let best: usize = saved[0].0;
+
+		// Build a new set by joining all of the biggest-saving combinations,
+		// then adding the rest as-were. We need to keep track of the indexes
+		// we've hit along the way so we don't accidentally add anything twice.
+		let mut new: Vec<Vec<char>> = Vec::with_capacity(set.len());
+		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
+		for (diff, left, right) in saved {
+			// Join and push any pairing with savings matching the round's
+			// best. Because the same indexes might appear twice independently
+			// of one another, we have to do `seen.contains()` matching rather
+			// than straight inserts, or else we might lose one.
+			if diff == best && ! seen.contains(&left) && ! seen.contains(&right) {
+				seen.insert(left);
+				seen.insert(right);
+
+				// Join right onto left, then steal left for the new vector.
+				let mut joined = std::mem::take(&mut set[left]);
+				joined.extend_from_slice(&set[right][diff..]);
+				new.push(joined);
+			}
+			// Because we've sorted by savings, we can stop looking once the
+			// savings change.
+			else if diff != best { break; }
+		}
+
+		// Now we need to loop through the original set, adding any entries
+		// (as-are) that did not get joined earlier. We'll also skip any
+		// entries which now happen to appear as substrings within the new set.
+		let mut flat: Vec<char> = Vec::new();
+		for (_, line) in set.drain(..).enumerate().filter(|(idx, _)| seen.insert(*idx)) {
+			flat.extend(new.iter().flatten().copied());
+			if flat.windows(line.len()).all(|y| line != y) {
+				new.push(line);
+			}
+			flat.truncate(0);
+		}
+
+		// Swap set and new so we can do this all over again!
+		std::mem::swap(&mut set, &mut new);
+	}
+
+	// Merge the singles and set into a string!
+	singles.into_iter().chain(set.into_iter()).flatten().collect()
 }
 
 /// # Load Data.
