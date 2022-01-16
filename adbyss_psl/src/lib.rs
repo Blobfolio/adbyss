@@ -991,9 +991,6 @@ impl<'a> Iterator for IdnaChars<'a> {
 	type Item = char;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		// This shouldn't happen, but just in case.
-		if *self.error { return None; }
-
 		// Read from the mapping slice first, if present.
 		if let Some(s) = &mut self.slice {
 			if let Some(c) = s.next() { return Some(c); }
