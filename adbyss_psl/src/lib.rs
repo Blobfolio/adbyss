@@ -1003,7 +1003,7 @@ impl<'a> Iterator for IdnaChars<'a> {
 		let ch = self.chars.next()?;
 
 		// Short-circuit standard alphanumeric inputs that are totally fine.
-		if let '.' | '-' | 'a'..='z' | '0'..='9' = ch {
+		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {
 			return Some(ch);
 		}
 
