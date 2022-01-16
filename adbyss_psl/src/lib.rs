@@ -1009,8 +1009,10 @@ impl<'a> Iterator for IdnaChars<'a> {
 			Some(CharKind::Valid) => Some(ch),
 			Some(CharKind::Ignored) => self.next(),
 			Some(CharKind::Mapped(idx)) => {
-				self.slice.replace(idx.as_str().chars());
-				self.next()
+				let mut chars = idx.as_str().chars();
+				let ch = chars.next().unwrap(); // This will never be empty.
+				self.slice.replace(chars);
+				Some(ch)
 			},
 			None => {
 				*self.error = true;
