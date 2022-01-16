@@ -113,6 +113,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			}
 		}
 
+		// This shouldn't happen; we've already asserted all mappings are
+		// present.
 		panic!("Mising mapping {}", src);
 	};
 
@@ -140,7 +142,7 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			continue;
 		}
 
-		// Skip the following very common ranges; we'll specialize them!
+		// Skip the following very common valid ranges; we'll specialize them!
 		if
 			(first == '-' as u32 && last == '.' as u32) ||
 			(first == 'a' as u32 && last == 'z' as u32) ||
@@ -164,8 +166,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		ranged.push((first, last, rg_label));
 	}
 
-	// We actually need to re-format the map string so it uses char notation to
-	// keep the linter from complaining once this is included as proper Rust.
+	// Reformat MAP_STR one last time into an array with proper char notation
+	// to keep the linter happy.
 	let map_str: String = format!(
 		"static MAP_STR: [char; {}] = [{}];",
 		map_str.len(),
@@ -203,8 +205,8 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
 	// least one.
 	let buckets = u32::try_from(raw.len().wrapping_div(128))
 		.expect("Bucket size exceeds hash size.")
-		.min(32)
-		.max(1);
+		.min(32) // Don't exceed 32 buckets.
+		.max(1); // But make sure there's at least one bucket.
 
 	// Unlike the other static maps, this one is branched in an ordered fashion
 	// rather than using any hashing trickery.
@@ -299,10 +301,12 @@ where I: IntoIterator<Item = &'a str> {
 		cmp => cmp,
 	});
 
-	// By process of elimination, if there are any single-char strings left,
-	// they can't be merged into other entries.
-	let (singles, mut set): (Vec<String>, Vec<String>) = set.into_iter()
-		.partition(|a| a.chars().count() == 1);
+	// We're going to be working with chars a lot, so let's pre-compute them
+	// for each entry. At the same time, we can also separate out the single-
+	// char entries, which by process of elimination, have no overlap.
+	let (singles, mut set): (Vec<Vec<char>>, Vec<Vec<char>>) = set.into_iter()
+		.map(|x| x.chars().collect::<Vec<char>>())
+		.partition(|a| a.len() == 1);
 
 	// Loop the loop the loop!
 	while set.len() > 1 {
@@ -314,18 +318,14 @@ where I: IntoIterator<Item = &'a str> {
 			for j in 0..set.len() {
 				if i == j { continue; }
 
-				// Convert to char iterators.
-				let a_chars = set[i].chars();
-				let b_chars = set[j].chars();
-
 				// Figure out the lengths.
-				let a_len = a_chars.clone().count();
-				let b_len = b_chars.clone().count();
+				let a_len = set[i].len();
+				let b_len = set[j].len();
 				let len = usize::min(a_len, b_len);
 
 				// How much overlap is there?
 				for diff in (1..len).rev() {
-					if a_chars.clone().skip(a_len - diff).eq(b_chars.clone().take(diff)) {
+					if set[i].iter().skip(a_len - diff).eq(set[j].iter().take(diff)) {
 						saved.push((diff, i, j));
 						break;
 					}
@@ -356,7 +356,7 @@ where I: IntoIterator<Item = &'a str> {
 		// Build a new set by joining all of the biggest-saving combinations,
 		// then adding the rest as-were. We need to keep track of the indexes
 		// we've hit along the way so we don't accidentally add anything twice.
-		let mut new: Vec<String> = Vec::with_capacity(set.len());
+		let mut new: Vec<Vec<char>> = Vec::with_capacity(set.len());
 		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
 
 		for (diff, left, right) in saved {
@@ -370,7 +370,7 @@ where I: IntoIterator<Item = &'a str> {
 
 				// Join right onto left, then steal left for the new vector.
 				let mut joined = set[left].clone();
-				joined.extend(set[right].chars().skip(diff));
+				joined.extend(set[right].iter().skip(diff).copied());
 				new.push(joined);
 			}
 			// Because we've sorted by savings, we can stop looking once the
@@ -391,13 +391,13 @@ where I: IntoIterator<Item = &'a str> {
 		std::mem::swap(&mut set, &mut new);
 	}
 
-	let mut flat: String = String::new();
+	// Flatten into a string.
+	let mut flat: String = String::with_capacity(11_000);
 	for line in singles {
-		if ! flat.contains(&line) {
-			flat.push_str(&line);
-		}
+		flat.extend(line.into_iter());
 	}
 	for line in set {
+		let line: String = line.into_iter().collect();
 		if ! flat.contains(&line) {
 			flat.push_str(&line);
 		}
@@ -1061,8 +1061,8 @@ macro_rules! map_builder {
 				// buckets.
 				let buckets = <$ty>::try_from(self.set.len().wrapping_div(128))
 					.expect("Bucket size exceeds hash size.")
-					.min(64)
-					.max(1);
+					.min(64) // Don't exceed 64 buckets.
+					.max(1); // But make sure there's at least one.
 
 				// Sort the data into said buckets.
 				let mut bucket_coords: Vec<(usize, usize)> = Vec::new();
