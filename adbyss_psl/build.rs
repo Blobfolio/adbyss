@@ -122,7 +122,7 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 	let mut builder = CharMap::default();
 
 	// Ranged values are handled separately.
-	let mut ranged: Vec<(u32, u32, String)> = Vec::new();
+	let mut ranged: Vec<(u32, u32, String)> = Vec::with_capacity(1024);
 
 	// Separate the raw data into single and ranged entries.
 	for (first, last, label, sub) in raw {
@@ -222,7 +222,7 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
 
 	// Now build out the nested arms. The min/max `ranges` form the outer arms,
 	// and each pattern that falls within that range makes up the inner arms.
-	let mut arms: Vec<String> = Vec::new();
+	let mut arms: Vec<String> = Vec::with_capacity(ranges.len());
 	for (low, high) in ranges {
 		// We need to resort the inners by output kind.
 		let mut inner: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
@@ -357,6 +357,8 @@ fn idna_crunch_superstring(set: &[&str]) -> String {
 		// we've hit along the way so we don't accidentally add anything twice.
 		let mut new: Vec<Vec<char>> = Vec::with_capacity(set.len());
 		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
+		let mut flat: Vec<char> = Vec::with_capacity(4098);
+
 		for (diff, left, right) in saved {
 			// Join and push any pairing with savings matching the round's
 			// best. Because the same indexes might appear twice independently
@@ -369,7 +371,10 @@ fn idna_crunch_superstring(set: &[&str]) -> String {
 				// Join right onto left, then steal left for the new vector.
 				let mut joined = std::mem::take(&mut set[left]);
 				joined.extend_from_slice(&set[right][diff..]);
-				new.push(joined);
+				if flat.len() < joined.len() || flat.windows(joined.len()).all(|y| joined != y) {
+					flat.extend_from_slice(&joined);
+					new.push(joined);
+				}
 			}
 			// Because we've sorted by savings, we can stop looking once the
 			// savings change.
@@ -379,20 +384,18 @@ fn idna_crunch_superstring(set: &[&str]) -> String {
 		// Now we need to loop through the original set, adding any entries
 		// (as-are) that did not get joined earlier. We'll also skip any
 		// entries which now happen to appear as substrings within the new set.
-		let mut flat: Vec<char> = Vec::new();
 		for (_, line) in set.drain(..).enumerate().filter(|(idx, _)| seen.insert(*idx)) {
-			flat.extend(new.iter().flatten().copied());
-			if flat.windows(line.len()).all(|y| line != y) {
+			if flat.len() < line.len() || flat.windows(line.len()).all(|y| line != y) {
+				flat.extend_from_slice(&line);
 				new.push(line);
 			}
-			flat.truncate(0);
 		}
 
 		// Swap set and new so we can do this all over again!
 		std::mem::swap(&mut set, &mut new);
 	}
 
-	// Merge the singles and set into a string!
+	// Merge the singles and set into one, final, compacted string!
 	singles.into_iter().chain(set.into_iter()).flatten().collect()
 }
 
@@ -445,7 +448,7 @@ fn idna_load_data() -> RawIdna {
 	}
 
 	// Second pass: merge ranges by type, and compile into one mass set.
-	let mut out: RawIdna = Vec::new();
+	let mut out: RawIdna = Vec::with_capacity(8192);
 	for (_, mut set) in tbd {
 		set.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -765,8 +768,8 @@ fn psl_format_wild(src: &[String]) -> String {
 /// library.
 fn psl_load_data() -> (RawMainMap, RawWildMap) {
 	// Let's build the thing we'll be writing about building.
-	let mut psl_main: RawMainMap = HashSet::new();
-	let mut psl_wild: RawWildMap = HashMap::new();
+	let mut psl_main: RawMainMap = HashSet::with_capacity(9500);
+	let mut psl_wild: RawWildMap = HashMap::with_capacity(128);
 
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
@@ -991,7 +994,7 @@ macro_rules! map_builder {
 
 				// And lastly, the searcher!
 				{
-					let mut tmp: Vec<String> = Vec::new();
+					let mut tmp: Vec<String> = Vec::with_capacity(bucket_coords.len());
 					for idx in 0..bucket_coords.len() {
 						// Last entry.
 						if idx == bucket_coords.len() - 1 {
