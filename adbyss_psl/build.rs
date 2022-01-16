@@ -94,50 +94,20 @@ fn idna() {
 fn idna_build(raw: RawIdna) -> (String, String, String) {
 	// Build a map substitution string containing each possible substitution,
 	// with the occasional overlap allowed.
-	let map_str: String = {
-		// First build a list of all the unique replacements.
-		let mut map_str: Vec<&str> = raw.iter()
-			.filter_map(|(_, _, _, sub)|
-				if sub.is_empty() { None }
-				else { Some(sub.as_ref()) }
-			)
-			.collect::<HashSet<&str>>()
-			.into_iter()
-			.collect::<Vec<&str>>();
-
-		// Since we can overlap repeated ranges, starting with the longest
-		// string first is a good, simple compression strategy.
-		map_str.sort_by(|a, b|
-			match b.len().cmp(&a.len()) {
-				std::cmp::Ordering::Equal => a.cmp(b),
-				cmp => cmp,
-			}
-		);
-
-		// Build up a contiguous slice, ignoring any substrings that are
-		// already represented anywhere within.
-		let mut out = String::new();
-		for line in map_str {
-			if ! out.contains(line) {
-				out.push_str(line);
-			}
-		}
-		out
-	};
+	let map_str: String = idna_crunch_superstring(raw.iter()
+		.filter_map(|(_, _, _, sub)|
+			if sub.is_empty() { None }
+			else { Some(sub.as_str()) }
+		)
+	);
 
 	// This just lets us quickly find the indexes and lengths of strings in the
 	// `map_str` table we created above.
-	let find_map_str = |src: &str| -> Option<(u8, u8, u8)> {
-		let idx = match map_str.find(src) {
-			Some(idx) => idx as u16,
-			None => {
-				println!("cargo:warning=Missing mapping {}", src);
-				return None;
-			},
-		};
+	let find_map_str = |src: &str| -> (u8, u8, u8) {
+		let idx = map_str.find(src).expect("Missing mapping.") as u16;
 		let [lo, hi] = idx.to_le_bytes();
 		let len = src.len() as u8;
-		Some((lo, hi, len))
+		(lo, hi, len)
 	};
 
 	// Single-char entries are stored as (char, type).
@@ -153,7 +123,8 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			if sub.is_empty() {
 				builder.insert(first, label.global().to_string());
 			}
-			else if let Some((lo, hi, len)) = find_map_str(&sub) {
+			else {
+				let (lo, hi, len) = find_map_str(&sub);
 				builder.insert(
 					first,
 					format!("CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})", lo, hi, len)
@@ -174,16 +145,15 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		let rg_label =
 			match label {
 				IdnaLabel::Valid | IdnaLabel::Ignored => label.local().to_string(),
-				IdnaLabel::Mapped =>
-					if let Some((lo, hi, len)) = find_map_str(&sub) {
-						format!(
-							"Self::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
-							lo,
-							hi,
-							len,
-						)
-					}
-					else { continue; },
+				IdnaLabel::Mapped => {
+					let (lo, hi, len) = find_map_str(&sub);
+					format!(
+						"Self::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
+						lo,
+						hi,
+						len,
+					)
+				},
 			};
 		ranged.push((first, last, rg_label));
 	}
@@ -283,6 +253,151 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
 	}
 
 	arms.join("\n")
+}
+
+/// # Parse Superstring.
+///
+/// Because we're representing the IDNA/Unicode remappings as indexes of a
+/// single static string, we can save a lot of space by overlapping repeated
+/// ranges.
+///
+/// This method takes the raw replacement strings and:
+/// * Deduplicates them;
+/// * Strips out entries that exist as substrings of other entries;
+/// * Calculates an optimal pair-joining by looking at the overlap potential of each pair's end/start characters;
+///
+/// This has to strike a balance between computation time and total savings,
+/// so it does not compare all possible orderings (as that would take days),
+/// but even so, it still manages to reduce the overall size by about 40%.
+fn idna_crunch_superstring<'a, I>(set: I) -> String
+where I: IntoIterator<Item = &'a str> {
+	let mut set: Vec<String> = set.into_iter()
+		.map(String::from)
+		.collect::<HashSet<String>>()
+		.into_iter()
+		.collect();
+	let old = set.clone();
+
+	// Strip entries that can be represented as substrings of other entries.
+	set.retain(|x| old.iter().all(|y| y == x || ! y.contains(x)));
+
+	// Sort the list by the longest records first to give us a consistent
+	// starting point from run-to-run.
+	set.sort_by(|a, b| match b.len().cmp(&a.len()) {
+		std::cmp::Ordering::Equal => a.cmp(b),
+		cmp => cmp,
+	});
+
+	// By process of elimination, if there are any single-char strings left,
+	// they can't be merged into other entries.
+	let (singles, mut set): (Vec<String>, Vec<String>) = set.into_iter()
+		.partition(|a| a.chars().count() == 1);
+
+	// Loop the loop the loop!
+	while set.len() > 1 {
+		// Examine all pairs to see how much overlap exists between the end of
+		// the first with the beginning of the second. If any, we'll store the
+		// amount saved along with the relevant indexes for later.
+		let mut saved: Vec<(usize, usize, usize)> = Vec::with_capacity(set.len());
+		for i in 0..set.len() {
+			for j in 0..set.len() {
+				if i == j { continue; }
+
+				// Convert to char iterators.
+				let a_chars = set[i].chars();
+				let b_chars = set[j].chars();
+
+				// Figure out the lengths.
+				let a_len = a_chars.clone().count();
+				let b_len = b_chars.clone().count();
+				let len = usize::min(a_len, b_len);
+
+				// How much overlap is there?
+				for diff in (1..len).rev() {
+					if a_chars.clone().skip(a_len - diff).eq(b_chars.clone().take(diff)) {
+						saved.push((diff, i, j));
+						break;
+					}
+				}
+			}
+		}
+
+		// We're done!
+		if saved.is_empty() { break; }
+
+		// Sort saved by total savings desc, total size desc, alpha asc. Again,
+		// this helps give us consistent results from run-to-run.
+		saved.sort_by(|a, b| match b.0.cmp(&a.0) {
+			std::cmp::Ordering::Equal => {
+				let a_len = set[a.1].len() + set[a.2].len() - a.0;
+				let b_len = set[b.1].len() + set[b.2].len() - b.0;
+				match b_len.cmp(&a_len) {
+					std::cmp::Ordering::Equal => set[a.1].cmp(&set[b.1]),
+					cmp => cmp,
+				}
+			},
+			cmp => cmp,
+		});
+
+		// Find the round's highest savings.
+		let best: usize = saved[0].0;
+
+		// Build a new set by joining all of the biggest-saving combinations,
+		// then adding the rest as-were. We need to keep track of the indexes
+		// we've hit along the way so we don't accidentally add anything twice.
+		let mut new: Vec<String> = Vec::with_capacity(set.len());
+		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
+
+		for (diff, left, right) in saved {
+			// Join and push any pairing with savings matching the round's
+			// best. Because the same indexes might appear twice independently
+			// of one another, we have to do `seen.contains()` matching rather
+			// than straight inserts, or else we might lose one.
+			if diff == best && ! seen.contains(&left) && ! seen.contains(&right) {
+				seen.insert(left);
+				seen.insert(right);
+
+				// Join right onto left, then steal left for the new vector.
+				let mut joined = set[left].clone();
+				joined.extend(set[right].chars().skip(diff));
+				new.push(joined);
+			}
+			// Because we've sorted by savings, we can stop looking once the
+			// savings change.
+			else if diff != best { break; }
+		}
+
+		// Now we need to loop through the original set, adding any entries
+		// (as-are) that did not get joined earlier. We'll also skip any
+		// entries which now happen to appear as substrings within the new set.
+		for (idx, line) in set.iter().enumerate() {
+			if seen.insert(idx) {
+				new.push(line.clone());
+			}
+		}
+
+		// Swap set and new so we can do this all over again!
+		std::mem::swap(&mut set, &mut new);
+	}
+
+	let mut flat: String = String::new();
+	for line in singles {
+		if ! flat.contains(&line) {
+			flat.push_str(&line);
+		}
+	}
+	for line in set {
+		if ! flat.contains(&line) {
+			flat.push_str(&line);
+		}
+	}
+
+	// Make sure we didn't lose anything along the way.
+	for entry in old {
+		assert!(flat.contains(&entry), "Missing mapping: {}", entry);
+	}
+
+	flat
 }
 
 /// # Load Data.
