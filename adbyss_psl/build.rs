@@ -94,7 +94,7 @@ fn idna() {
 fn idna_build(raw: RawIdna) -> (String, String, String) {
 	// Build a map substitution string containing each possible substitution,
 	// with the occasional overlap allowed.
-	let map_str: String = idna_crunch_superstring(raw.iter()
+	let map_str: Vec<char> = idna_crunch_superstring(raw.iter()
 		.filter_map(|(_, _, _, sub)|
 			if sub.is_empty() { None }
 			else { Some(sub.as_str()) }
@@ -104,10 +104,16 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 	// This just lets us quickly find the indexes and lengths of strings in the
 	// `map_str` table we created above.
 	let find_map_str = |src: &str| -> (u8, u8, u8) {
-		let idx = map_str.find(src).expect("Missing mapping.") as u16;
-		let [lo, hi] = idx.to_le_bytes();
-		let len = src.len() as u8;
-		(lo, hi, len)
+		let needle: Vec<char> = src.chars().collect();
+		for (idx, w) in map_str.windows(needle.len()).enumerate() {
+			if w == needle {
+				let idx = idx as u16;
+				let [lo, hi] = idx.to_le_bytes();
+				return (lo, hi, needle.len() as u8);
+			}
+		}
+
+		panic!("Mising mapping {}", src);
 	};
 
 	// Single-char entries are stored as (char, type).
@@ -160,12 +166,17 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 
 	// We actually need to re-format the map string so it uses char notation to
 	// keep the linter from complaining once this is included as proper Rust.
-	let map_str: String = map_str.chars()
-		.map(|c|
-			if c.is_ascii() { String::from(c) }
-			else { format!("\\u{{{:x}}}", c as u32) }
-		)
-		.collect();
+	let map_str: String = format!(
+		"static MAP_STR: [char; {}] = [{}];",
+		map_str.len(),
+		map_str.into_iter()
+			.map(|c|
+				if c.is_ascii() { format!("'{}'", c) }
+				else { format!("'\\u{{{:x}}}'", c as u32) }
+			)
+			.collect::<Vec<String>>()
+			.join(", ")
+	);
 
 	// Done!
 	(map_str, builder.build(), idna_build_ranged(ranged))
@@ -269,7 +280,7 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
 /// This has to strike a balance between computation time and total savings,
 /// so it does not compare all possible orderings (as that would take days),
 /// but even so, it still manages to reduce the overall size by about 40%.
-fn idna_crunch_superstring<'a, I>(set: I) -> String
+fn idna_crunch_superstring<'a, I>(set: I) -> Vec<char>
 where I: IntoIterator<Item = &'a str> {
 	let mut set: Vec<String> = set.into_iter()
 		.map(String::from)
@@ -397,7 +408,7 @@ where I: IntoIterator<Item = &'a str> {
 		assert!(flat.contains(&entry), "Missing mapping: {}", entry);
 	}
 
-	flat
+	flat.chars().collect()
 }
 
 /// # Load Data.

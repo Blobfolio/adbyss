@@ -3,7 +3,7 @@
 /// This array holds all of the different IDNA/Unicode remapping sequences.
 /// There is a lot of overlap, so individual remappings are referenced as
 /// ranges of this array.
-static MAP_STR: &str = "{map_str}";
+{map_str}
 
 {map}
 
@@ -22,18 +22,6 @@ pub(super) struct MapIdx {{
 	a: u8,
 	b: u8,
 	l: u8,
-}}
-
-impl MapIdx {{
-	#[inline]
-	/// # As Str.
-	///
-	/// Return the corresponding mapping string, which may consist of multiple
-	/// characters.
-	pub(super) fn as_str(self) -> &'static str {{
-		let start = u16::from_le_bytes([self.a, self.b]) as usize;
-		unsafe {{ MAP_STR.get_unchecked(start..start + self.l as usize) }}
-	}}
 }}
 
 
@@ -66,6 +54,74 @@ impl CharKind {{
 		match ch {{
 {from_char}
 			_ => None,
+		}}
+	}}
+}}
+
+
+
+/// # IDNA Character Walker.
+///
+/// This is a very crude character traversal iterator that checks for character
+/// legality and applies any mapping substitutions as needed before yielding.
+///
+/// This is an interator rather than a collector to take advantage of the
+/// `UnicodeNormalization::nfc` trait.
+///
+/// The internal `error` field holds a reference to a shared error state, so
+/// that afterwards it can be known whether or not the process actually
+/// finished correctly.
+pub(super) struct IdnaChars<'a> {{
+	chars: std::str::Chars<'a>,
+	remap: Option<(usize, u8)>,
+	error: &'a mut bool,
+}}
+
+impl<'a> IdnaChars<'a> {{
+	/// # New!
+	pub(super) fn new(src: &'a str, error: &'a mut bool) -> Self {{
+		Self {{
+			chars: src.chars(),
+			remap: None,
+			error,
+		}}
+	}}
+}}
+
+impl<'a> Iterator for IdnaChars<'a> {{
+	type Item = char;
+
+	fn next(&mut self) -> Option<Self::Item> {{
+		// Read from the mapping slice first, if present.
+		if let Some((pos, len)) = &mut self.remap {{
+			let ch = MAP_STR[*pos];
+			if *len > 1 {{
+				*pos += 1;
+				*len -= 1;
+			}}
+			else {{ self.remap = None; }}
+			return Some(ch);
+		}}
+
+		let ch = self.chars.next()?;
+
+		// Short-circuit standard alphanumeric inputs that are totally fine.
+		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ return Some(ch); }}
+
+		// Otherwise determine the char/status from the terrible mapping table.
+		match CharKind::from_char(ch) {{
+			Some(CharKind::Valid) => Some(ch),
+			Some(CharKind::Ignored) => self.next(),
+			Some(CharKind::Mapped(idx)) => {{
+				let pos = u16::from_le_bytes([idx.a, idx.b]) as usize;
+				let ch = MAP_STR[pos];
+				if idx.l > 1 {{ self.remap.replace((pos + 1, idx.l - 1)); }}
+				Some(ch)
+			}},
+			None => {{
+				*self.error = true;
+				None
+			}},
 		}}
 	}}
 }}

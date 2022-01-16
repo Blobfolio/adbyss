@@ -72,7 +72,10 @@ mod puny;
 
 
 
-use idna::CharKind;
+use idna::{
+	CharKind,
+	IdnaChars,
+};
 use psl::SuffixKind;
 use std::{
 	cmp::Ordering,
@@ -89,7 +92,6 @@ use std::{
 		Deref,
 		Range,
 	},
-	str::Chars,
 };
 use unicode_bidi::{
 	bidi_class,
@@ -676,12 +678,7 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	// Walk through the string character by character, mapping and normalizing
 	// as we go.
 	let mut error: bool = false;
-	let iter = IdnaChars {
-		chars: src.chars(),
-		slice: None,
-		error: &mut error,
-	}
-	.nfc();
+	let iter = IdnaChars::new(src, &mut error).nfc();
 
 	// Suck it into a string buffer, but also note whether we have any
 	// instances of PUNY prefixes.
@@ -970,57 +967,6 @@ fn idna_normalize_c(src: &str) -> Option<String> {
 }
 
 
-
-/// # IDNA Character Walker.
-///
-/// This is a very crude character traversal iterator that checks for character
-/// legality and applies any mapping substitutions as needed before yielding.
-///
-/// This is an interator rather than a collector to take advantage of the
-/// `UnicodeNormalization::nfc` trait.
-///
-/// The internal `err` field holds a reference to a shared error state, so that
-/// afterwards it can be known whether or not the process actually finished.
-struct IdnaChars<'a> {
-	chars: Chars<'a>,
-	slice: Option<Chars<'static>>,
-	error: &'a mut bool,
-}
-
-impl<'a> Iterator for IdnaChars<'a> {
-	type Item = char;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		// Read from the mapping slice first, if present.
-		if let Some(s) = &mut self.slice {
-			if let Some(c) = s.next() { return Some(c); }
-			self.slice = None;
-		}
-
-		let ch = self.chars.next()?;
-
-		// Short-circuit standard alphanumeric inputs that are totally fine.
-		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {
-			return Some(ch);
-		}
-
-		// Otherwise determine the char/status from the terrible mapping table.
-		match CharKind::from_char(ch) {
-			Some(CharKind::Valid) => Some(ch),
-			Some(CharKind::Ignored) => self.next(),
-			Some(CharKind::Mapped(idx)) => {
-				let mut chars = idx.as_str().chars();
-				let ch = chars.next().unwrap(); // This will never be empty.
-				self.slice.replace(chars);
-				Some(ch)
-			},
-			None => {
-				*self.error = true;
-				None
-			},
-		}
-	}
-}
 
 #[repr(u8)]
 #[derive(Clone, Copy)]
