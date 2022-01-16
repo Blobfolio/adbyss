@@ -1,7 +1,23 @@
+/// # Remappings.
+///
+/// This array holds all of the different IDNA/Unicode remapping sequences.
+/// There is a lot of overlap, so individual remappings are referenced as
+/// ranges of this array.
 static MAP_STR: &str = "{map_str}";
+
 {map}
 
+
+
 #[derive(Clone, Copy)]
+/// # Map Index.
+///
+/// All of the possible mappings are stored in a contiguous char array called
+/// `MAP_STR`, built at runtime. This struct is used to define a particular
+/// subslice of that array, where `a` and `b` are an index, and `l` is the
+/// length.
+///
+/// The convoluted storage method helps with the alignment of [`CharKind`].
 pub(super) struct MapIdx {{
 	a: u8,
 	b: u8,
@@ -10,15 +26,26 @@ pub(super) struct MapIdx {{
 
 impl MapIdx {{
 	#[inline]
+	/// # As Str.
+	///
+	/// Return the corresponding mapping string, which may consist of multiple
+	/// characters.
 	pub(super) fn as_str(self) -> &'static str {{
 		let start = u16::from_le_bytes([self.a, self.b]) as usize;
 		unsafe {{ MAP_STR.get_unchecked(start..start + self.l as usize) }}
 	}}
 }}
 
+
+
 #[repr(u8)]
 #[derive(Clone, Copy)]
 /// # Char Kinds.
+///
+/// This is the IDNA/Unicode status for a given character:
+/// * [`CharKind::Valid`]: The character is fine as-is.
+/// * [`CharKind::Ignored`]: The character should be silently skipped.
+/// * [`CharKind::Mapped`]: The character should be transformed into one or more alternative characters.
 pub(super) enum CharKind {{
 	Valid,
 	Ignored,
@@ -27,6 +54,10 @@ pub(super) enum CharKind {{
 
 impl CharKind {{
 	#[allow(clippy::too_many_lines)]
+	/// # From Char.
+	///
+	/// Find the status associated with a given character. `None` implies the
+	/// character is invalid.
 	pub(super) fn from_char(ch: char) -> Option<Self> {{
 		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ return Some(Self::Valid); }}
 		if let Some(x) = map_get(ch) {{ return Some(x); }}
