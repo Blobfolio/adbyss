@@ -615,27 +615,53 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
 
+	// Hold map key/value pairs.
+	let mut map: Vec<(u64, String)> = Vec::with_capacity(main.len() + wild.len());
+
 	// Populate this with stringified tuples (bytes=>kind).
-	let mut builder = SuffixMap::default();
 	for host in main {
 		// We'll prioritize these.
 		if host == "com" || host == "net" || host == "org" { continue; }
 		let hash = hash_tld(host.as_bytes());
-		builder.insert(hash, String::from("SuffixKind::Tld"));
+		map.push((hash, String::from("SuffixKind::Tld")));
 	}
 	for (host, ex) in wild {
 		let hash = hash_tld(host.as_bytes());
 		if ex.is_empty() {
-			builder.insert(hash, String::from("SuffixKind::Wild"));
+			map.push((hash, String::from("SuffixKind::Wild")));
 		}
 		else {
 			let ex = psl_format_wild(ex);
 			let ex = wild_map.get(&ex).expect("Missing wild arm.");
-			builder.insert(hash, format!("SuffixKind::WildEx(WildKind::{})", ex));
+			map.push((hash, format!("SuffixKind::WildEx(WildKind::{})", ex)));
 		}
 	}
 
-	(builder.build(), wild_kinds, wild_arms)
+	// Make sure the keys are unique.
+	{
+		let tmp: HashSet<u64> = map.iter().map(|(k, _)| *k).collect();
+		assert_eq!(tmp.len(), map.len(), "Duplicate PSL hash keys.");
+	}
+
+	let len: usize = map.len();
+	map.sort_by(|a, b| a.0.cmp(&b.0));
+
+	// Separate keys and values.
+	let (map_keys, map_values): (Vec<u64>, Vec<String>) = map.into_iter().unzip();
+
+	// Format the arrays.
+	let map = format!(
+		"/// # Map Keys.\nstatic MAP_K: [u64; {}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {}] = [{}];",
+		len,
+		map_keys.into_iter()
+			.map(|k| NiceU64::from(k).as_str().replace(",", "_"))
+			.collect::<Vec<String>>()
+			.join(", "),
+		len,
+		map_values.join(", "),
+	);
+
+	(map, wild_kinds, wild_arms)
 }
 
 /// # Build Wild Enum.
@@ -1040,12 +1066,6 @@ macro_rules! map_builder {
 	);
 }
 
-map_builder!(SuffixMap, u64, NiceU64, &[u8], SuffixKind, "
-	use std::hash::Hasher;
-	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-	hasher.write(src);
-	let hash = hasher.finish();
-");
 map_builder!(CharMap, u32, NiceU32, char, CharKind, "let hash = src as u32;");
 
 /// # Hash TLD.
