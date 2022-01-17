@@ -120,7 +120,7 @@ fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 	};
 
 	// Single-char entries are stored as (char, type).
-	let mut builder = CharMap::default();
+	let mut map: Vec<(u32, String)> = Vec::with_capacity(8192);
 
 	// Ranged values are handled separately.
 	let mut ranged: Vec<(u32, u32, String)> = Vec::with_capacity(1024);
@@ -130,14 +130,14 @@ fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 		// Single.
 		if first == last {
 			if sub.is_empty() {
-				builder.insert(first, label.as_str().to_string());
+				map.push((first, label.as_str().to_string()));
 			}
 			else {
 				let (lo, hi, len) = find_map_str(&sub);
-				builder.insert(
+				map.push((
 					first,
 					format!("CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})", lo, hi, len)
-				);
+				));
 			}
 
 			continue;
@@ -183,8 +183,25 @@ fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 
 	let (ranges_len, ranges) = idna_build_ranged(ranged);
 
+	let len: usize = map.len();
+	map.sort_by(|a, b| a.0.cmp(&b.0));
+
+	// Format the array.
+	let map = format!(
+		"/// # Map.\nstatic MAP: [(u32, CharKind); {}] = [{}];",
+		len,
+		map.into_iter()
+			.map(|(k, v)| format!(
+				"({}, {})",
+				NiceU32::from(k).as_str().replace(",", "_"),
+				v
+			))
+			.collect::<Vec<String>>()
+			.join(", "),
+	);
+
 	// Done!
-	(map_str, builder.build(), ranges_len, ranges)
+	(map_str, map, ranges_len, ranges)
 }
 
 /// # Build Ranged Code.
@@ -921,152 +938,6 @@ impl IdnaLabel {
 }
 
 
-
-/// # Helper: Static Map.
-///
-/// Both the Public Suffix and IDNA/Unicode data require gigantic lookup tables
-/// to do their thing at runtime. In order to avoid the runtime cost of
-/// instantiating a dynamic lookup table — e.g. a `Lazy<HashMap>` — we build
-/// these statically.
-///
-/// The approach is similar to that used by `phf`, except we avoid the structs,
-/// and push each bucket to its own static array. A lookup method is generated
-/// with all the branching logic hard-coded, so it's really quite zippy!
-///
-/// Anyhoo, this macro generates a struct used by the builder to keep track of
-/// the entries and generate the appropriate `Rust` code when the time comes.
-macro_rules! map_builder {
-	($name: ident, $ty:ty, $dactyl:ty, $k_type: ty, $v_type: ty, $hash_func:literal) => (
-		#[derive(Default)]
-		/// # Static Map.
-		struct $name {
-			set: Vec<($ty, String)>,
-		}
-
-		impl $name {
-			/// # Insert.
-			fn insert(&mut self, hash: $ty, val: String) {
-				self.set.push((hash, val));
-			}
-
-			/// # Build.
-			fn build(&mut self) -> String {
-				let (buckets, bucket_coords, consolidated) = self.build_buckets();
-
-				// Start building the code!
-				let mut code: Vec<String> = Vec::new();
-
-				// Push the maps!
-				for (idx, coords) in bucket_coords.iter().enumerate() {
-					let slice = &consolidated[coords.0..coords.1];
-					code.push(format!(
-						"/// # Map Data!\nstatic MAP{}: [({}, {}); {}] = [{}];",
-						idx,
-						stringify!($ty),
-						stringify!($v_type),
-						slice.len(),
-						slice.join(", "),
-					));
-				}
-
-				// And lastly, the searcher!
-				{
-					let mut tmp: Vec<String> = Vec::with_capacity(bucket_coords.len());
-					for idx in 0..bucket_coords.len() {
-						// Last entry.
-						if idx == bucket_coords.len() - 1 {
-							tmp.push(format!(
-								"\t\t_ => MAP{}.binary_search_by_key(&hash, |(a, _)| *a).ok().map(|idx| MAP{}[idx].1),",
-								idx,
-								idx,
-							));
-						}
-						// All other entries.
-						else {
-							tmp.push(format!(
-								"\t\t{} => MAP{}.binary_search_by_key(&hash, |(a, _)| *a).ok().map(|idx| MAP{}[idx].1),",
-								idx,
-								idx,
-								idx,
-							));
-						}
-					}
-
-					code.push(format!(
-						"/// # Search Map!\nfn map_get(src: {}) -> Option<{}> {{
-	{}
-	match hash % {} {{
-{}
-	}}
-}}",
-						stringify!($k_type),
-						stringify!($v_type),
-						$hash_func,
-						buckets,
-						tmp.join("\n"),
-					));
-				}
-
-				// We're done!
-				code.join("\n\n")
-			}
-
-			/// # Build Buckets and Consolidated Data.
-			fn build_buckets(&mut self) -> ($ty, Vec<(usize, usize)>, Vec<String>) {
-				if self.set.is_empty() { panic!("The static map set cannot be empty."); }
-				{
-					let tmp: HashSet<_> = self.set.iter().map(|(k, _)| *k).collect();
-					if tmp.len() != self.set.len() {
-						panic!("The static map contains duplicate keys!");
-					}
-				}
-
-				// Come up with some buckets. We'll try to wind up with about
-				// 128 entries per bucket, but we don't want more than 64 total
-				// buckets.
-				let buckets = <$ty>::try_from(self.set.len().wrapping_div(128))
-					.expect("Bucket size exceeds hash size.")
-					.min(64) // Don't exceed 64 buckets.
-					.max(1); // But make sure there's at least one.
-
-				// Sort the data into said buckets.
-				let mut bucket_coords: Vec<(usize, usize)> = Vec::new();
-				let mut consolidated: Vec<String> = Vec::new();
-				let mut out: Vec<Vec<($ty, &str)>> = Vec::new();
-				out.resize_with(buckets as usize, Vec::new);
-				for (k, v) in &self.set {
-					let k: $ty = *k;
-					let bucket = (k % buckets) as usize;
-					out[bucket].push((k, v));
-				}
-				for inner in &mut out {
-					inner.sort_by(|a, b| a.0.cmp(&b.0));
-				}
-
-				for tmp in out {
-					let from = consolidated.len();
-					for (k, v) in tmp {
-						consolidated.push(format!(
-							"({}_{}, {})",
-							<$dactyl>::from(k).as_str().replace(",", "_"),
-							stringify!($ty),
-							v
-						));
-					}
-					let to = consolidated.len();
-					bucket_coords.push((from, to));
-				}
-
-				assert_eq!(bucket_coords.len(), buckets as usize, "Bucket count mismatch.");
-				assert_eq!(consolidated.len(), self.set.len(), "Conslidated bucket mismatch.");
-
-				(buckets, bucket_coords, consolidated)
-			}
-		}
-	);
-}
-
-map_builder!(CharMap, u32, NiceU32, char, CharKind, "let hash = src as u32;");
 
 /// # Hash TLD.
 ///

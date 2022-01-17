@@ -48,15 +48,16 @@ pub(super) enum CharKind {{
 }}
 
 impl CharKind {{
-	#[allow(clippy::too_many_lines)]
 	/// # From Char.
 	///
 	/// Find the status associated with a given character. `None` implies the
 	/// character is invalid.
 	pub(super) fn from_char(ch: char) -> Option<Self> {{
-		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ Some(Self::Valid) }}
-		else if let Some(x) = map_get(ch) {{ Some(x) }}
-		else {{ range_search(ch as u32) }}
+		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ return Some(Self::Valid); }}
+
+		let ch: u32 = ch as u32;
+		if let Ok(idx) = MAP.binary_search_by_key(&ch, |(k, _)| *k) {{ Some(MAP[idx].1) }}
+		else {{ range_search(ch) }}
 	}}
 }}
 
@@ -132,6 +133,9 @@ impl<'a> Iterator for IdnaChars<'a> {{
 
 #[allow(clippy::integer_division)]
 /// # Range Search.
+///
+/// This is basically a binary search, but it checks to see whether the needle
+/// fits a range of values, rather than looking for an exact hit.
 fn range_search(ch: u32) -> Option<CharKind> {{
 	let mut size = {ranges_len};
 	let mut left = 0;
