@@ -67,7 +67,7 @@ fn idna() {
 	let raw = idna_load_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
-	let (map_str, map, from_char) = idna_build(raw);
+	let (map_str, map, ranges_len, ranges) = idna_build(raw);
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna.rs"))
@@ -79,7 +79,8 @@ fn idna() {
 		include_str!("./skel/idna.rs.txt"),
 		map_str = map_str,
 		map = map,
-		from_char = from_char,
+		ranges = ranges,
+		ranges_len = ranges_len,
 	)
 		.and_then(|_| file.flush())
 		.expect("Unable to save reference list.");
@@ -91,7 +92,7 @@ fn idna() {
 /// * A static hash map of all single-character entries (valid, ignored, mapped);
 /// * A single static string containing all possible mapping replacements. There are a few duplicates, so keeping it contiguous cuts down on the size of the data.
 /// * A nested `match` branch to identify ranged-character entries.
-fn idna_build(raw: RawIdna) -> (String, String, String) {
+fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 	// Build a map substitution string containing each possible substitution,
 	// with the occasional overlap allowed.
 	let map_str: Vec<char> = idna_crunch_superstring(raw.iter()
@@ -129,7 +130,7 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		// Single.
 		if first == last {
 			if sub.is_empty() {
-				builder.insert(first, label.global().to_string());
+				builder.insert(first, label.as_str().to_string());
 			}
 			else {
 				let (lo, hi, len) = find_map_str(&sub);
@@ -152,11 +153,11 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 		// Ranged.
 		let rg_label =
 			match label {
-				IdnaLabel::Valid | IdnaLabel::Ignored => label.local().to_string(),
+				IdnaLabel::Valid | IdnaLabel::Ignored => label.as_str().to_string(),
 				IdnaLabel::Mapped => {
 					let (lo, hi, len) = find_map_str(&sub);
 					format!(
-						"Self::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
+						"CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
 						lo,
 						hi,
 						len,
@@ -180,92 +181,39 @@ fn idna_build(raw: RawIdna) -> (String, String, String) {
 			.join(", ")
 	);
 
+	let (ranges_len, ranges) = idna_build_ranged(ranged);
+
 	// Done!
-	(map_str, builder.build(), idna_build_ranged(ranged))
+	(map_str, builder.build(), ranges_len, ranges)
 }
 
 /// # Build Ranged Code.
 ///
-/// This compiles a nested `match` to efficiently determine whether or not a
-/// given character falls within any of the 1000 or so discrete ranges the
-/// IDNA/Unicode table comes with.
-///
-/// The outer arms represent the absolute min/max of its inner arms, and the
-/// inner arms are grouped by output kind (valid, ignored, mapped).
-///
-/// Nesting is a pain in the ass, but cuts down on processing time by around
-/// 20%.
-fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> String {
+/// This compiles the ranged matches into a sorted array, which we jump
+/// through at runtime using a custom binary search function.
+fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> (usize, String) {
 	// Sort!
 	raw.sort_by(|a, b| a.0.cmp(&b.0));
 
-	// Come up with some buckets. We'll try to wind up with about
-	// 128 entries per bucket, but we don't want more than 32 total
-	// buckets. The actual number of buckets may be +/- one, but will be at
-	// least one.
-	let buckets = u32::try_from(raw.len().wrapping_div(128))
-		.expect("Bucket size exceeds hash size.")
-		.min(32) // Don't exceed 32 buckets.
-		.max(1); // But make sure there's at least one bucket.
-
-	// Unlike the other static maps, this one is branched in an ordered fashion
-	// rather than using any hashing trickery.
-	let chunks = raw.len() / buckets as usize;
-	if chunks == 0 { panic!("Not enough entries for buckets."); }
-	let mut out: Vec<Vec<(u32, u32, String)>> = raw.chunks(chunks)
-		.map(|x| x.to_vec())
+	// Build up an array object.
+	let len = raw.len();
+	let entries: Vec<String> = raw.into_iter()
+		.map(|(start, end, kind)| format!(
+			"({}_u32, {}_u32, {})",
+			NiceU32::from(start).as_str().replace(",", "_"),
+			NiceU32::from(end).as_str().replace(",", "_"),
+			kind
+		))
 		.collect();
 
-	// Find the ranges for each bucket, lowest low and highest high.
-	let ranges: Vec<(u32, u32)> = out.iter()
-		.map(|x| {
-			let min = x.iter().map(|(n, _, _)| *n).min().unwrap();
-			let max = x.iter().map(|(_, n, _)| *n).max().unwrap();
-			(min, max)
-		})
-		.collect();
-
-	// Now build out the nested arms. The min/max `ranges` form the outer arms,
-	// and each pattern that falls within that range makes up the inner arms.
-	let mut arms: Vec<String> = Vec::with_capacity(ranges.len());
-	for (low, high) in ranges {
-		// We need to resort the inners by output kind.
-		let mut inner: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
-		for (first, last, kind) in out.remove(0) {
-			inner.entry(kind).or_insert_with(Vec::new).push((first, last));
-		}
-
-		// Move it back to a vec so we can sort it properly.
-		let mut inner: Vec<(u32, String)> = inner.into_iter()
-			.map(|(kind, set)| {
-				let first = set[0].0;
-				let set = set.into_iter()
-					.map(|(f, l)| format!(
-						"{}_u32..={}_u32",
-						NiceU32::from(f).as_str().replace(",", "_"),
-						NiceU32::from(l).as_str().replace(",", "_"),
-					))
-					.collect::<Vec<String>>()
-					.join(" | ");
-				(first, format!("\t\t\t\t{} => Some({}),", set, kind))
-			})
-			.collect();
-		inner.sort_by(|a, b| a.0.cmp(&b.0));
-		inner.push((0, String::from("\t\t\t\t_ => None,")));
-
-		// Finally push it to the arm!
-		arms.push(format!(
-			"\t\t\t{}_u32..={}_u32 => match ch {{\n{}\n\t\t\t}},",
-			NiceU32::from(low).as_str().replace(",", "_"),
-			NiceU32::from(high).as_str().replace(",", "_"),
-			inner.into_iter()
-				.map(|(_, x)| x)
-				.collect::<Vec<String>>()
-				.join("\n"),
-		));
-	}
-
-	arms.join("\n")
+	(
+		len,
+		format!(
+			"static RANGES: [(u32, u32, CharKind); {}] = [{}];",
+			entries.len(),
+			entries.join(", "),
+		),
+	)
 }
 
 /// # Parse Superstring.
@@ -936,17 +884,8 @@ enum IdnaLabel {
 }
 
 impl IdnaLabel {
-	/// # Self Label.
-	fn local(self) -> &'static str {
-		match self {
-			Self::Valid => "Self::Valid",
-			Self::Ignored => "Self::Ignored",
-			Self::Mapped => "Self::Mapped",
-		}
-	}
-
 	/// # Global Label.
-	fn global(self) -> &'static str {
+	const fn as_str(self) -> &'static str {
 		match self {
 			Self::Valid => "CharKind::Valid",
 			Self::Ignored => "CharKind::Ignored",

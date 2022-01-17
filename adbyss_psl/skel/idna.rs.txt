@@ -7,6 +7,13 @@
 
 {map}
 
+/// # Ranges.
+///
+/// There are several hundred IDNA/Unicode entries represented as ranges. The
+/// lower and (inclusive) upper bounds, as well as the matching kind, are
+/// stored in this array.
+{ranges}
+
 
 
 #[derive(Clone, Copy)]
@@ -47,14 +54,9 @@ impl CharKind {{
 	/// Find the status associated with a given character. `None` implies the
 	/// character is invalid.
 	pub(super) fn from_char(ch: char) -> Option<Self> {{
-		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ return Some(Self::Valid); }}
-		if let Some(x) = map_get(ch) {{ return Some(x); }}
-
-		let ch: u32 = ch as u32;
-		match ch {{
-{from_char}
-			_ => None,
-		}}
+		if let '-'..='.' | '0'..='9' | 'a'..='z' = ch {{ Some(Self::Valid) }}
+		else if let Some(x) = map_get(ch) {{ Some(x) }}
+		else {{ range_search(ch as u32) }}
 	}}
 }}
 
@@ -124,4 +126,30 @@ impl<'a> Iterator for IdnaChars<'a> {{
 			}},
 		}}
 	}}
+}}
+
+
+
+#[allow(clippy::integer_division)]
+/// # Range Search.
+fn range_search(ch: u32) -> Option<CharKind> {{
+	let mut size = {ranges_len};
+	let mut left = 0;
+	let mut right = size;
+
+	while left < right {{
+		let mid = left + size / 2;
+		let cmp = ch.cmp(&RANGES[mid].0);
+
+		if cmp == std::cmp::Ordering::Less {{ right = mid; }}
+		else if cmp == std::cmp::Ordering::Greater {{
+			if ch <= RANGES[mid].1 {{ return Some(RANGES[mid].2); }}
+			left = mid + 1;
+		}}
+		else {{ return Some(RANGES[mid].2); }}
+
+		size = right - left;
+	}}
+
+	None
 }}
