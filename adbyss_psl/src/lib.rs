@@ -738,102 +738,42 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 /// See also: <http://tools.ietf.org/html/rfc5893#section-2>
 fn idna_check_bidi(part: &str) -> bool {
 	let mut chars = part.chars();
+	match bidi_class(chars.next().unwrap()) {
+		// LTR.
+		BidiClass::L =>
+			chars.all(|ch| matches!(
+				bidi_class(ch),
+				BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
+				BidiClass::ET | BidiClass::L | BidiClass::NSM | BidiClass::ON
+			)) &&
+			idna_last_nom(part).map_or(
+				true,
+				|c| matches!(bidi_class(c), BidiClass::L | BidiClass::EN)
+			),
 
-	// Check the first character.
-	let first_char_class = match chars.next() {
-		Some(c) => bidi_class(c),
-		None => return true,
-	};
-
-	match first_char_class {
-		// LTR label
-		BidiClass::L => {
-			// Rule 5
-			if chars.any(idna_check_bidi_ltr) {
-				return false;
-			}
-
-			// Rule 6
-			// must end in L or EN followed by 0 or more NSM
-			let mut rev_chars = part.chars().rev();
-			let mut last_non_nsm = rev_chars.next();
-			loop {
-				match last_non_nsm {
-					Some(c) if bidi_class(c) == BidiClass::NSM => {
-						last_non_nsm = rev_chars.next();
-						continue;
-					},
-					_ => break,
-				}
-			}
-			match last_non_nsm {
-				Some(c) if matches!(bidi_class(c), BidiClass::L | BidiClass::EN) => {},
-				Some(_) => return false,
-				_ => {},
-			}
-		},
-
-		// RTL label
+		// RTL.
 		BidiClass::R | BidiClass::AL => {
-			let mut found_en = false;
-			let mut found_an = false;
-
-			// Rule 2
+			let mut has_en = false;
+			let mut has_an = false;
 			for c in chars {
 				match bidi_class(c) {
-					BidiClass::EN => {
-						found_en = true;
-						if found_an { return false; }
-					},
-					BidiClass::AN => {
-						found_an = true;
-						if found_en { return false; }
-					},
+					BidiClass::EN => { has_en = true; },
+					BidiClass::AN => { has_an = true; },
 					BidiClass::AL | BidiClass::BN | BidiClass::CS | BidiClass::ES |
 					BidiClass::ET | BidiClass::NSM | BidiClass::ON | BidiClass::R => {},
 					_ => return false,
 				}
 			}
 
-			// Rule 3
-			let mut rev_chars = part.chars().rev();
-			let mut last = rev_chars.next();
-			loop {
-				// must end in L or EN followed by 0 or more NSM
-				match last {
-					Some(c) if bidi_class(c) == BidiClass::NSM => {
-						last = rev_chars.next();
-						continue;
-					},
-					_ => break,
-				}
-			}
-			match last {
-				Some(c) if matches!(
-					bidi_class(c),
-					BidiClass::R | BidiClass::AL | BidiClass::EN | BidiClass::AN
-				) => {},
-				_ => return false,
-			}
+			(! has_an || ! has_en) &&
+			idna_last_nom(part)
+				.filter(|&c| matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::EN | BidiClass::AN))
+				.is_some()
 		},
 
-		// Rule 1: Should start with L or R/AL
-		_ => return false,
+		// Neither.
+		_ => false,
 	}
-
-	true
-}
-
-#[inline]
-/// # LTR BIDI Invalid Characters.
-///
-/// Make sure no conflicting BIDI characters are present.
-fn idna_check_bidi_ltr(ch: char) -> bool {
-	! matches!(
-		bidi_class(ch),
-		BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
-		BidiClass::ET | BidiClass::L | BidiClass::NSM | BidiClass::ON
-	)
 }
 
 /// Check Validity.
@@ -870,6 +810,13 @@ fn idna_has_bidi(part: &str) -> bool {
 			! c.is_ascii_graphic() &&
 			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
 		)
+}
+
+/// # Return Last non-NSM Char.
+fn idna_last_nom(part: &str) -> Option<char> {
+	part.chars()
+		.rev()
+		.find(|&c| ! matches!(bidi_class(c), BidiClass::NSM))
 }
 
 /// # Normalize Domain (B).
