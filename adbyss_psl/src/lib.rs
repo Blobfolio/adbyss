@@ -857,10 +857,7 @@ fn idna_check_validity(part: &str, deep: bool) -> bool {
 	(
 		! deep ||
 		// When we've decoded a chunk, we have to re-check it for correctness.
-		(
-			matches!(CharKind::from_char(first), Some(CharKind::Valid)) &&
-			chars.all(|c| matches!(CharKind::from_char(c), Some(CharKind::Valid)))
-		)
+		(CharKind::is_valid(first) && chars.all(CharKind::is_valid))
 	)
 }
 

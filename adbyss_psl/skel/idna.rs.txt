@@ -59,6 +59,12 @@ impl CharKind {{
 		if let Ok(idx) = MAP.binary_search_by_key(&ch, |(k, _)| *k) {{ Some(MAP[idx].1) }}
 		else {{ range_search(ch) }}
 	}}
+
+	#[inline]
+	/// # Is Valid?
+	pub(super) fn is_valid(ch: char) -> bool {{
+		matches!(Self::from_char(ch), Some(Self::Valid))
+	}}
 }}
 
 
