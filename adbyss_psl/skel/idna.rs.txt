@@ -111,13 +111,13 @@ impl<'a> Iterator for IdnaChars<'a> {{
 		// Otherwise determine the char/status from the terrible mapping table.
 		match CharKind::from_char(ch) {{
 			Some(CharKind::Valid) => Some(ch),
-			Some(CharKind::Ignored) => self.next(),
 			Some(CharKind::Mapped(idx)) => {{
 				let pos = u16::from_le_bytes([idx.a, idx.b]) as usize;
 				let ch = MAP_STR[pos];
 				if idx.l > 1 {{ self.remap.replace((pos + 1, idx.l - 1)); }}
 				Some(ch)
 			}},
+			Some(CharKind::Ignored) => self.next(),
 			None => {{
 				*self.error = true;
 				None
