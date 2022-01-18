@@ -67,7 +67,7 @@ fn idna() {
 	let raw = idna_load_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
-	let (map_str, map, ranges_len, ranges) = idna_build(raw);
+	let (map_str, map, map_len) = idna_build(raw);
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna.rs"))
@@ -79,8 +79,7 @@ fn idna() {
 		include_str!("./skel/idna.rs.txt"),
 		map_str = map_str,
 		map = map,
-		ranges = ranges,
-		ranges_len = ranges_len,
+		map_len = map_len,
 	)
 		.and_then(|_| file.flush())
 		.expect("Unable to save reference list.");
@@ -92,7 +91,7 @@ fn idna() {
 /// * A static hash map of all single-character entries (valid, ignored, mapped);
 /// * A single static string containing all possible mapping replacements. There are a few duplicates, so keeping it contiguous cuts down on the size of the data.
 /// * A nested `match` branch to identify ranged-character entries.
-fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
+fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Build a map substitution string containing each possible substitution,
 	// with the occasional overlap allowed.
 	let map_str: Vec<char> = idna_crunch_superstring(raw.iter()
@@ -119,53 +118,52 @@ fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 		panic!("Mising mapping {}", src);
 	};
 
-	// Single-char entries are stored as (char, type).
-	let mut map: Vec<(u32, String)> = Vec::with_capacity(8192);
-
-	// Ranged values are handled separately.
-	let mut ranged: Vec<(u32, u32, String)> = Vec::with_capacity(1024);
-
-	// Separate the raw data into single and ranged entries.
-	for (first, last, label, sub) in raw {
-		// Single.
-		if first == last {
-			if sub.is_empty() {
-				map.push((first, label.as_str().to_string()));
-			}
-			else {
-				let (lo, hi, len) = find_map_str(&sub);
-				map.push((
-					first,
-					format!("CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})", lo, hi, len)
-				));
-			}
-
-			continue;
+	// Update the mappings.
+	for (first, last, label, sub) in &mut raw {
+		assert!(first <= last, "Invalid range.");
+		if ! sub.is_empty() {
+			let (lo, hi, len) = find_map_str(sub);
+			*label = IdnaLabel::Mapped(lo, hi, len);
 		}
-
-		// Skip the following very common valid ranges; we'll specialize them!
-		if
-			(first == '-' as u32 && last == '.' as u32) ||
-			(first == 'a' as u32 && last == 'z' as u32) ||
-			(first == '0' as u32 && last == '9' as u32)
-		{ continue; }
-
-		// Ranged.
-		let rg_label =
-			match label {
-				IdnaLabel::Valid | IdnaLabel::Ignored => label.as_str().to_string(),
-				IdnaLabel::Mapped => {
-					let (lo, hi, len) = find_map_str(&sub);
-					format!(
-						"CharKind::Mapped(MapIdx {{ a: {}, b: {}, l: {} }})",
-						lo,
-						hi,
-						len,
-					)
-				},
-			};
-		ranged.push((first, last, rg_label));
 	}
+
+	// Reformat!
+	let mut map: Vec<(u32, Option<u32>, IdnaLabel)> = raw.into_iter()
+		.filter_map(|(first, last, label, _)|
+			// We'll specialize these common cases.
+			if
+				(first == '-' as u32 && last == '.' as u32) ||
+				(first == 'a' as u32 && last == 'z' as u32) ||
+				(first == '0' as u32 && last == '9' as u32)
+			{ None }
+			else if first == last { Some((first, None, label)) }
+			else { Some((first, Some(last), label)) }
+		)
+		.collect();
+
+	let map_len: usize = map.len();
+	map.sort_by(|a, b| a.0.cmp(&b.0));
+
+	// Reformat again, this time for output.
+	// Format the array.
+	let map = format!(
+		"static MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
+		map_len,
+		map.into_iter()
+			.map(|(first, last, label)|
+				if let Some(last) = last {
+					format!(
+						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {})",
+						format_u32(first),
+						format_u32(last),
+						label,
+					)
+				}
+				else { format!("({}, None, {})", format_u32(first), label) }
+			)
+			.collect::<Vec<String>>()
+			.join(", "),
+	);
 
 	// Reformat MAP_STR one last time into an array with proper char notation
 	// to keep the linter happy.
@@ -181,34 +179,16 @@ fn idna_build(raw: RawIdna) -> (String, String, usize, String) {
 			.join(", ")
 	);
 
-	let (ranges_len, ranges) = idna_build_ranged(ranged);
-
-	let len: usize = map.len();
-	map.sort_by(|a, b| a.0.cmp(&b.0));
-
-	// Format the array.
-	let map = format!(
-		"/// # Map.\nstatic MAP: [(u32, CharKind); {}] = [{}];",
-		len,
-		map.into_iter()
-			.map(|(k, v)| format!(
-				"({}, {})",
-				NiceU32::from(k).as_str().replace(",", "_"),
-				v
-			))
-			.collect::<Vec<String>>()
-			.join(", "),
-	);
-
 	// Done!
-	(map_str, map, ranges_len, ranges)
+	(map_str, map, map_len)
 }
 
+/*
 /// # Build Ranged Code.
 ///
 /// This compiles the ranged matches into a sorted array, which we jump
 /// through at runtime using a custom binary search function.
-fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> (usize, String) {
+fn idna_build_ranged(mut raw: Vec<(u32, u32, IdnaLabel)>) -> (usize, String) {
 	// Sort!
 	raw.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -217,8 +197,8 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> (usize, String) {
 	let entries: Vec<String> = raw.into_iter()
 		.map(|(start, end, kind)| format!(
 			"({}_u32, {}_u32, {})",
-			NiceU32::from(start).as_str().replace(",", "_"),
-			NiceU32::from(end).as_str().replace(",", "_"),
+			format_u32(start),
+			format_u32(end),
 			kind
 		))
 		.collect();
@@ -231,7 +211,7 @@ fn idna_build_ranged(mut raw: Vec<(u32, u32, String)>) -> (usize, String) {
 			entries.join(", "),
 		),
 	)
-}
+}*/
 
 /// # Parse Superstring.
 ///
@@ -403,13 +383,13 @@ fn idna_load_data() -> RawIdna {
 			None => continue,
 		};
 
-		let label = match idna_parse_label(line[1]) {
+		let label = match IdnaLabel::from_str(line[1]) {
 			Some(x) => x,
 			None => continue,
 		};
 
 		let sub =
-			if label != IdnaLabel::Mapped { String::new() }
+			if matches!(label, IdnaLabel::Valid | IdnaLabel::Ignored) { String::new() }
 			else if let Some(sub) = line.get(2) {
 				sub.split_ascii_whitespace()
 					.map(|x| u32::from_str_radix(x, 16).expect("Invalid u32."))
@@ -454,23 +434,6 @@ fn idna_load_data() -> RawIdna {
 	// Third pass: sort out one more time, just in case.
 	out.sort_by(|a, b| a.0.cmp(&b.0));
 	out
-}
-
-/// # Parse Labels.
-///
-/// The raw IDNA/Unicode tables have a lot of different types to accommodate
-/// different standards releases (backward compatibility, etc.). Because this
-/// library is highly opinionated, we can boil them down to just three kinds:
-/// * Valid: the character can be passed through as-is.
-/// * Ignored: the character is silently discarded.
-/// * Mapped: the character is transformed into one or more alternative characters.
-fn idna_parse_label(src: &str) -> Option<IdnaLabel> {
-	match src {
-		"valid" | "deviation" => Some(IdnaLabel::Valid),
-		"ignored"=> Some(IdnaLabel::Ignored),
-		"mapped" => Some(IdnaLabel::Mapped),
-		_ => None,
-	}
 }
 
 /// # Parse Range.
@@ -671,7 +634,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		"/// # Map Keys.\nstatic MAP_K: [u64; {}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {}] = [{}];",
 		len,
 		map_keys.into_iter()
-			.map(|k| NiceU64::from(k).as_str().replace(",", "_"))
+			.map(format_u64)
 			.collect::<Vec<String>>()
 			.join(", "),
 		len,
@@ -923,16 +886,32 @@ fn try_cache(path: &Path) -> Option<String> {
 enum IdnaLabel {
 	Valid,
 	Ignored,
-	Mapped,
+	Mapped(u8, u8, u8),
+}
+
+impl std::fmt::Display for IdnaLabel {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::Valid => f.write_str("CharKind::Valid"),
+			Self::Ignored => f.write_str("CharKind::Ignored"),
+			Self::Mapped(a, b, l) => write!(
+				f,
+				"CharKind::Mapped({}, {}, {})",
+				a,
+				b,
+				l,
+			),
+		}
+	}
 }
 
 impl IdnaLabel {
-	/// # Global Label.
-	const fn as_str(self) -> &'static str {
-		match self {
-			Self::Valid => "CharKind::Valid",
-			Self::Ignored => "CharKind::Ignored",
-			Self::Mapped => "CharKind::Mapped",
+	fn from_str(src: &str) -> Option<Self> {
+		match src {
+			"valid" | "deviation" => Some(IdnaLabel::Valid),
+			"ignored"=> Some(IdnaLabel::Ignored),
+			"mapped" => Some(IdnaLabel::Mapped(0, 0, 0)),
+			_ => None,
 		}
 	}
 }
@@ -951,4 +930,18 @@ fn hash_tld(src: &[u8]) -> u64 {
 	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
 	hasher.write(src);
 	hasher.finish()
+}
+
+/// # Format U32.
+///
+/// This formats a `u32` with `_` separators for the thousands.
+fn format_u32(src: u32) -> String {
+	NiceU32::from(src).as_str().replace(",", "_")
+}
+
+/// # Format U64.
+///
+/// This formats a `u64` with `_` separators for the thousands.
+fn format_u64(src: u64) -> String {
+	NiceU64::from(src).as_str().replace(",", "_")
 }
