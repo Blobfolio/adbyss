@@ -904,7 +904,7 @@ fn idna_normalize_b(src: &str, out: &mut String) -> bool {
 ///
 /// This pass is used when no PUNY decoding is necessary.
 fn idna_normalize_c(src: &str) -> Option<String> {
-	let mut out = String::with_capacity(src.len());
+	let mut out = String::with_capacity(253);
 	let mut first = true;
 	let mut parts: u8 = 0;
 	let is_bidi: bool = idna_has_bidi(src);
