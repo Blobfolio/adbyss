@@ -712,7 +712,6 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	let mut first = true;
 	let mut parts: u8 = 0;
 	for part in normalized.split('.') {
-		parts += 1;
 		if first { first = false; }
 		else { scratch.push('.'); }
 
@@ -723,6 +722,8 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 			scratch.push_str(PREFIX);
 			if ! puny::encode_into(&part.chars(), &mut scratch) { return None; }
 		}
+
+		parts += 1;
 	}
 
 	// One last validation pass.
@@ -840,9 +841,6 @@ fn idna_normalize_b(src: &str, out: &mut String) -> bool {
 				None => return false,
 			};
 
-			// Check for BIDI again.
-			if ! is_bidi && idna_has_bidi(&decoded_part) { is_bidi = true; }
-
 			// Make sure the decoded version didn't introduce anything
 			// illegal.
 			if
@@ -852,17 +850,20 @@ fn idna_normalize_b(src: &str, out: &mut String) -> bool {
 				return false;
 			}
 
+			// Check for BIDI again.
+			if ! is_bidi && idna_has_bidi(&decoded_part) { is_bidi = true; }
+
 			out.push_str(&decoded_part);
 		}
 		// Handle normal chunk.
 		else {
+			// This is already NFC, but might be weird in other ways.
+			if ! idna_check_validity(part, false) { return false; }
+
 			// Check for BIDI.
 			if ! is_bidi && ! part.is_ascii() && idna_has_bidi(part) {
 				is_bidi = true;
 			}
-
-			// This is already NFC, but might be weird in other ways.
-			if ! idna_check_validity(part, false) { return false; }
 
 			out.push_str(part);
 		}
@@ -886,10 +887,7 @@ fn idna_normalize_c(src: &str) -> Option<String> {
 		else { out.push('.'); }
 
 		// This is already NFC, but might be weird in other ways.
-		if
-			! idna_check_validity(part, false) ||
-			(is_bidi && ! idna_check_bidi(part))
-		{
+		if ! idna_check_validity(part, false) || (is_bidi && ! idna_check_bidi(part)) {
 			return None;
 		}
 
@@ -906,7 +904,7 @@ fn idna_normalize_c(src: &str) -> Option<String> {
 		parts += 1;
 	}
 
-	if parts > 1 && out.len() < 254 { Some(out) }
+	if 1 < parts && out.len() < 254 { Some(out) }
 	else { None }
 }
 
