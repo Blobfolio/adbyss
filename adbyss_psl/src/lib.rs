@@ -738,38 +738,72 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 ///
 /// See also: <http://tools.ietf.org/html/rfc5893#section-2>
 fn idna_check_bidi(part: &str) -> bool {
-	let mut chars = part.chars();
-	match bidi_class(chars.next().unwrap()) {
+	let mut chars = part.chars().map(bidi_class);
+	match chars.next().unwrap() {
 		// LTR.
-		BidiClass::L =>
-			chars.all(|ch| matches!(
-				bidi_class(ch),
-				BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
-				BidiClass::ET | BidiClass::L | BidiClass::NSM | BidiClass::ON
-			)) &&
-			idna_last_nom(part).map_or(
-				true,
-				|c| matches!(bidi_class(c), BidiClass::L | BidiClass::EN)
-			),
+		BidiClass::L => {
+			let mut nom: bool = false;
 
-		// RTL.
-		BidiClass::R | BidiClass::AL => {
-			let mut has_en = false;
-			let mut has_an = false;
-			for c in chars {
-				match bidi_class(c) {
-					BidiClass::EN => { has_en = true; },
-					BidiClass::AN => { has_an = true; },
-					BidiClass::AL | BidiClass::BN | BidiClass::CS | BidiClass::ES |
-					BidiClass::ET | BidiClass::NSM | BidiClass::ON | BidiClass::R => {},
+			// Reverse the iterator; looking from the end makes it easier to
+			// check the value of the last non-NSM character.
+			for c in chars.rev() {
+				match c {
+					BidiClass::NSM => {},
+					BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
+					BidiClass::ET | BidiClass::L | BidiClass::ON => if ! nom {
+						// The last non-NSM character must be L or EN.
+						if c == BidiClass::L || c == BidiClass::EN {
+							nom = true;
+						}
+						else { return false; }
+					},
+					// Conflicting BIDI.
 					_ => return false,
 				}
 			}
 
-			(! has_an || ! has_en) &&
-			idna_last_nom(part)
-				.filter(|&c| matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::EN | BidiClass::AN))
-				.is_some()
+			true
+		},
+
+		// RTL.
+		BidiClass::R | BidiClass::AL => {
+			let mut has_an: bool = false;
+			let mut has_en: bool = false;
+			let mut nom: bool = false;
+
+			// Reverse the iterator; looking from the end makes it easier to
+			// check the value of the last non-NSM character.
+			for c in chars.rev() {
+				match c {
+					BidiClass::AN => {
+						// There cannot be both AN and EN present.
+						if has_en { return false; }
+						else { has_an = true; }
+						nom = true;
+					},
+					BidiClass::EN => {
+						// There cannot be both AN and EN present.
+						if has_an { return false; }
+						else { has_en = true; }
+						nom = true;
+					},
+					BidiClass::NSM => {},
+					BidiClass::AL | BidiClass::BN | BidiClass::CS | BidiClass::ES |
+					BidiClass::ET | BidiClass::ON | BidiClass::R => if ! nom {
+						// The last non-NSM character must be R, AL, AN, or EN.
+						// AN/EN hit a different match ram, so here we're only
+						// looking for R or AL.
+						if c == BidiClass::R || c == BidiClass::AL {
+							nom = true;
+						}
+						else { return false; }
+					},
+					// Conflicting BIDI.
+					_ => return false,
+				}
+			}
+
+			true
 		},
 
 		// Neither.
@@ -811,13 +845,6 @@ fn idna_has_bidi(part: &str) -> bool {
 			! c.is_ascii_graphic() &&
 			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
 		)
-}
-
-/// # Return Last non-NSM Char.
-fn idna_last_nom(part: &str) -> Option<char> {
-	part.chars()
-		.rev()
-		.find(|&c| ! matches!(bidi_class(c), BidiClass::NSM))
 }
 
 /// # Normalize Domain (B).
