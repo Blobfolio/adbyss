@@ -35,10 +35,13 @@ fn map_get(ch: u32) -> Option<CharKind> {{
 	let mut right = size;
 
 	while left < right {{
+		// Just as in Rust's `binary_search`, `mid` cannot exceed the haystack
+		// size.
 		let mid = left + size / 2;
-		let cmp = ch.cmp(&MAP[mid].0);
+		assert!(mid < {map_len});
 
 		// The char is too small.
+		let cmp = ch.cmp(&MAP[mid].0);
 		if cmp == Ordering::Less {{ right = mid; }}
 		// Maybe…
 		else if cmp == Ordering::Greater {{
