@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.6.0
-    Generated: 2022-01-13 19:48:10 UTC
+    Version:   0.6.1
+    Generated: 2022-01-19 22:06:16 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.6.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.6.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.6.1 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.6.1 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.7.6 | [Tom Kaitchuck](mailto:Tom.Kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.18 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
@@ -27,13 +27,13 @@
 | [flate2](https://github.com/rust-lang/flate2-rs) | 1.0.22 | [Alex Crichton](mailto:alex@alexcrichton.com) and [Josh Triplett](mailto:josh@joshtriplett.org) | Apache-2.0 or MIT |
 | [form_urlencoded](https://github.com/servo/rust-url) | 1.0.1 | The rust-url developers | Apache-2.0 or MIT |
 | [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [getrandom](https://github.com/rust-random/getrandom) | 0.2.3 | The Rand Project Developers | Apache-2.0 or MIT |
+| [getrandom](https://github.com/rust-random/getrandom) | 0.2.4 | The Rand Project Developers | Apache-2.0 or MIT |
 | [hashbrown](https://github.com/rust-lang/hashbrown) | 0.11.2 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
 | [hermit-abi](https://github.com/hermitcore/libhermit-rs) | 0.1.19 | Stefan Lankes | Apache-2.0 or MIT |
 | [idna](https://github.com/servo/rust-url/) | 0.2.3 | The rust-url developers | Apache-2.0 or MIT |
 | [indexmap](https://github.com/bluss/indexmap) | 1.8.0 | bluss and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
 | [instant](https://github.com/sebcrozet/instant) | 0.1.12 | [sebcrozet](mailto:developer@crozet.re) | BSD-3-Clause |
-| [js-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys) | 0.3.55 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [js-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys) | 0.3.56 | The wasm-bindgen Developers | Apache-2.0 or MIT |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 or MIT |
 | [libc](https://github.com/rust-lang/libc) | 0.2.112 | The Rust Project Developers | Apache-2.0 or MIT |
 | [linked-hash-map](https://github.com/contain-rs/linked-hash-map) | 0.5.4 | [Stepan Koltsov](mailto:stepan.koltsov@gmail.com) and [Andrew Paseltiner](mailto:apaseltiner@gmail.com) | Apache-2.0 or MIT |
@@ -75,12 +75,12 @@
 | [url](https://github.com/servo/rust-url) | 2.2.2 | The rust-url developers | Apache-2.0 or MIT |
 | [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.3 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [wasi](https://github.com/bytecodealliance/wasi) | 0.10.2+wasi-snapshot-preview1 | The Cranelift Project Developers | Apache-2.0, Apache-2.0 WITH LLVM-exception, or MIT |
-| [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 or MIT |
-| [wasm-bindgen-backend](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/backend) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 or MIT |
-| [wasm-bindgen-macro](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 or MIT |
-| [wasm-bindgen-macro-support](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro-support) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 or MIT |
-| [wasm-bindgen-shared](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/shared) | 0.2.78 | The wasm-bindgen Developers | Apache-2.0 or MIT |
-| [web-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/web-sys) | 0.3.55 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen) | 0.2.79 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [wasm-bindgen-backend](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/backend) | 0.2.79 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [wasm-bindgen-macro](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro) | 0.2.79 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [wasm-bindgen-macro-support](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro-support) | 0.2.79 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [wasm-bindgen-shared](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/shared) | 0.2.79 | The wasm-bindgen Developers | Apache-2.0 or MIT |
+| [web-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/web-sys) | 0.3.56 | The wasm-bindgen Developers | Apache-2.0 or MIT |
 | [webpki](https://github.com/briansmith/webpki) | 0.22.0 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [webpki-roots](https://github.com/rustls/webpki-roots) | 0.22.2 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | MPL-2.0 |
 | [winapi](https://github.com/retep998/winapi-rs) | 0.3.9 | [Peter Atashian](mailto:retep998@gmail.com) | Apache-2.0 or MIT |

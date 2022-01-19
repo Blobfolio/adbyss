@@ -48,44 +48,49 @@ pub(crate) const AHASH_STATE: ahash::RandomState = ahash::RandomState::with_seed
 /// # Flag: All Sources.
 ///
 /// This flag enables all shitlist sources.
-pub const FLAG_ALL: u8         = 0b0000_1111;
+pub const FLAG_ALL: u8 =         0b0001_1111;
 
 /// # Flag: `AdAway`.
 ///
 /// This flag enables the `AdAway` shitlist.
-pub const FLAG_ADAWAY: u8      = 0b0000_0001;
+pub const FLAG_ADAWAY: u8 =      0b0000_0001;
 
 /// # Flag: `Adbyss`.
 ///
 /// This flag enables `Adbyss`' internal shitlist.
-pub const FLAG_ADBYSS: u8      = 0b0000_0010;
+pub const FLAG_ADBYSS: u8 =      0b0000_0010;
 
 /// # Flag: `Steven Black`.
 ///
 /// This flag enables the `Steven Black` shitlist.
 pub const FLAG_STEVENBLACK: u8 = 0b0000_0100;
 
+/// # Flag: `YouTube`.
+///
+/// This flag enables the `YouTube` ad block list maintained by `Ewpratten`.
+pub const FLAG_YOUTUBE: u8 =     0b0000_1000;
+
 /// # Flag: `Yoyo`.
 ///
 /// This flag enables the `Yoyo` shitlist.
-pub const FLAG_YOYO: u8        = 0b0000_1000;
+pub const FLAG_YOYO: u8 =        0b0001_0000;
 
 /// # Flag: Backup Before Writing.
 ///
 /// When writing to an existing file, a backup of the original will be made
 /// first.
-pub const FLAG_BACKUP: u8      = 0b0001_0000;
+pub const FLAG_BACKUP: u8 =      0b0010_0000;
 
 /// # Flag: Compact Output.
 ///
 /// Group subdomains by their top-level domain, reducing the total number of
 /// lines written to the hostfile (as well as its overall disk size).
-pub const FLAG_COMPACT: u8     = 0b0010_0000;
+pub const FLAG_COMPACT: u8 =     0b0100_0000;
 
 /// # Flag: Non-Interactive Mode.
 ///
 /// This flag bypasses the confirmation when writing to an existing file.
-pub const FLAG_Y: u8           = 0b0100_0000;
+pub const FLAG_Y: u8 =           0b1000_0000;
 
 /// # Maximum Host Line.
 ///

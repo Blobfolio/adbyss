@@ -1,28 +1,15 @@
 /*!
 # Adbyss PSL - IDNA
 
-This is a reworking of the punycode handling provided by the excellent [idna](https://github.com/servo/rust-url/) crate.
-
-Unused functionality has been removed, types and arguments have been adjusted
-and tweaked based on our specific use cases, etc.
-
-The original license:
-
-Copyright 2016 The rust-url developers.
-
-Licensed under the Apache License, Version 2.0 [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0)
-or the [MIT license](http://opensource.org/licenses/MIT) at your option.
-This file may not be copied, modified, or distributed except according to
-those terms.
+This module includes a `decode` method for converting PUNYCODE into Unicode,
+and an `encode_into` method that converts Unicode into PUNYCODE. This library
+ultimately only cares about ASCII, but validation requires checking the
+underlying Unicode, so we have to do both when the source contains PUNYCODE.
 */
 
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::integer_division)]
 #![allow(clippy::cast_possible_truncation)]
-
-
-
-use std::str::Chars;
 
 
 
@@ -38,187 +25,111 @@ static DELIMITER: char = '-';
 
 
 
-#[derive(Default)]
-/// # Decoder!
-pub(super) struct Decoder {
-	inserts: Vec<(u32, char)>,
-}
+#[allow(clippy::many_single_char_names)]
+/// # Decode!
+///
+/// This method decodes an existing PUNYCODE chunk, converting it back into the
+/// original Unicode.
+///
+/// Note: this method has to allocate because PUNYCODE requires some weird
+/// shuffling; we can't just pop things directly where they need to go.
+pub(super) fn decode(input: &[char]) -> Option<Vec<char>> {
+	let (mut output, input): (Vec<char>, &[char]) = input.iter()
+		.rposition(|c| DELIMITER.eq(c))
+		.map_or_else(
+			|| (Vec::new(), input),
+			|pos| (input[..pos].to_vec(), &input[pos + 1..])
+		);
 
-impl Decoder {
-	/// # Decode Iterator
-	///
-	/// Split the input string and return a vector with encoded character
-	/// insertions.
-	pub(super) fn decode<'a>(&'a mut self, input: &'a str) -> Option<Decode<'a>> {
-		self.inserts.clear();
+	let mut n: u32 = INITIAL_N;
+	let mut i: u32 = 0;
+	let mut bias: u32 = INITIAL_BIAS;
 
-		// Handle basic ASCII codepoints, which are encoded as-are before the
-		// last delimiter.
-		let (base, input): (&str, &str) = match input.rfind(DELIMITER) {
-			None => ("", input),
-			Some(pos) => (
-				&input[..pos],
-				if pos > 0 { &input[pos + 1..] }
-				else { input },
-			),
-		};
+	let mut it = input.iter().copied().peekable();
+	while it.peek() != None {
+		let old_i = i;
+		let mut weight = 1;
 
-		if ! base.is_ascii() { return None; }
-
-		let base_len: usize = base.len();
-		let mut length: u32 = base_len as u32;
-		let mut code_point: u32 = INITIAL_N;
-		let mut bias: u32 = INITIAL_BIAS;
-		let mut i: u32 = 0;
-		let mut iter = input.bytes();
-		loop {
-			let previous_i: u32 = i;
-			let mut weight: u32 = 1;
-			let mut k: u32 = BASE;
-			let mut byte: u8 = match iter.next() {
-				None => break,
-				Some(byte) => byte,
-			};
-
-			// Decode a generalized variable-length integer into delta,
-			// which gets added to i.
-			loop {
-				let digit = match byte {
-					byte @ b'0'..=b'9' => byte - b'0' + 26,
-					byte @ b'A'..=b'Z' => byte - b'A',
-					byte @ b'a'..=b'z' => byte - b'a',
-					_ => return None,
-				} as u32;
-
-				// Overflow.
-				if digit > (u32::MAX - i) / weight {
-					return None;
-				}
-
-				i += digit * weight;
-				let t =
-					if k <= bias { T_MIN }
-					else if k >= bias + T_MAX { T_MAX }
-					else { k - bias };
-
-				if digit < t { break; }
-
-				// Overflow.
-				if weight > u32::MAX / (BASE - t) {
-					return None;
-				}
-
-				weight *= BASE - t;
-				k += BASE;
-				byte = iter.next()?;
-			}
-
-			bias = adapt(i - previous_i, length + 1, previous_i == 0);
-
-			// Overflow.
-			if i / (length + 1) > u32::MAX - code_point {
+		for k in 1.. {
+			let c = it.next().filter(char::is_ascii)?;
+			let k = k * BASE;
+			let digit = decode_digit(c);
+			if digit == BASE {
 				return None;
 			}
 
-			code_point += i / (length + 1);
-			i %= length + 1;
-			let c = char::from_u32(code_point)?;
+			if digit > (u32::MAX - i) / weight { return None; }
+			i += digit * weight;
 
-			// Move earlier inserts farther out into the string.
-			for (idx, _) in &mut self.inserts {
-				if *idx >= i {
-					*idx += 1;
-				}
-			}
-			self.inserts.push((i, c));
-			length += 1;
-			i += 1;
+			let t =
+				if T_MIN + bias >= k { T_MIN }
+				else if T_MAX + bias <= k { T_MAX }
+				else { k - bias };
+
+			if digit < t { break; }
+
+			if BASE > (u32::MAX - t) / weight { return None; }
+			weight *= BASE - t;
 		}
 
-		self.inserts.sort_by_key(|(i, _)| *i);
-		Some(Decode {
-			base: base.chars(),
-			inserts: &self.inserts,
-			inserted: 0,
-			pos: 0,
-			len: base_len + self.inserts.len(),
-		})
-	}
-}
+		let len = (output.len() + 1) as u32;
+		bias = adapt(i - old_i, len, old_i == 0);
 
-/// # Decode Iterator.
-pub(super) struct Decode<'a> {
-	base: Chars<'a>,
-	inserts: &'a [(u32, char)],
-	inserted: u32,
-	pos: u32,
-	len: usize,
-}
+		let il = i / len;
+		if n > u32::MAX - il { return None; }
+		n += il;
+		i %= len;
 
-impl<'a> Iterator for Decode<'a> {
-	type Item = char;
+		let c = char::from_u32(n)?;
+		output.insert(i as usize, c);
 
-	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			match self.inserts.get(self.inserted as usize) {
-				Some((p, c)) if self.pos.eq(p) => {
-					self.inserted += 1;
-					self.pos += 1;
-					return Some(*c);
-				},
-				_ => {},
-			}
-
-			if let Some(c) = self.base.next() {
-				self.pos += 1;
-				return Some(c);
-			}
-
-			if self.inserted as usize >= self.inserts.len() {
-				return None;
-			}
-		}
+		i += 1;
 	}
 
-	#[inline]
-	fn size_hint(&self) -> (usize, Option<usize>) {
-		let len = self.len - self.pos as usize;
-		(len, Some(len))
-	}
-}
-
-impl<'a> ExactSizeIterator for Decode<'a> {
-	#[inline]
-	fn len(&self) -> usize { self.len - self.pos as usize }
+	Some(output)
 }
 
 #[allow(clippy::comparison_chain)] // We're only matching 2/3 arms.
 /// # Encode!
-pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
-	// We can gather a lot of preliminary information in a single iteration.
-	let mut input_length: u32 = 0;
-	let mut basic_length: u32 = 0;
-	for c in input.clone() {
-		input_length += 1;
+///
+/// This converts Unicode into PUNYCODE ASCII, writing the output directly to
+/// the specified buffer.
+///
+/// This method is a reworking of the encoding methods provided by the `idna`
+/// crate. It is close enough to the original that it bears mention. Their
+/// license is as follows:
+///
+/// Copyright 2016 The rust-url developers.
+///
+/// Licensed under the Apache License, Version 2.0 [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0)
+/// or the [MIT license](http://opensource.org/licenses/MIT) at your option.
+/// This file may not be copied, modified, or distributed except according to
+/// those terms.
+pub(super) fn encode_into(input: &[char], output: &mut String) -> bool {
+	let mut written: u8 = 0;
+	for c in input {
 		if c.is_ascii() {
-			output.push(c);
-			basic_length += 1;
+			output.push(*c);
+			written += 1;
 		}
 	}
 
+	let basic_length: u32 = written as u32;
 	if basic_length > 0 {
-		output.push('-');
+		output.push(DELIMITER);
+		written += 1;
 	}
 
 	let mut code_point: u32 = INITIAL_N;
 	let mut delta: u32 = 0;
 	let mut bias: u32 = INITIAL_BIAS;
 	let mut processed: u32 = basic_length;
+	let input_length: u32 = input.len() as u32;
 	while processed < input_length {
 		// Find the next largest codepoint.
-		let min_code_point = input.clone()
+		let min_code_point = input.iter()
 			.filter_map(|c| {
-				let c = c as u32;
+				let c = *c as u32;
 				if c >= code_point { Some(c) }
 				else { None }
 			})
@@ -233,11 +144,8 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		delta += (min_code_point - code_point) * (processed + 1);
 		code_point = min_code_point;
 
-		for c in input.clone().map(|c| c as u32) {
-			if c < code_point {
-				delta += 1;
-				if delta == 0 { return false; }
-			}
+		for c in input.iter().map(|c| *c as u32) {
+			if c < code_point { delta += 1; }
 
 			else if c == code_point {
 				let mut q = delta;
@@ -252,10 +160,12 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 
 					let value = t + ((q - t) % (BASE - t));
 					output.push(value_to_digit(value));
+					written += 1;
 					q = (q - t) / (BASE - t);
 					k += BASE;
 				}
 				output.push(value_to_digit(q));
+				written += 1;
 				bias = adapt(delta, processed + 1, processed == basic_length);
 				delta = 0;
 				processed += 1;
@@ -266,7 +176,9 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		code_point += 1;
 	}
 
-	true
+	// Make sure the chunk is appropriately sized. (The upper limit is 63, but
+	// we already wrote "xn--", so -4 is 59.)
+	0 < written && written <= 59
 }
 
 
@@ -281,6 +193,17 @@ fn adapt(mut delta: u32, num_points: u32, first_time: bool) -> u32 {
 		k += BASE;
 	}
 	k + (((BASE - T_MIN + 1) * delta) / (delta + SKEW))
+}
+
+#[inline]
+fn decode_digit(c: char) -> u32 {
+	let cp = c as u32;
+	match c {
+		'0'..='9' => cp - ('0' as u32) + 26,
+		'A'..='Z' => cp - ('A' as u32),
+		'a'..='z' => cp - ('a' as u32),
+		_ => BASE,
+	}
 }
 
 #[inline]

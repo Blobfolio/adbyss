@@ -4,14 +4,15 @@
 
 use adbyss_core::{
 	AdbyssError,
-	Shitlist,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_ALL,
 	FLAG_BACKUP,
-	FLAG_STEVENBLACK,
-	FLAG_YOYO,
 	FLAG_COMPACT,
+	FLAG_STEVENBLACK,
+	FLAG_YOUTUBE,
+	FLAG_YOYO,
+	Shitlist,
 };
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -41,6 +42,9 @@ pub(super) struct Settings {
 	source_stevenblack: bool,
 
 	#[serde(default = "default_true")]
+	source_youtube: bool,
+
+	#[serde(default = "default_true")]
 	source_yoyo: bool,
 
 	#[serde(default = "Vec::new")]
@@ -62,6 +66,7 @@ impl Default for Settings {
 			source_adaway: true,
 			source_adbyss: true,
 			source_stevenblack: true,
+			source_youtube: true,
 			source_yoyo: true,
 			exclude: Vec::new(),
 			regexclude: Vec::new(),
@@ -100,6 +105,7 @@ impl Settings {
 		if ! self.source_adbyss { flags &= ! FLAG_ADBYSS; }
 		if ! self.source_adaway { flags &= ! FLAG_ADAWAY; }
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
+		if ! self.source_youtube { flags &= ! FLAG_YOUTUBE; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
 
 		// And build!

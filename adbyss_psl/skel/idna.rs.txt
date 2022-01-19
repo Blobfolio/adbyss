@@ -1,40 +1,63 @@
-static MAP_STR: &str = "{map_str}";
+/// # Remappings.
+///
+/// This array holds all of the different IDNA/Unicode remapping sequences.
+/// There is a lot of overlap, so individual remappings are referenced as
+/// ranges of this array.
+///
+/// This will look like: `static MAP_STR: [char]`
+{map_str}
+
+/// # Status Map.
+///
+/// This holds all of the code points and ranges the IDNA/Unicode standard
+/// tolerates, along with the status. Anything not in this table is implicitly
+/// forbidden, except lowercase alphanumeric, dashes, and dots, whose mappings
+/// are specialized elsewhere.
+///
+/// This will look like: `static MAP: [(u32, Option<NonZeroU32>, CharKind)]`
 {map}
 
-#[derive(Clone, Copy)]
-pub(super) struct MapIdx {{
-	a: u8,
-	b: u8,
-	l: u8,
-}}
 
-impl MapIdx {{
-	#[inline]
-	pub(super) fn as_str(self) -> &'static str {{
-		let start = u16::from_le_bytes([self.a, self.b]) as usize;
-		unsafe {{ MAP_STR.get_unchecked(start..start + self.l as usize) }}
-	}}
-}}
 
-#[repr(u8)]
-#[derive(Clone, Copy)]
-/// # Char Kinds.
-pub(super) enum CharKind {{
-	Valid,
-	Ignored,
-	Mapped(MapIdx),
-}}
+#[allow(clippy::integer_division)]
+/// # Map Search.
+///
+/// This searches `MAP` for a given char (`u32`) key using a binary search
+/// strategy. Some entries in the map are ranges, so it has handling for that
+/// too.
+///
+/// If nothing is found, `None` is returned. This implies an invalid char,
+/// except when it is lowercase alphanumeric, a dash, or a dot; we specialize
+/// those cases elsewhere.
+fn map_get(ch: u32) -> Option<CharKind> {{
+	let mut size = {map_len};
+	let mut left = 0;
+	let mut right = size;
 
-impl CharKind {{
-	#[allow(clippy::too_many_lines)]
-	pub(super) fn from_char(ch: char) -> Option<Self> {{
-		if let Some(x) = map_get(ch) {{
-			return Some(x);
+	while left < right {{
+		// Just as in Rust's `binary_search`, `mid` cannot exceed the haystack
+		// size.
+		let mid = left + size / 2;
+		assert!(mid < {map_len});
+
+		// The char is too small.
+		let cmp = ch.cmp(&MAP[mid].0);
+		if cmp == Ordering::Less {{ right = mid; }}
+		// Maybe…
+		else if cmp == Ordering::Greater {{
+			// If this is a range, it's a direct hit if the char is <= the end.
+			if let Some(n) = MAP[mid].1 {{
+				if ch <= n.get() {{ return Some(MAP[mid].2); }}
+			}}
+
+			// Otherwise the char is too big.
+			left = mid + 1;
 		}}
+		// Direct hit!
+		else {{ return Some(MAP[mid].2); }}
 
-		match ch {{
-{from_char}
-			_ => None,
-		}}
+		size = right - left;
 	}}
+
+	None
 }}
