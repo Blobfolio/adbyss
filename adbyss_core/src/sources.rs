@@ -9,6 +9,7 @@ use crate::{
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_STEVENBLACK,
+	FLAG_YOUTUBE,
 	FLAG_YOYO,
 };
 use once_cell::sync::Lazy;
@@ -39,6 +40,8 @@ pub enum Source {
 	Adbyss,
 	/// StevenBlack.
 	StevenBlack,
+	/// Youtube.
+	YouTube,
 	/// Yoyo.
 	Yoyo,
 }
@@ -54,6 +57,7 @@ impl Source {
 			Self::AdAway => FLAG_ADAWAY,
 			Self::Adbyss => FLAG_ADBYSS,
 			Self::StevenBlack => FLAG_STEVENBLACK,
+			Self::YouTube => FLAG_YOUTUBE,
 			Self::Yoyo => FLAG_YOYO,
 		}
 	}
@@ -65,6 +69,7 @@ impl Source {
 			Self::AdAway => "AdAway",
 			Self::Adbyss => "Adbyss",
 			Self::StevenBlack => "Steven Black",
+			Self::YouTube => "YouTube",
 			Self::Yoyo => "Yoyo",
 		}
 	}
@@ -81,6 +86,7 @@ impl Source {
 				Self::AdAway => "_adbyss-adaway.tmp",
 				Self::Adbyss => "_adbyss.tmp",
 				Self::StevenBlack => "_adbyss-sb.tmp",
+				Self::YouTube => "_adbyss-yt.tmp",
 				Self::Yoyo => "_adbyss-yoyo.tmp",
 			}
 		);
@@ -98,6 +104,7 @@ impl Source {
 
 		match self {
 			Self::AdAway | Self::Yoyo => RE.replace_all(&src, "0.0.0.0 ").into_owned(),
+			Self::YouTube => src.lines().map(|line| ["0.0.0.0 ", line, "\n"].concat()).collect(),
 			_ => src,
 		}
 	}
@@ -111,6 +118,7 @@ impl Source {
 			Self::AdAway => "https://adaway.org/hosts.txt",
 			Self::Adbyss => "",
 			Self::StevenBlack => "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+			Self::YouTube => "https://raw.githubusercontent.com/Ewpratten/youtube_ad_blocklist/master/blocklist.txt",
 			Self::Yoyo => "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
 		}
 	}
@@ -169,7 +177,7 @@ impl Source {
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(80_000, AHASH_STATE);
 		out.par_extend(
-			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
+			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
 				.filter(|x| 0 != src & x.as_byte())
 				.map(|x| x.fetch_raw())
 				// Merge the raw data into a single block so we can better
