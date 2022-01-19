@@ -97,7 +97,10 @@ use unicode_bidi::{
 	bidi_class,
 	BidiClass,
 };
-use unicode_normalization::UnicodeNormalization;
+use unicode_normalization::{
+	IsNormalized,
+	UnicodeNormalization,
+};
 
 
 
@@ -683,7 +686,7 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	// Suck it into a string buffer, but also note whether we have any
 	// instances of PUNY prefixes.
 	let mut prefix: IdnaPrefix = IdnaPrefix::Dot;
-	let mut scratch = String::with_capacity(253);
+	let mut scratch: Vec<char> = Vec::with_capacity(253);
 	for c in iter {
 		scratch.push(c);
 		prefix = prefix.advance(c);
@@ -691,7 +694,8 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 
 	// Abort if there was an error, or we've ended up with trailing or leading
 	// dots.
-	if error || scratch.starts_with('.') || scratch.ends_with('.') {
+	let scratch_len: usize = scratch.len();
+	if error || scratch_len == 0 || scratch[0] == '.' || scratch[scratch_len - 1] == '.' {
 		return None;
 	}
 
@@ -702,25 +706,25 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 	}
 
 	// Otherwise we have to decode and validate each entry first.
-	let mut normalized = String::with_capacity(scratch.len());
+	let mut normalized: Vec<char> = Vec::with_capacity(scratch.len());
 	if ! idna_normalize_b(&scratch, &mut normalized) {
 		return None;
 	}
 
-	// Reset the scratch buffer to store our ASCIIfied output.
-	scratch.truncate(0);
+	// Now we can finally build the output.
+	let mut scratch = String::with_capacity(normalized.len());
 	let mut first = true;
 	let mut parts: u8 = 0;
-	for part in normalized.split('.') {
+	for part in normalized.split(|c| '.'.eq(c)) {
 		if first { first = false; }
 		else { scratch.push('.'); }
 
 		// ASCII is nice and easy.
-		if part.is_ascii() { scratch.push_str(part); }
+		if part.iter().all(char::is_ascii) { scratch.extend(part); }
 		// Unicode requires Punyfication.
 		else {
 			scratch.push_str(PREFIX);
-			if ! puny::encode_into(&part.chars(), &mut scratch) { return None; }
+			if ! puny::encode_into(part, &mut scratch) { return None; }
 		}
 
 		parts += 1;
@@ -737,16 +741,15 @@ fn idna_to_ascii_slow(src: &str) -> Option<String> {
 /// This runs extra checks for any domains containing BIDI control characters.
 ///
 /// See also: <http://tools.ietf.org/html/rfc5893#section-2>
-fn idna_check_bidi(part: &str) -> bool {
-	let mut chars = part.chars().map(bidi_class);
-	match chars.next().unwrap() {
+fn idna_check_bidi(part: &[char]) -> bool {
+	match bidi_class(part[0]) {
 		// LTR.
 		BidiClass::L => {
 			let mut nom: bool = false;
 
 			// Reverse the iterator; looking from the end makes it easier to
 			// check the value of the last non-NSM character.
-			for c in chars.rev() {
+			for c in part.iter().skip(1).rev().map(|c| bidi_class(*c)) {
 				match c {
 					BidiClass::NSM => {},
 					BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
@@ -773,18 +776,18 @@ fn idna_check_bidi(part: &str) -> bool {
 
 			// Reverse the iterator; looking from the end makes it easier to
 			// check the value of the last non-NSM character.
-			for c in chars.rev() {
+			for c in part.iter().skip(1).rev().map(|c| bidi_class(*c)) {
 				match c {
 					BidiClass::AN => {
 						// There cannot be both AN and EN present.
 						if has_en { return false; }
-						else { has_an = true; }
+						has_an = true;
 						nom = true;
 					},
 					BidiClass::EN => {
 						// There cannot be both AN and EN present.
 						if has_an { return false; }
-						else { has_en = true; }
+						has_en = true;
 						nom = true;
 					},
 					BidiClass::NSM => {},
@@ -818,29 +821,23 @@ fn idna_check_bidi(part: &str) -> bool {
 /// contain any restricted characters.
 ///
 /// See also: <http://www.unicode.org/reports/tr46/#Validity_Criteria>
-fn idna_check_validity(part: &str, deep: bool) -> bool {
-	let mut chars = part.chars();
-	let first = match chars.next() {
-		Some(ch) => ch,
-		None => return false,
-	};
+fn idna_check_validity(part: &[char], deep: bool) -> bool {
+	let len: usize = part.len();
 
-	part.len() < 64 &&
-	first != '-' &&
-	! part.ends_with('-') &&
-	! unicode_normalization::char::is_combining_mark(first) &&
-	(
-		! deep ||
-		// When we've decoded a chunk, we have to re-check it for correctness.
-		(CharKind::is_valid(first) && chars.all(CharKind::is_valid))
-	)
+	0 < len &&
+	len < 64 &&
+	part[0] != '-' &&
+	part[len - 1] != '-' &&
+	! unicode_normalization::char::is_combining_mark(part[0]) &&
+	(! deep || part.iter().copied().all(CharKind::is_valid))
 }
 
 /// # Has BIDI?
 ///
 /// This method checks for the presence of BIDI control characters.
-fn idna_has_bidi(part: &str) -> bool {
-	part.chars()
+fn idna_has_bidi(part: &[char]) -> bool {
+	part.iter()
+		.copied()
 		.any(|c|
 			! c.is_ascii_graphic() &&
 			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
@@ -853,34 +850,40 @@ fn idna_has_bidi(part: &str) -> bool {
 /// ensures each part passes all the rules it's supposed to pass.
 ///
 /// See also: <http://www.unicode.org/reports/tr46/#Processing>
-fn idna_normalize_b(src: &str, out: &mut String) -> bool {
+fn idna_normalize_b(src: &[char], out: &mut Vec<char>) -> bool {
 	let mut first = true;
 	let mut is_bidi = false;
-	for part in src.split('.') {
+	for part in src.split(|c| '.'.eq(c)) {
 		// Replace the dot lost in the split.
 		if first { first = false; }
 		else { out.push('.'); }
 
 		// Handle PUNY chunk.
-		if let Some(chunk) = part.strip_prefix(PREFIX) {
-			let decoded_part = match puny::decode(chunk) {
+		if let Some(chunk) = part.strip_prefix(&['x', 'n', '-', '-']) {
+			let mut decoded_part = match puny::decode(chunk) {
 				Some(s) => s,
 				None => return false,
 			};
 
 			// Make sure the decoded version didn't introduce anything
 			// illegal.
-			if
-				! unicode_normalization::is_nfc(&decoded_part) ||
-				! idna_check_validity(&decoded_part, true)
-			{
-				return false;
+			if ! idna_check_validity(&decoded_part, true) { return false; }
+
+			// We have to make sure the decoded bit is properly NFC.
+			match unicode_normalization::is_nfc_quick(decoded_part.iter().copied()) {
+				IsNormalized::Yes => {},
+				IsNormalized::No => return false,
+				IsNormalized::Maybe => {
+					if ! decoded_part.iter().copied().eq(decoded_part.iter().copied().nfc()) {
+						return false;
+					}
+				},
 			}
 
 			// Check for BIDI again.
 			if ! is_bidi && idna_has_bidi(&decoded_part) { is_bidi = true; }
 
-			out.push_str(&decoded_part);
+			out.append(&mut decoded_part);
 		}
 		// Handle normal chunk.
 		else {
@@ -888,27 +891,25 @@ fn idna_normalize_b(src: &str, out: &mut String) -> bool {
 			if ! idna_check_validity(part, false) { return false; }
 
 			// Check for BIDI.
-			if ! is_bidi && ! part.is_ascii() && idna_has_bidi(part) {
-				is_bidi = true;
-			}
+			if ! is_bidi && idna_has_bidi(part) { is_bidi = true; }
 
-			out.push_str(part);
+			out.extend_from_slice(part);
 		}
 	}
 
 	// Apply BIDI checks or we're done!
-	! is_bidi || out.split('.').all(idna_check_bidi)
+	! is_bidi || out.split(|c| '.'.eq(c)).all(idna_check_bidi)
 }
 
 /// # Normalize Domain (C).
 ///
 /// This pass is used when no PUNY decoding is necessary.
-fn idna_normalize_c(src: &str) -> Option<String> {
+fn idna_normalize_c(src: &[char]) -> Option<String> {
 	let mut out = String::with_capacity(253);
 	let mut first = true;
 	let mut parts: u8 = 0;
 	let is_bidi: bool = idna_has_bidi(src);
-	for part in src.split('.') {
+	for part in src.split(|c| '.'.eq(c)) {
 		// Replace the dot lost in the split.
 		if first { first = false; }
 		else { out.push('.'); }
@@ -919,13 +920,11 @@ fn idna_normalize_c(src: &str) -> Option<String> {
 		}
 
 		// We can pass it straight through.
-		if part.is_ascii() {
-			out.push_str(part);
-		}
+		if part.iter().all(char::is_ascii) { out.extend(part); }
 		// We have to encode it.
 		else {
 			out.push_str(PREFIX);
-			if ! puny::encode_into(&part.chars(), &mut out) { return None; }
+			if ! puny::encode_into(part, &mut out) { return None; }
 		}
 
 		parts += 1;

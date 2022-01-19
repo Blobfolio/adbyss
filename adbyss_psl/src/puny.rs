@@ -13,10 +13,6 @@ underlying Unicode, so we have to do both when the source contains PUNYCODE.
 
 
 
-use std::str::Chars;
-
-
-
 // Bootstring parameters for Punycode
 static BASE: u32 = 36;
 static T_MIN: u32 = 1;
@@ -37,25 +33,25 @@ static DELIMITER: char = '-';
 ///
 /// Note: this method has to allocate because PUNYCODE requires some weird
 /// shuffling; we can't just pop things directly where they need to go.
-pub(super) fn decode(input: &str) -> Option<String> {
-	if ! input.is_ascii() { return None; }
-
-	let (mut output, input): (Vec<char>, &str) = input.rfind(DELIMITER).map_or_else(
-		|| (Vec::new(), input),
-		|pos| (input[..pos].chars().collect(), &input[pos + 1..])
-	);
+pub(super) fn decode(input: &[char]) -> Option<Vec<char>> {
+	let (mut output, input): (Vec<char>, &[char]) = input.iter()
+		.rposition(|c| DELIMITER.eq(c))
+		.map_or_else(
+			|| (Vec::new(), input),
+			|pos| (input[..pos].to_vec(), &input[pos + 1..])
+		);
 
 	let mut n: u32 = INITIAL_N;
 	let mut i: u32 = 0;
 	let mut bias: u32 = INITIAL_BIAS;
 
-	let mut it = input.chars().peekable();
+	let mut it = input.iter().copied().peekable();
 	while it.peek() != None {
 		let old_i = i;
 		let mut weight = 1;
 
 		for k in 1.. {
-			let c = it.next()?;
+			let c = it.next().filter(char::is_ascii)?;
 			let k = k * BASE;
 			let digit = decode_digit(c);
 			if digit == BASE {
@@ -90,7 +86,7 @@ pub(super) fn decode(input: &str) -> Option<String> {
 		i += 1;
 	}
 
-	Some(output.into_iter().collect())
+	Some(output)
 }
 
 #[allow(clippy::comparison_chain)] // We're only matching 2/3 arms.
@@ -109,20 +105,16 @@ pub(super) fn decode(input: &str) -> Option<String> {
 /// or the [MIT license](http://opensource.org/licenses/MIT) at your option.
 /// This file may not be copied, modified, or distributed except according to
 /// those terms.
-pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
-	// We can gather a lot of preliminary information in a single iteration.
+pub(super) fn encode_into(input: &[char], output: &mut String) -> bool {
 	let mut written: u8 = 0;
-	let mut input_length: u32 = 0;
-	let mut basic_length: u32 = 0;
-	for c in input.clone() {
-		input_length += 1;
+	for c in input {
 		if c.is_ascii() {
-			output.push(c);
-			basic_length += 1;
+			output.push(*c);
 			written += 1;
 		}
 	}
 
+	let basic_length: u32 = written as u32;
 	if basic_length > 0 {
 		output.push(DELIMITER);
 		written += 1;
@@ -132,11 +124,12 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 	let mut delta: u32 = 0;
 	let mut bias: u32 = INITIAL_BIAS;
 	let mut processed: u32 = basic_length;
+	let input_length: u32 = input.len() as u32;
 	while processed < input_length {
 		// Find the next largest codepoint.
-		let min_code_point = input.clone()
+		let min_code_point = input.iter()
 			.filter_map(|c| {
-				let c = c as u32;
+				let c = *c as u32;
 				if c >= code_point { Some(c) }
 				else { None }
 			})
@@ -151,11 +144,8 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		delta += (min_code_point - code_point) * (processed + 1);
 		code_point = min_code_point;
 
-		for c in input.clone().map(|c| c as u32) {
-			if c < code_point {
-				delta += 1;
-				if delta == 0 { return false; }
-			}
+		for c in input.iter().map(|c| *c as u32) {
+			if c < code_point { delta += 1; }
 
 			else if c == code_point {
 				let mut q = delta;
@@ -186,6 +176,8 @@ pub(super) fn encode_into(input: &Chars, output: &mut String) -> bool {
 		code_point += 1;
 	}
 
+	// Make sure the chunk is appropriately sized. (The upper limit is 63, but
+	// we already wrote "xn--", so -4 is 59.)
 	0 < written && written <= 59
 }
 
