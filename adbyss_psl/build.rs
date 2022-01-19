@@ -183,36 +183,6 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	(map_str, map, map_len)
 }
 
-/*
-/// # Build Ranged Code.
-///
-/// This compiles the ranged matches into a sorted array, which we jump
-/// through at runtime using a custom binary search function.
-fn idna_build_ranged(mut raw: Vec<(u32, u32, IdnaLabel)>) -> (usize, String) {
-	// Sort!
-	raw.sort_by(|a, b| a.0.cmp(&b.0));
-
-	// Build up an array object.
-	let len = raw.len();
-	let entries: Vec<String> = raw.into_iter()
-		.map(|(start, end, kind)| format!(
-			"({}_u32, {}_u32, {})",
-			format_u32(start),
-			format_u32(end),
-			kind
-		))
-		.collect();
-
-	(
-		len,
-		format!(
-			"static RANGES: [(u32, u32, CharKind); {}] = [{}];",
-			entries.len(),
-			entries.join(", "),
-		),
-	)
-}*/
-
 /// # Parse Superstring.
 ///
 /// Because we're representing the IDNA/Unicode remappings as indexes of a
@@ -485,17 +455,26 @@ fn idna_tests() {
 	let raw = idna_load_test_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
-	let out: String = raw.into_iter()
-		.map(|(i, mut o)| {
-			format!("{} {}", i, o.take().unwrap_or_default())
-		})
-		.collect::<Vec<String>>()
-		.join("\n");
-
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna-tests.rs"))
 		.expect("Unable to create adbyss-idna.rs");
-	file.write_all(out.as_bytes())
+
+	write!(
+		&mut file,
+		"const IDNA_DATA: [(&str, Option<&str>); {}] = [{}];",
+		raw.len(),
+		raw.into_iter()
+			.map(|(i, mut o)|
+				if let Some(o) = o.take() {
+					format!(r#"("{}", Some("{}"))"#, format_unicode_chars(&i), o)
+				}
+				else {
+					format!("({:?}, None)", format_unicode_chars(&i))
+				}
+			)
+			.collect::<Vec<String>>()
+			.join(", "),
+	)
 		.and_then(|_| file.flush())
 		.expect("Failed to save IDNA tests.");
 }
@@ -510,6 +489,11 @@ fn idna_tests() {
 /// however there are a couple cases where Adbyss intentionally disagrees;
 /// those tests are simply discarded.
 fn idna_load_test_data() -> Vec<(String, Option<String>)> {
+	let config = idna::Config::default()
+		.use_std3_ascii_rules(true)
+		.verify_dns_length(true)
+		.check_hyphens(true);
+
 	download("IdnaTestV2.txt", IDNA_TEST_URL)
 		.lines()
 		.filter(|x| ! x.starts_with('#') && ! x.trim().is_empty())
@@ -519,14 +503,11 @@ fn idna_load_test_data() -> Vec<(String, Option<String>)> {
 				line = &line[..idx];
 			}
 
-			let config = idna::Config::default()
-				.use_std3_ascii_rules(true)
-				.verify_dns_length(true)
-				.check_hyphens(true);
-
 			let line: Vec<&str> = line.split(';').map(|x| x.trim()).collect();
 			if ! line.is_empty() && ! line[0].is_empty() {
 				let input = line[0].to_string();
+				if input.contains('"') { return None; }
+
 				let output = config.to_ascii(input.trim_matches(|c| c == '.'))
 					.ok()
 					.filter(|x|
@@ -535,6 +516,7 @@ fn idna_load_test_data() -> Vec<(String, Option<String>)> {
 						! x.ends_with('.') &&
 						x.contains('.')
 					);
+
 				Some((input, output))
 			}
 			else { None }
@@ -846,6 +828,47 @@ fn download(name: &str, url: &str) -> String {
 	raw
 }
 
+/// # Format U32.
+///
+/// This formats a `u32` with `_` separators for the thousands.
+fn format_u32(src: u32) -> String {
+	NiceU32::from(src).as_str().replace(",", "_")
+}
+
+/// # Format U64.
+///
+/// This formats a `u64` with `_` separators for the thousands.
+fn format_u64(src: u64) -> String {
+	NiceU64::from(src).as_str().replace(",", "_")
+}
+
+/// # Format Unicode Chars.
+///
+/// This builds a new string suitable for inclusion in Rust code, where ASCII
+/// is left alone, but unicode is represented in an escaped format.
+fn format_unicode_chars(src: &str) -> String {
+	src.chars()
+		.map(|c|
+			if c.is_ascii() { c.to_string() }
+			else { format!("\\u{{{:x}}}", c as u32) }
+		)
+		.collect()
+}
+
+/// # Hash TLD.
+///
+/// This is just a simple wrapper to convert a slice into a u64, used by the
+/// suffix map builder.
+///
+/// In testing, the `ahash` algorithm is far and away the fastest, so that is
+/// what we use, both during build and at runtime (i.e. search needles) during
+/// lookup matching.
+fn hash_tld(src: &[u8]) -> u64 {
+	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
+	hasher.write(src);
+	hasher.finish()
+}
+
 /// # Out path.
 ///
 /// This generates a (file/dir) path relative to `OUT_DIR`.
@@ -914,34 +937,4 @@ impl IdnaLabel {
 			_ => None,
 		}
 	}
-}
-
-
-
-/// # Hash TLD.
-///
-/// This is just a simple wrapper to convert a slice into a u64, used by the
-/// suffix map builder.
-///
-/// In testing, the `ahash` algorithm is far and away the fastest, so that is
-/// what we use, both during build and at runtime (i.e. search needles) during
-/// lookup matching.
-fn hash_tld(src: &[u8]) -> u64 {
-	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-	hasher.write(src);
-	hasher.finish()
-}
-
-/// # Format U32.
-///
-/// This formats a `u32` with `_` separators for the thousands.
-fn format_u32(src: u32) -> String {
-	NiceU32::from(src).as_str().replace(",", "_")
-}
-
-/// # Format U64.
-///
-/// This formats a `u64` with `_` separators for the thousands.
-fn format_u64(src: u64) -> String {
-	NiceU64::from(src).as_str().replace(",", "_")
 }
