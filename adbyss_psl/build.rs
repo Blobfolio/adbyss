@@ -154,12 +154,12 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 				if let Some(last) = last {
 					format!(
 						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {})",
-						format_u32(first),
-						format_u32(last),
+						NiceU32::with_separator(first, b'_'),
+						NiceU32::with_separator(last, b'_'),
 						label,
 					)
 				}
-				else { format!("({}, None, {})", format_u32(first), label) }
+				else { format!("({}, None, {})", NiceU32::with_separator(first, b'_'), label) }
 			)
 			.collect::<Vec<String>>()
 			.join(", "),
@@ -616,7 +616,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		"/// # Map Keys.\nstatic MAP_K: [u64; {}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {}] = [{}];",
 		len,
 		map_keys.into_iter()
-			.map(format_u64)
+			.map(|x| NiceU64::with_separator(x, b'_').as_string())
 			.collect::<Vec<String>>()
 			.join(", "),
 		len,
@@ -826,20 +826,6 @@ fn download(name: &str, url: &str) -> String {
 
 	// Return the data.
 	raw
-}
-
-/// # Format U32.
-///
-/// This formats a `u32` with `_` separators for the thousands.
-fn format_u32(src: u32) -> String {
-	NiceU32::from(src).as_str().replace(",", "_")
-}
-
-/// # Format U64.
-///
-/// This formats a `u64` with `_` separators for the thousands.
-fn format_u64(src: u64) -> String {
-	NiceU64::from(src).as_str().replace(",", "_")
 }
 
 /// # Format Unicode Chars.
