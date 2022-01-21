@@ -1,7 +1,7 @@
 # Project Dependencies
     Package:   adbyss
     Version:   0.6.1
-    Generated: 2022-01-19 22:06:16 UTC
+    Generated: 2022-01-21 04:35:38 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
@@ -21,7 +21,7 @@
 | [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.1 | The Crossbeam Project Developers | Apache-2.0 or MIT |
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.6 |  | Apache-2.0 or MIT |
 | [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.6 |  | Apache-2.0 or MIT |
-| [dactyl](https://github.com/Blobfolio/dactyl) | 0.2.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [dactyl](https://github.com/Blobfolio/dactyl) | 0.2.3 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [either](https://github.com/bluss/either) | 1.6.1 | bluss | Apache-2.0 or MIT |
 | [fastrand](https://github.com/smol-rs/fastrand) | 1.6.0 | [Stjepan Glavina](mailto:stjepang@gmail.com) | Apache-2.0 or MIT |
 | [flate2](https://github.com/rust-lang/flate2-rs) | 1.0.22 | [Alex Crichton](mailto:alex@alexcrichton.com) and [Josh Triplett](mailto:josh@joshtriplett.org) | Apache-2.0 or MIT |
@@ -35,7 +35,7 @@
 | [instant](https://github.com/sebcrozet/instant) | 0.1.12 | [sebcrozet](mailto:developer@crozet.re) | BSD-3-Clause |
 | [js-sys](https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys) | 0.3.56 | The wasm-bindgen Developers | Apache-2.0 or MIT |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 or MIT |
-| [libc](https://github.com/rust-lang/libc) | 0.2.112 | The Rust Project Developers | Apache-2.0 or MIT |
+| [libc](https://github.com/rust-lang/libc) | 0.2.113 | The Rust Project Developers | Apache-2.0 or MIT |
 | [linked-hash-map](https://github.com/contain-rs/linked-hash-map) | 0.5.4 | [Stepan Koltsov](mailto:stepan.koltsov@gmail.com) and [Andrew Paseltiner](mailto:apaseltiner@gmail.com) | Apache-2.0 or MIT |
 | [log](https://github.com/rust-lang/log) | 0.4.14 | The Rust Project Developers | Apache-2.0 or MIT |
 | [matches](https://github.com/SimonSapin/rust-std-candidates) | 0.1.9 | [Simon Sapin](mailto:simon.sapin@exyr.org) | MIT |
@@ -63,7 +63,7 @@
 | [serde_derive](https://github.com/serde-rs/serde) | 1.0.133 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.8.23 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [spin](https://github.com/mvdnes/spin-rs.git) | 0.5.2 | [Mathijs van de Nes](mailto:git@mathijs.vd-nes.nl) and [John Ericson](mailto:git@JohnEricson.me) | MIT |
-| [syn](https://github.com/dtolnay/syn) | 1.0.85 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [syn](https://github.com/dtolnay/syn) | 1.0.86 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [tempfile](https://github.com/Stebalien/tempfile) | 3.3.0 | [Steven Allen](mailto:steven@stebalien.com), The Rust Project Developers, [Ashley Mannix](mailto:ashleymannix@live.com.au), and [Jason White](mailto:jasonaw0@gmail.com) | Apache-2.0 or MIT |
 | [tinyvec](https://github.com/Lokathor/tinyvec) | 1.5.1 | [Lokathor](mailto:zefria@gmail.com) | Apache-2.0, MIT, or Zlib |
 | [tinyvec_macros](https://github.com/Soveu/tinyvec_macros) | 0.1.0 | [Soveu](mailto:marx.tomasz@gmail.com) | Apache-2.0, MIT, or Zlib |

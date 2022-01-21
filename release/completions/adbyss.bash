@@ -37,7 +37,11 @@ _basher___adbyss() {
 
 	case "${prev}" in
 		-c|--config)
-			COMPREPLY=( $( compgen -f "${cur}" ) )
+			if [ -z "$( declare -f _filedir )" ]; then
+				COMPREPLY=( $( compgen -f "${cur}" ) )
+			else
+				COMPREPLY=( $( _filedir ) )
+			fi
 			return 0
 			;;
 		*)
