@@ -179,19 +179,19 @@ impl Source {
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		// First, build a consolidated string of all the entries.
 		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].into_par_iter()
-				.filter(|x| 0 != src & (*x as u8))
-				.map(Self::fetch_raw)
-				// Merge the raw data into a single block so we can better
-				// parallelize parsing. If any sources failed, operations will
-				// abort here.
-				.try_reduce(Cow::default, |mut a, b| {
-					let tmp = a.to_mut();
-					if ! tmp.is_empty() {
-						tmp.push('\n');
-					}
-					tmp.push_str(b.trim());
-					Ok(a)
-				})?;
+			.filter(|x| 0 != src & (*x as u8))
+			.map(Self::fetch_raw)
+			// Merge the raw data into a single block so we can better
+			// parallelize parsing. If any sources failed, operations will
+			// abort here.
+			.try_reduce(Cow::default, |mut a, b| {
+				let tmp = a.to_mut();
+				if ! tmp.is_empty() {
+					tmp.push('\n');
+				}
+				tmp.push_str(b.trim());
+				Ok(a)
+			})?;
 
 		// There are a lot of duplicates, so let's quickly weed them out before
 		// we move onto the relatively expensive domain validation checks.
