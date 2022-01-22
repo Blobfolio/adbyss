@@ -151,7 +151,7 @@ impl Source {
 			.and_then(|meta| meta.modified().ok())
 			.and_then(|time| time.elapsed()
 				.ok()
-				.filter(|secs| 3600 > secs.as_secs())
+				.filter(|secs| secs.as_secs() < 3600)
 			)
 			.and_then(|_| std::fs::read_to_string(&cache).ok())
 		{
