@@ -30,37 +30,24 @@ use std::{
 
 
 
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 /// # Shitlist Sources.
 pub enum Source {
 	/// AdAway.
-	AdAway,
+	AdAway = FLAG_ADAWAY,
 	/// Adbyss.
-	Adbyss,
+	Adbyss = FLAG_ADBYSS,
 	/// StevenBlack.
-	StevenBlack,
+	StevenBlack = FLAG_STEVENBLACK,
 	/// Youtube.
-	YouTube,
+	YouTube = FLAG_YOUTUBE,
 	/// Yoyo.
-	Yoyo,
+	Yoyo = FLAG_YOYO,
 }
 
 /// # Conversion.
 impl Source {
-	#[must_use]
-	/// # As Byte (Flag).
-	///
-	/// Return the equivalent flag for the source.
-	const fn as_byte(self) -> u8 {
-		match self {
-			Self::AdAway => FLAG_ADAWAY,
-			Self::Adbyss => FLAG_ADBYSS,
-			Self::StevenBlack => FLAG_STEVENBLACK,
-			Self::YouTube => FLAG_YOUTUBE,
-			Self::Yoyo => FLAG_YOYO,
-		}
-	}
-
 	#[must_use]
 	/// # As Str.
 	pub const fn as_str(self) -> &'static str {
@@ -193,7 +180,7 @@ impl Source {
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		// First, build a consolidated string of all the entries.
 		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
-				.filter(|x| 0 != src & x.as_byte())
+				.filter(|x| 0 != src & (*x as u8))
 				.map(|x| x.fetch_raw())
 				// Merge the raw data into a single block so we can better
 				// parallelize parsing. If any sources failed, operations will
