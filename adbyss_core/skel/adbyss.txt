@@ -1,20 +1,20 @@
-0.0.0.0 api.triptease.io
-0.0.0.0 collect.snitcher.com
-0.0.0.0 ct.pinterest.com
-0.0.0.0 guest-experience.triptease.io
-0.0.0.0 js.trendmd.com
-0.0.0.0 medtargetsystem.com
-0.0.0.0 onboard.triptease.io
-0.0.0.0 rum-static.pingdom.net
-0.0.0.0 s.pinimg.com
-0.0.0.0 shareasale-analytics.com
-0.0.0.0 snid.snitcher.com
-0.0.0.0 snitcher.com
-0.0.0.0 static-meta.triptease.io
-0.0.0.0 static.triptease.io
-0.0.0.0 trendmd.com
-0.0.0.0 triptease.io
-0.0.0.0 www.medtargetsystem.com
-0.0.0.0 www.snitcher.com
-0.0.0.0 www.trendmd.com
-0.0.0.0 www.triptease.io
+api.triptease.io
+collect.snitcher.com
+ct.pinterest.com
+guest-experience.triptease.io
+js.trendmd.com
+medtargetsystem.com
+onboard.triptease.io
+rum-static.pingdom.net
+s.pinimg.com
+shareasale-analytics.com
+snid.snitcher.com
+snitcher.com
+static-meta.triptease.io
+static.triptease.io
+trendmd.com
+triptease.io
+www.medtargetsystem.com
+www.snitcher.com
+www.trendmd.com
+www.triptease.io
