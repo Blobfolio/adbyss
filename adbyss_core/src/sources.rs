@@ -15,7 +15,6 @@ use crate::{
 use rayon::{
 	iter::{
 		IntoParallelIterator,
-		IntoParallelRefIterator,
 		ParallelExtend,
 		ParallelIterator,
 	},
@@ -179,9 +178,9 @@ impl Source {
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		// First, build a consolidated string of all the entries.
-		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
+		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].into_par_iter()
 				.filter(|x| 0 != src & (*x as u8))
-				.map(|x| x.fetch_raw())
+				.map(Self::fetch_raw)
 				// Merge the raw data into a single block so we can better
 				// parallelize parsing. If any sources failed, operations will
 				// abort here.
