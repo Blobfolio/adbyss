@@ -4,7 +4,6 @@ _basher___adbyss() {
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
 	opts=()
-
 	[[ " ${COMP_LINE} " =~ " --disable " ]] || opts+=("--disable")
 	if [[ ! " ${COMP_LINE} " =~ " -h " ]] && [[ ! " ${COMP_LINE} " =~ " --help " ]]; then
 		opts+=("-h")
@@ -28,23 +27,24 @@ _basher___adbyss() {
 		opts+=("-c")
 		opts+=("--config")
 	fi
-
 	opts=" ${opts[@]} "
 	if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
 		COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
 		return 0
 	fi
-
 	case "${prev}" in
 		-c|--config)
-			COMPREPLY=( $( compgen -f "${cur}" ) )
+			if [ -z "$( declare -f _filedir )" ]; then
+				COMPREPLY=( $( compgen -f "${cur}" ) )
+			else
+				COMPREPLY=( $( _filedir ) )
+			fi
 			return 0
 			;;
 		*)
 			COMPREPLY=()
 			;;
 	esac
-
 	COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
 	return 0
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.2) - 2022-02-08
+
+### Changes
+
+* Improved documentation;
+
+
+
 ## [0.6.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.1) - 2022-01-19
 
 ### Changes

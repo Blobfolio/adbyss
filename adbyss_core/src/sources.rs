@@ -12,16 +12,14 @@ use crate::{
 	FLAG_YOUTUBE,
 	FLAG_YOYO,
 };
-use once_cell::sync::Lazy;
 use rayon::{
 	iter::{
-		IntoParallelRefIterator,
+		IntoParallelIterator,
 		ParallelExtend,
 		ParallelIterator,
 	},
 	prelude::ParallelString,
 };
-use regex::Regex;
 use std::{
 	borrow::Cow,
 	collections::HashSet,
@@ -31,37 +29,24 @@ use std::{
 
 
 
+#[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 /// # Shitlist Sources.
 pub enum Source {
 	/// AdAway.
-	AdAway,
+	AdAway = FLAG_ADAWAY,
 	/// Adbyss.
-	Adbyss,
+	Adbyss = FLAG_ADBYSS,
 	/// StevenBlack.
-	StevenBlack,
+	StevenBlack = FLAG_STEVENBLACK,
 	/// Youtube.
-	YouTube,
+	YouTube = FLAG_YOUTUBE,
 	/// Yoyo.
-	Yoyo,
+	Yoyo = FLAG_YOYO,
 }
 
 /// # Conversion.
 impl Source {
-	#[must_use]
-	/// # As Byte (Flag).
-	///
-	/// Return the equivalent flag for the source.
-	const fn as_byte(self) -> u8 {
-		match self {
-			Self::AdAway => FLAG_ADAWAY,
-			Self::Adbyss => FLAG_ADBYSS,
-			Self::StevenBlack => FLAG_STEVENBLACK,
-			Self::YouTube => FLAG_YOUTUBE,
-			Self::Yoyo => FLAG_YOYO,
-		}
-	}
-
 	#[must_use]
 	/// # As Str.
 	pub const fn as_str(self) -> &'static str {
@@ -94,19 +79,36 @@ impl Source {
 	}
 
 	#[must_use]
-	/// # AdAway-Style Data.
+	/// # Patch Raw.
 	///
-	/// AdAway-styled sources map shitlist entries to 127.0.0.1 instead of
-	/// 0.0.0.0. This will replace the IPs so later parsing can operate on a
-	/// consistent foundation.
+	/// Some sources return a straight domain list, while others are formatted
+	/// more like a hosts file, with IP address prefixes, comments, etc. This
+	/// method normalizes the data so that it is just a long list of domains.
 	fn patch(self, src: String) -> String {
-		static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?m)^127\.0\.0\.1[\t ]").unwrap());
+		let prefix: &str = match self {
+			Self::AdAway | Self::Yoyo => "127.0.0.1 ",
+			Self::StevenBlack =>  "0.0.0.0 ",
+			// The YouTube and built-in lists are close enough as-are.
+			_ => return src,
+		};
 
-		match self {
-			Self::AdAway | Self::Yoyo => RE.replace_all(&src, "0.0.0.0 ").into_owned(),
-			Self::YouTube => src.lines().map(|line| ["0.0.0.0 ", line, "\n"].concat()).collect(),
-			_ => src,
-		}
+		src.lines()
+			.filter_map(|mut line| {
+				// Strip the prefix.
+				line = line.strip_prefix(prefix)?;
+
+				// Strip comments.
+				if let Some(pos) = line.bytes().position(|b| b == b'#') {
+					line = &line[..pos];
+				}
+
+				// Return if we have something!
+				line = line.trim();
+				if line.is_empty() { None }
+				else { Some(line) }
+			})
+			.collect::<Vec<&str>>()
+			.join("\n")
 	}
 
 	#[must_use]
@@ -149,7 +151,7 @@ impl Source {
 			.and_then(|meta| meta.modified().ok())
 			.and_then(|time| time.elapsed()
 				.ok()
-				.filter(|secs| 3600 > secs.as_secs())
+				.filter(|secs| secs.as_secs() < 3600)
 			)
 			.and_then(|_| std::fs::read_to_string(&cache).ok())
 		{
@@ -175,33 +177,30 @@ impl Source {
 	///
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
-		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(80_000, AHASH_STATE);
-		out.par_extend(
-			[Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
-				.filter(|x| 0 != src & x.as_byte())
-				.map(|x| x.fetch_raw())
-				// Merge the raw data into a single block so we can better
-				// parallelize parsing. If any sources failed, operations will
-				// abort here.
-				.try_reduce(Cow::default, |mut a, b| {
-					let tmp = a.to_mut();
+		// First, build a consolidated string of all the entries.
+		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].into_par_iter()
+			.filter(|x| 0 != src & (*x as u8))
+			.map(Self::fetch_raw)
+			// Merge the raw data into a single block so we can better
+			// parallelize parsing. If any sources failed, operations will
+			// abort here.
+			.try_reduce(Cow::default, |mut a, b| {
+				let tmp = a.to_mut();
+				if ! tmp.is_empty() {
 					tmp.push('\n');
-					tmp.push_str(&b);
-					Ok(a)
-				})?
-				// Now split into lines to find host matches.
-				.par_lines()
-				.filter_map(|x|
-					if let Some(("0.0.0.0", y)) = x.split_once(' ') {
-						y.split_once(|c: char| '#' == c || c.is_whitespace())
-							.map_or_else(
-								|| Domain::new(y),
-								|(z, _)| Domain::new(z)
-							)
-					}
-					else { None }
-				)
-		);
+				}
+				tmp.push_str(b.trim());
+				Ok(a)
+			})?;
+
+		// There are a lot of duplicates, so let's quickly weed them out before
+		// we move onto the relatively expensive domain validation checks.
+		let mut tmp: HashSet<&str, ahash::RandomState> = HashSet::with_capacity_and_hasher(100_000, AHASH_STATE);
+		tmp.par_extend(raw.par_lines());
+
+		// And finally, see which of those lines are actual domains.
+		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(tmp.len(), AHASH_STATE);
+		out.par_extend(tmp.into_par_iter().filter_map(Domain::new));
 		Ok(out)
 	}
 }

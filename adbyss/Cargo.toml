@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.6.1"
+version = "0.6.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -11,11 +11,11 @@ publish = false
 
 [package.metadata.deb]
 maintainer = "Josh Stoik <hello@blobfolio.com>"
-copyright = "2021, Blobfolio, LLC <hello@blobfolio.com>"
+copyright = "2022, Blobfolio, LLC <hello@blobfolio.com>"
 license-file = ["../LICENSE", "0"]
 revision = "1"
 depends = "$auto"
-section = "utility"
+section = "utils"
 assets = [
     ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
     ["./skel/adbyss.yaml", "etc/", "644"],
