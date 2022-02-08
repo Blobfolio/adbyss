@@ -1,26 +1,48 @@
 /*!
 # Adbyss: Public Suffix
 
-This crate provides a very simple interface for checking hosts — ASCII and internationalized — against the [Public Suffix List](https://publicsuffix.org/list/).
+This library contains a single public-facing struct — [`Domain`] — used for validating and normalizing Internet hostnames, like "www.domain.com".
 
-This is a judgey library; hosts with unknown or missing suffixes are not parsed. No distinction is made between ICANN and private entries. Rules must be followed! Haha.
+It will:
+* Validate, normalize, and Puny-encode internationalized/Unicode labels ([RFC 3492](https://datatracker.ietf.org/doc/html/rfc3492#ref-IDNA));
+* Validate and normalize the [public suffix](https://publicsuffix.org/list/);
+* Ensure conformance with [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123);
+* And locate the boundaries of the subdomain (if any), root (required), and suffix (required);
 
-For hosts that do get parsed, their values will be normalized to lowercase ASCII.
-
-Note: The suffix reference data is baked into this crate at build time. This reduces the runtime overhead of parsing all that data out, but can also cause implementing apps to grow stale if they haven't been (re)packaged in a while.
+Suffix and IDNA reference data is compiled at build-time, allowing for very fast runtime parsing, but at the cost of _temporality_. Projects using this library will need to periodically issue new releases or risk growing stale.
 
 
 
 ## Examples
 
-Initiate a new instance using [`Domain::new`]. If that works, you then have accesses to the individual components:
+New instances of [`Domain`] can be initialized using either [`Domain::new`] or `TryFrom<&str>`.
 
 ```
 use adbyss_psl::Domain;
 
-// Use `Domain::new()` or `Domain::try_from()` to get started.
+// These are equivalent and fine:
+assert!(Domain::new("www.MyDomain.com").is_some());
+assert!(Domain::try_from("www.MyDomain.com").is_ok());
+
+// The following is valid DNS, but invalid as an Internet hostname:
+assert!(Domain::new("_acme-challenge.mydomain.com").is_none());
+```
+
+Valid Internet hostnames must be no longer than 253 characters, and contain both root and (valid) suffix components.
+
+Their labels — the bits between the dots — must additionally:
+* Be no longer than 63 characters;
+* (Ultimately) contain only ASCII letters, digits, and `-`;
+* Start and end with an alphanumeric character;
+
+Unicode/internationalized labels are allowed, but must be Puny-encodable and not contain any conflicting bidirectionality constraints. [`Domain`] will encode such labels using [Punycode](https://en.wikipedia.org/wiki/Punycode) when it finds them, ensuring the resulting hostname will always be ASCII-only.
+
+Post-parsing, [`Domain`] gives you access to each individual component, or the whole thing:
+
+```
+use adbyss_psl::Domain;
+
 let dom = Domain::new("www.MyDomain.com").unwrap();
-let dom = Domain::try_from("www.MyDomain.com").unwrap();
 
 // Pull out the pieces if you're into that sort of thing.
 assert_eq!(dom.host(), "www.mydomain.com");
@@ -29,11 +51,10 @@ assert_eq!(dom.root(), "mydomain");
 assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
-// If you just want the sanitized host back as an owned value, use `Domain::take`:
+// If you just want the sanitized host back as an owned value, use
+// `Domain::take`:
 let owned = dom.take(); // "www.mydomain.com"
 ```
-
-A [`Domain`] object can be dereferenced to a string slice representing the sanitized host. You can also consume the object into an owned string with [`Domain::take`].
 
 
 
@@ -112,36 +133,49 @@ const PREFIX: &str = "xn--";
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 ///
-/// This struct can be used to validate a domain against the [Public Suffix List](https://publicsuffix.org/list/)
-/// and separate out subdomain/root/suffix components.
+/// This struct validates and normalizes Internet hostnames, like
+/// "www.domain.com".
 ///
-/// All valid entries are normalized to lowercase ASCII.
+/// It will:
+/// * Validate, normalize, and Puny-encode internationalized/Unicode labels ([RFC 3492](https://datatracker.ietf.org/doc/html/rfc3492#ref-IDNA));
+/// * Validate and normalize the [public suffix](https://publicsuffix.org/list/);
+/// * Ensure conformance with [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123);
+/// * And locate the boundaries of the subdomain (if any), root (required), and suffix (required);
 ///
-/// Note: this is judgey; hosts with unknown or missing suffixes will not parse.
+/// Suffix and IDNA reference data is compiled at build-time, allowing for very
+/// fast runtime parsing, but at the cost of _temporality_.
+///
+/// Projects using this library should periodically issue new releases or risk
+/// growing stale.
 ///
 /// ## Examples
 ///
-/// Initiate a new instance using [`Domain::new`]. If that works, you then
-/// have accesses to the individual components:
+/// New instances can be initialized using either [`Domain::new`] or `TryFrom<&str>`.
 ///
 /// ```
 /// use adbyss_psl::Domain;
 ///
-/// // Use `Domain::new()` or `Domain::try_from()` to get started.
-/// let dom = Domain::new("www.MyDomain.com").unwrap();
-/// let dom = Domain::try_from("www.MyDomain.com").unwrap();
+/// // These are equivalent and fine:
+/// assert!(Domain::new("www.MyDomain.com").is_some());
+/// assert!(Domain::try_from("www.MyDomain.com").is_ok());
 ///
-/// // Pull out the pieces if you're into that sort of thing.
-/// assert_eq!(dom.host(), "www.mydomain.com");
-/// assert_eq!(dom.subdomain(), Some("www"));
-/// assert_eq!(dom.root(), "mydomain");
-/// assert_eq!(dom.suffix(), "com");
-/// assert_eq!(dom.tld(), "mydomain.com");
-///
-/// // If you just want the sanitized host back as an owned value, use
-/// // `Domain::take`:
-/// let owned = dom.take(); // "www.mydomain.com"
+/// // The following is valid DNS, but invalid as an Internet hostname:
+/// assert!(Domain::new("_acme-challenge.mydomain.com").is_none());
 /// ```
+///
+/// Valid Internet hostnames must be no longer than 253 characters, and contain
+/// both root and (valid) suffix components.
+///
+/// Their labels — the bits between the dots — must additionally:
+/// * Be no longer than 63 characters;
+/// * (Ultimately) contain only ASCII letters, digits, and `-`;
+/// * Start and end with an alphanumeric character;
+///
+/// Unicode/internationalized labels are allowed, but must be Puny-encodable
+/// and not contain any conflicting bidirectionality constraints. [`Domain`]
+/// will encode such labels using [Punycode](https://en.wikipedia.org/wiki/Punycode)
+/// when it finds them, ensuring the resulting hostname will always be
+/// lowercase ASCII.
 pub struct Domain {
 	host: String,
 	root: Range<usize>,
@@ -269,11 +303,21 @@ impl Domain {
 impl Domain {
 	/// # New Domain.
 	///
-	/// Try to parse a given host. If the result has both a (valid) suffix and
-	/// a root chunk (i.e. it has a TLD), a `Domain` object will be returned.
+	/// Try to parse a given Internet hostname.
 	///
-	/// Hosts with unknown or missing suffixes are rejected. Otherwise all
-	/// values are normalized to lowercase ASCII.
+	/// Valid Internet hostnames must be no longer than 253 characters, and
+	/// contain both root and (valid) suffix components.
+	///
+	/// Their labels — the bits between the dots — must additionally:
+	/// * Be no longer than 63 characters;
+	/// * (Ultimately) contain only ASCII letters, digits, and `-`;
+	/// * Start and end with an alphanumeric character;
+	///
+	/// Unicode/internationalized labels are allowed, but must be Puny-encodable
+	/// and not contain any conflicting bidirectionality constraints. [`Domain`]
+	/// will encode such labels using [Punycode](https://en.wikipedia.org/wiki/Punycode)
+	/// when it finds them, ensuring the resulting hostname will always be
+	/// lowercase ASCII.
 	///
 	/// ## Examples
 	///
@@ -321,7 +365,7 @@ impl Domain {
 	/// # Has Leading WWW.
 	///
 	/// This will return `true` if the domain begins with "www." _and_ that
-	/// "www." is a subdomain. (The latter is usually but not always the case!)
+	/// "www." is a subdomain. (Those aren't always equivalent!)
 	///
 	/// ## Examples
 	///
