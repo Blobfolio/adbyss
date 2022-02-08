@@ -177,10 +177,12 @@ impl Source {
 	///
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
+		let all: [Self; 5] = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo];
+
 		// First, build a consolidated string of all the entries.
-		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].into_par_iter()
-			.filter(|x| 0 != src & (*x as u8))
-			.map(Self::fetch_raw)
+		let raw: Cow<str> = all.into_par_iter()
+			.filter(|x: &Self| 0 != src & (*x as u8))
+			.map(|x: Self| x.fetch_raw())
 			// Merge the raw data into a single block so we can better
 			// parallelize parsing. If any sources failed, operations will
 			// abort here.
