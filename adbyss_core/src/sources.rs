@@ -179,6 +179,9 @@ impl Source {
 	/// This returns an error if any source data could be downloaded or parsed.
 	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
 		// First, build a consolidated string of all the entries.
+		// Note: this should just be an into_par_iter(), but for some reason
+		// compilation fails under some platforms and not others because it
+		// mistakes it for a reference iter.
 		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
 			.copied()
 			.filter(|x| 0 != src & (*x as u8))

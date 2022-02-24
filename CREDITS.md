@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.6.2
-    Generated: 2022-02-08 20:51:55 UTC
+    Version:   0.6.3
+    Generated: 2022-02-24 17:34:26 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.6.2 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.6.2 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.6.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.6.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.7.6 | [Tom Kaitchuck](mailto:Tom.Kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.18 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
@@ -29,7 +29,7 @@
 | [idna](https://github.com/servo/rust-url/) | 0.2.3 | The rust-url developers | Apache-2.0 or MIT |
 | [indexmap](https://github.com/bluss/indexmap) | 1.8.0 | bluss and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
 | [lazy_static](https://github.com/rust-lang-nursery/lazy-static.rs) | 1.4.0 | [Marvin Löbel](mailto:loebel.marvin@gmail.com) | Apache-2.0 or MIT |
-| [libc](https://github.com/rust-lang/libc) | 0.2.117 | The Rust Project Developers | Apache-2.0 or MIT |
+| [libc](https://github.com/rust-lang/libc) | 0.2.119 | The Rust Project Developers | Apache-2.0 or MIT |
 | [linked-hash-map](https://github.com/contain-rs/linked-hash-map) | 0.5.4 | [Stepan Koltsov](mailto:stepan.koltsov@gmail.com) and [Andrew Paseltiner](mailto:apaseltiner@gmail.com) | Apache-2.0 or MIT |
 | [log](https://github.com/rust-lang/log) | 0.4.14 | The Rust Project Developers | Apache-2.0 or MIT |
 | [matches](https://github.com/SimonSapin/rust-std-candidates) | 0.1.9 | [Simon Sapin](mailto:simon.sapin@exyr.org) | MIT |
@@ -48,7 +48,7 @@
 | [regex-syntax](https://github.com/rust-lang/regex) | 0.6.25 | The Rust Project Developers | Apache-2.0 or MIT |
 | [remove_dir_all](https://github.com/XAMPPRocky/remove_dir_all.git) | 0.5.3 | [Aaronepower](mailto:theaaronepower@gmail.com) | Apache-2.0 or MIT |
 | [ring](https://github.com/briansmith/ring) | 0.16.20 | [Brian Smith](mailto:brian@briansmith.org) |  |
-| [rustls](https://github.com/rustls/rustls) | 0.20.2 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0, ISC, or MIT |
+| [rustls](https://github.com/rustls/rustls) | 0.20.4 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0, ISC, or MIT |
 | [ryu](https://github.com/dtolnay/ryu) | 1.0.9 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or BSL-1.0 |
 | [scopeguard](https://github.com/bluss/scopeguard) | 1.1.0 | bluss | Apache-2.0 or MIT |
 | [sct](https://github.com/ctz/sct.rs) | 0.7.0 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0, ISC, or MIT |
@@ -65,7 +65,7 @@
 | [untrusted](https://github.com/briansmith/untrusted) | 0.7.1 | [Brian Smith](mailto:brian@briansmith.org) | ISC |
 | [ureq](https://github.com/algesten/ureq) | 2.4.0 | [Martin Algesten](mailto:martin@algesten.se) and [Jacob Hoffman-Andrews](mailto:ureq@hoffman-andrews.com) | Apache-2.0 or MIT |
 | [url](https://github.com/servo/rust-url) | 2.2.2 | The rust-url developers | Apache-2.0 or MIT |
-| [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.3 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.4 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [webpki](https://github.com/briansmith/webpki) | 0.22.0 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [webpki-roots](https://github.com/rustls/webpki-roots) | 0.22.2 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | MPL-2.0 |
 | [write_atomic](https://github.com/Blobfolio/write_atomic) | 0.2.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
