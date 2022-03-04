@@ -1,5 +1,15 @@
 # Changelog
 
+
+
+## [0.7.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.0) - TBD
+
+### Removed
+
+* `Domain::parse`
+
+
+
 ## [0.6.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.2) - 2022-02-08
 
 ### Changes
