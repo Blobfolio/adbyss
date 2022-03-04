@@ -9,7 +9,6 @@ use crate::{
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_STEVENBLACK,
-	FLAG_YOUTUBE,
 	FLAG_YOYO,
 };
 use rayon::{
@@ -40,8 +39,6 @@ pub enum Source {
 	Adbyss = FLAG_ADBYSS,
 	/// StevenBlack.
 	StevenBlack = FLAG_STEVENBLACK,
-	/// Youtube.
-	YouTube = FLAG_YOUTUBE,
 	/// Yoyo.
 	Yoyo = FLAG_YOYO,
 }
@@ -55,7 +52,6 @@ impl Source {
 			Self::AdAway => "AdAway",
 			Self::Adbyss => "Adbyss",
 			Self::StevenBlack => "Steven Black",
-			Self::YouTube => "YouTube",
 			Self::Yoyo => "Yoyo",
 		}
 	}
@@ -72,7 +68,6 @@ impl Source {
 				Self::AdAway => "_adbyss-adaway.tmp",
 				Self::Adbyss => "_adbyss.tmp",
 				Self::StevenBlack => "_adbyss-sb.tmp",
-				Self::YouTube => "_adbyss-yt.tmp",
 				Self::Yoyo => "_adbyss-yoyo.tmp",
 			}
 		);
@@ -89,8 +84,7 @@ impl Source {
 		let prefix: &str = match self {
 			Self::AdAway | Self::Yoyo => "127.0.0.1 ",
 			Self::StevenBlack =>  "0.0.0.0 ",
-			// The YouTube and built-in lists are close enough as-are.
-			_ => return src,
+			Self::Adbyss => return src,
 		};
 
 		src.lines()
@@ -121,7 +115,6 @@ impl Source {
 			Self::AdAway => "https://adaway.org/hosts.txt",
 			Self::Adbyss => "",
 			Self::StevenBlack => "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-			Self::YouTube => "https://raw.githubusercontent.com/Ewpratten/youtube_ad_blocklist/master/blocklist.txt",
 			Self::Yoyo => "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
 		}
 	}
@@ -182,7 +175,7 @@ impl Source {
 		// Note: this should just be an into_par_iter(), but for some reason
 		// compilation fails under some platforms and not others because it
 		// mistakes it for a reference iter.
-		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::YouTube, Self::Yoyo].par_iter()
+		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
 			.copied()
 			.filter(|x| 0 != src & (*x as u8))
 			.map(Self::fetch_raw)

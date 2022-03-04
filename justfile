@@ -153,6 +153,7 @@ bench BENCH="":
 	clear
 	cargo test \
 		--workspace \
+		--release \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 

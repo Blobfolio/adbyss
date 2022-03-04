@@ -10,7 +10,6 @@ use adbyss_core::{
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_STEVENBLACK,
-	FLAG_YOUTUBE,
 	FLAG_YOYO,
 	Shitlist,
 };
@@ -42,9 +41,6 @@ pub(super) struct Settings {
 	source_stevenblack: bool,
 
 	#[serde(default = "default_true")]
-	source_youtube: bool,
-
-	#[serde(default = "default_true")]
 	source_yoyo: bool,
 
 	#[serde(default = "Vec::new")]
@@ -66,7 +62,6 @@ impl Default for Settings {
 			source_adaway: true,
 			source_adbyss: true,
 			source_stevenblack: true,
-			source_youtube: true,
 			source_yoyo: true,
 			exclude: Vec::new(),
 			regexclude: Vec::new(),
@@ -105,7 +100,6 @@ impl Settings {
 		if ! self.source_adbyss { flags &= ! FLAG_ADBYSS; }
 		if ! self.source_adaway { flags &= ! FLAG_ADAWAY; }
 		if ! self.source_stevenblack { flags &= ! FLAG_STEVENBLACK; }
-		if ! self.source_youtube { flags &= ! FLAG_YOUTUBE; }
 		if ! self.source_yoyo { flags &= ! FLAG_YOYO; }
 
 		// And build!
@@ -143,11 +137,15 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let shitlist = Settings::try_from(PathBuf::from("./skel/test.yaml"))
+		let path = std::fs::canonicalize("./skel/test.yaml")
+			.expect("Missing test.yaml");
+
+		let shitlist = Settings::try_from(path)
 			.expect("Missing settings.")
 			.into_shitlist()
 			.build()
-			.unwrap();
+			.expect("Unable to parse settings");
+
 		let res = shitlist.into_vec();
 
 		// Our includes should be present.

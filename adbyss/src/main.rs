@@ -248,7 +248,6 @@ OPTIONS:
 SOURCES:
     AdAway:       <https://adaway.org/>
     Steven Black: <https://github.com/StevenBlack/hosts>
-    YouTube:      <https://github.com/Ewpratten/youtube_ad_blocklist>
     Yoyo:         <https://pgl.yoyo.org/adservers/>
 
 Additional global settings are stored in /etc/adbyss.yaml.
