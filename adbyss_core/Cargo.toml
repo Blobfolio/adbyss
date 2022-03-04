@@ -16,7 +16,7 @@ dactyl = "0.2.*"
 fyi_msg = "0.9.*"
 rayon = "1.5.*"
 regex = "1.5.*"
-utc2k = "0.3.*"
+utc2k = "0.4.*"
 write_atomic = "0.2.*"
 
 [dependencies.adbyss_psl]
