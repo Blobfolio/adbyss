@@ -25,6 +25,7 @@ use std::{
 	collections::HashSet,
 	fs::File,
 	path::PathBuf,
+	time::Duration,
 };
 
 
@@ -213,6 +214,7 @@ impl Source {
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
 	ureq::get(kind.url())
 		.set("user-agent", "Mozilla/5.0")
+		.timeout(Duration::from_secs(15))
 		.call()
 		.and_then(|r| r.into_string().map_err(std::convert::Into::into))
 		.map_err(|_| AdbyssError::SourceFetch(kind))
