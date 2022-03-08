@@ -1,0 +1,9 @@
+[Unit]
+Description=Adbyss
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/adbyss --systemd
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.6.3"
+version = "0.7.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -23,9 +23,13 @@ assets = [
     ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
-conf-files = [
-	"/etc/adbyss.yaml",
-]
+conf-files = [ "/etc/adbyss.yaml" ]
+maintainer-scripts = "./skel/systemd/"
+
+[package.metadata.deb.systemd-units]
+unit-scripts = "/share/adbyss/skel/systemd"
+enable = false
+
 
 [package.metadata.bashman]
 name = "Adbyss"
@@ -83,7 +87,6 @@ inside = true
 items = [
 	["AdAway", "<https://adaway.org/>"],
 	["Steven Black", "<https://github.com/StevenBlack/hosts>"],
-	["YouTube", "<https://github.com/Ewpratten/youtube_ad_blocklist>"],
 	["Yoyo", "<https://pgl.yoyo.org/adservers/>"]
 ]
 

@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.6.3"
+version = "0.7.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -16,7 +16,7 @@ dactyl = "0.2.*"
 fyi_msg = "0.9.*"
 rayon = "1.5.*"
 regex = "1.5.*"
-utc2k = "0.3.*"
+utc2k = "0.4.*"
 write_atomic = "0.2.*"
 
 [dependencies.adbyss_psl]

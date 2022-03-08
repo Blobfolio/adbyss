@@ -1,0 +1,12 @@
+[Unit]
+Description=Adbyss
+After=network.target
+
+[Timer]
+Unit=adbyss.service
+OnCalendar=daily
+AccuracySec=12h
+Persistent=true
+
+[Install]
+WantedBy = timers.target

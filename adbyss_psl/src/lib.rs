@@ -349,14 +349,6 @@ impl Domain {
 				})
 			)
 	}
-
-	#[deprecated(since = "0.6.0", note = "Use Domain::new instead.")]
-	#[inline]
-	/// # Parse Host.
-	///
-	/// Alias for [`Domain::new`].
-	pub fn parse<S>(src: S) -> Option<Self>
-	where S: AsRef<str> { Self::new(src) }
 }
 
 /// ## WWW.

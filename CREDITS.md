@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.6.3
-    Generated: 2022-02-24 17:34:26 UTC
+    Version:   0.7.0
+    Generated: 2022-03-08 05:16:28 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.6.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.6.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.7.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.7.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.7.6 | [Tom Kaitchuck](mailto:Tom.Kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.18 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
@@ -24,7 +24,7 @@
 | [fastrand](https://github.com/smol-rs/fastrand) | 1.7.0 | [Stjepan Glavina](mailto:stjepang@gmail.com) | Apache-2.0 or MIT |
 | [flate2](https://github.com/rust-lang/flate2-rs) | 1.0.22 | [Alex Crichton](mailto:alex@alexcrichton.com) and [Josh Triplett](mailto:josh@joshtriplett.org) | Apache-2.0 or MIT |
 | [form_urlencoded](https://github.com/servo/rust-url) | 1.0.1 | The rust-url developers | Apache-2.0 or MIT |
-| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.3 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.9.5 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [hashbrown](https://github.com/rust-lang/hashbrown) | 0.11.2 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
 | [idna](https://github.com/servo/rust-url/) | 0.2.3 | The rust-url developers | Apache-2.0 or MIT |
 | [indexmap](https://github.com/bluss/indexmap) | 1.8.0 | bluss and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
@@ -38,7 +38,7 @@
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.4.4 | [Frommi](mailto:daniil.liferenko@gmail.com) and [oyvindln](mailto:oyvindln@users.noreply.github.com) | Apache-2.0, MIT, or Zlib |
 | [num-traits](https://github.com/rust-num/num-traits) | 0.2.14 | The Rust Project Developers | Apache-2.0 or MIT |
 | [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.13.1 | [Sean McArthur](mailto:sean@seanmonstar.com) | Apache-2.0 or MIT |
-| [once_cell](https://github.com/matklad/once_cell) | 1.9.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 or MIT |
+| [once_cell](https://github.com/matklad/once_cell) | 1.10.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 or MIT |
 | [percent-encoding](https://github.com/servo/rust-url/) | 2.1.0 | The rust-url developers | Apache-2.0 or MIT |
 | [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.36 | [David Tolnay](mailto:dtolnay@gmail.com) and [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
 | [quote](https://github.com/dtolnay/quote) | 1.0.15 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
@@ -65,7 +65,7 @@
 | [untrusted](https://github.com/briansmith/untrusted) | 0.7.1 | [Brian Smith](mailto:brian@briansmith.org) | ISC |
 | [ureq](https://github.com/algesten/ureq) | 2.4.0 | [Martin Algesten](mailto:martin@algesten.se) and [Jacob Hoffman-Andrews](mailto:ureq@hoffman-andrews.com) | Apache-2.0 or MIT |
 | [url](https://github.com/servo/rust-url) | 2.2.2 | The rust-url developers | Apache-2.0 or MIT |
-| [utc2k](https://github.com/Blobfolio/utc2k) | 0.3.4 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [utc2k](https://github.com/Blobfolio/utc2k) | 0.4.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [webpki](https://github.com/briansmith/webpki) | 0.22.0 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [webpki-roots](https://github.com/rustls/webpki-roots) | 0.22.2 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | MPL-2.0 |
 | [write_atomic](https://github.com/Blobfolio/write_atomic) | 0.2.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
