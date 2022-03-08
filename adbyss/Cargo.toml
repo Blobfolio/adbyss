@@ -23,9 +23,13 @@ assets = [
     ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
-conf-files = [
-	"/etc/adbyss.yaml",
-]
+conf-files = [ "/etc/adbyss.yaml" ]
+maintainer-scripts = "./skel/systemd/"
+
+[package.metadata.deb.systemd-units]
+unit-scripts = "/share/adbyss/skel/systemd"
+enable = false
+
 
 [package.metadata.bashman]
 name = "Adbyss"

@@ -75,11 +75,43 @@ It is important to remember that scammers and capitalists birth new schemes all 
 
 
 
+## Automation
+
+The repository contains two `systemd` scripts — a [timer](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.timer) and a [service](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.service) — that can be used to automatically update your `/etc/hosts` file once daily using the global settings (stored in `/etc/adbyss.yaml`).
+
+If you installed Adbyss using the pre-built `.deb` package, all you need to do is enable and start the timer, then you can forget all about it!
+
+```bash
+sudo systemctl enable adbyss.timer
+sudo systemctl start adbyss.timer
+```
+
+If you built Adbyss manually, you'll need to manually copy both scripts to the appropriate `/etc/systemd` or `/lib/systemd` subfolder and run:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable adbyss.timer
+sudo systemctl start adbyss.timer
+```
+
+
+
 ## Removal
 
-To remove all Adbyss rules from your hosts file, either run `adbyss --disable`, or open the hostfile in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and all subsequent lines.
+If you're using the `systemd` service, be sure to stop and disable those scripts before doing anything else:
 
-Save, reboot, and you're back to normal.
+```bash
+sudo systemctl stop adbyss.timer
+sudo systemctl disable adbyss.timer
+```
+
+Then to remove all blocked entries, you can either open the hostfile in an editor and remove the `# ADBYSS #` marker and all subsequent lines, or run:
+
+```bash
+adbyss --disable
+```
+
+Save, reboot, and you should be back to normal!
 
 
 

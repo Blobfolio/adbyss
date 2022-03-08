@@ -160,7 +160,8 @@ fn _main() -> Result<(), AdbyssError> {
 		.into_shitlist();
 
 	// Handle runtime flags.
-	if args.switch2(b"-y", b"--yes") {
+	let systemd = args.switch(b"--systemd"); // A special mode for systemd runs.
+	if systemd || args.switch2(b"-y", b"--yes") {
 		shitlist.set_flags(FLAG_Y);
 	}
 
@@ -198,7 +199,13 @@ fn _main() -> Result<(), AdbyssError> {
 		shitlist.write()?;
 
 		// Summarize what we've done.
-		if ! args.switch2(b"-q", b"--quiet") {
+		if systemd {
+			println!(
+				"{} unique hosts have been cast to a blackhole!",
+				NiceU64::from(shitlist.len()).as_str()
+			);
+		}
+		else if ! args.switch2(b"-q", b"--quiet") {
 			Msg::success(
 				format!(
 					"{} unique hosts have been cast to a blackhole!",
