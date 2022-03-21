@@ -404,17 +404,8 @@ impl Domain {
 	pub fn strip_www(&mut self, recurse: bool) -> bool {
 		let mut res: bool = false;
 		while self.has_www() {
-			// Chop the string. We know the byte slice starts with "www.", so
-			// it should be perfectly safe to shift the pointers down four
-			// slots.
-			{
-				let v = unsafe { self.host.as_mut_vec() };
-				let len: usize = v.len() - 4;
-				unsafe {
-					std::ptr::copy(v.as_ptr().add(4), v.as_mut_ptr(), len);
-				}
-				v.truncate(len);
-			}
+			// Drop the first four bytes, which we know are "www.".
+			self.host.replace_range(..4, "");
 
 			// Adjust the ranges.
 			self.root.start -= 4;
