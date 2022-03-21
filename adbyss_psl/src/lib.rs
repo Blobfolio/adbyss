@@ -597,6 +597,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
+		// Safety: there cannot be trailing dots, so idx+1 is always valid.
 		if let Some(suffix) = SuffixKind::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
 			return match suffix {
 				SuffixKind::Tld => Some((dot, idx + 1)),
@@ -610,8 +611,9 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 						else { dot + 1 };
 
 					// This matches a wildcard exception, making the found suffix
-					// the true suffix. Note: there cannot be a dot at position
-					// zero, so the range is always valid.
+					// the true suffix.
+					// Safety: there cannot be leading dots, so there is always
+					// something before idx.
 					if ex.is_match(unsafe { host.get_unchecked(after_dot..idx) }) {
 						Some((dot, idx + 1))
 					}
