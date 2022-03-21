@@ -492,7 +492,7 @@ impl Shitlist {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
-			let dst2: PathBuf = PathBuf::from(OsStr::from_bytes(&[
+			let dst2 = PathBuf::from(OsStr::from_bytes(&[
 				dst.as_os_str().as_bytes(),
 				b".adbyss.bak"
 			].concat()));
