@@ -5,6 +5,7 @@
 use dactyl::{
 	NiceU32,
 	NiceU64,
+	NoHash,
 };
 use regex::Regex;
 use std::{
@@ -272,7 +273,7 @@ where I: IntoIterator<Item = &'a str> {
 		// then adding the rest as-were. We need to keep track of the indexes
 		// we've hit along the way so we don't accidentally add anything twice.
 		let mut new: Vec<Vec<char>> = Vec::with_capacity(set.len());
-		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
+		let mut seen: HashSet<usize, NoHash> = HashSet::with_capacity_and_hasher(set.len(), NoHash::default());
 
 		for (diff, left, right) in saved {
 			// Join and push any pairing with savings matching the round's
@@ -601,7 +602,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 
 	// Make sure the keys are unique.
 	{
-		let tmp: HashSet<u64> = map.iter().map(|(k, _)| *k).collect();
+		let tmp: HashSet<u64, NoHash> = map.iter().map(|(k, _)| *k).collect();
 		assert_eq!(tmp.len(), map.len(), "Duplicate PSL hash keys.");
 	}
 
