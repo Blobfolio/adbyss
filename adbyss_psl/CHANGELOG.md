@@ -2,6 +2,15 @@
 
 
 
+## [0.7.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.1) - 2022-03-29
+
+### Changed
+
+* Improve performance of `build.rs`
+* Remove an `unsafe` block
+
+
+
 ## [0.7.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.0) - 2022-03-07
 
 ### Removed
