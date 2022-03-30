@@ -1,7 +1,5 @@
 [Unit]
 Description=Adbyss
-Wants=network-online.target
-After=network.target network-online.target
 
 [Timer]
 Unit=adbyss.service
