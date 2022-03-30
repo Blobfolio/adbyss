@@ -112,8 +112,6 @@ use fyi_msg::Msg;
 use dactyl::NiceU64;
 use settings::Settings;
 use std::{
-	ffi::OsStr,
-	os::unix::ffi::OsStrExt,
 	path::PathBuf,
 	process::Command,
 };
@@ -150,8 +148,8 @@ fn _main() -> Result<(), AdbyssError> {
 	// path and go with that if it exists. Otherwise just use the internal
 	// default settings.
 	let mut shitlist =
-		if let Some(sh) = args.option2(b"-c", b"--config")
-			.map(|x| PathBuf::from(OsStr::from_bytes(x)))
+		if let Some(sh) = args.option2_os(b"-c", b"--config")
+			.map(PathBuf::from)
 			.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
 		{
 			Settings::try_from(sh)?
