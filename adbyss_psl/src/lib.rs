@@ -404,17 +404,8 @@ impl Domain {
 	pub fn strip_www(&mut self, recurse: bool) -> bool {
 		let mut res: bool = false;
 		while self.has_www() {
-			// Chop the string. We know the byte slice starts with "www.", so
-			// it should be perfectly safe to shift the pointers down four
-			// slots.
-			{
-				let v = unsafe { self.host.as_mut_vec() };
-				let len: usize = v.len() - 4;
-				unsafe {
-					std::ptr::copy(v.as_ptr().add(4), v.as_mut_ptr(), len);
-				}
-				v.truncate(len);
-			}
+			// Drop the first four bytes, which we know are "www.".
+			self.host.replace_range(..4, "");
 
 			// Adjust the ranges.
 			self.root.start -= 4;
@@ -606,6 +597,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
+		// Safety: there cannot be trailing dots, so idx+1 is always valid.
 		if let Some(suffix) = SuffixKind::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
 			return match suffix {
 				SuffixKind::Tld => Some((dot, idx + 1)),
@@ -619,8 +611,9 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 						else { dot + 1 };
 
 					// This matches a wildcard exception, making the found suffix
-					// the true suffix. Note: there cannot be a dot at position
-					// zero, so the range is always valid.
+					// the true suffix.
+					// Safety: there cannot be leading dots, so there is always
+					// something before idx.
 					if ex.is_match(unsafe { host.get_unchecked(after_dot..idx) }) {
 						Some((dot, idx + 1))
 					}
