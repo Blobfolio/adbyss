@@ -28,10 +28,12 @@
 
 mod error;
 mod hosts;
+mod ping;
 mod sources;
 
 pub use error::AdbyssError;
 pub use hosts::Shitlist;
+pub use ping::check_internet;
 pub use sources::Source;
 
 
