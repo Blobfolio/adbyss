@@ -14,7 +14,6 @@ use crate::{
 use rayon::{
 	iter::{
 		IntoParallelIterator,
-		IntoParallelRefIterator,
 		ParallelExtend,
 		ParallelIterator,
 	},
@@ -176,10 +175,11 @@ impl Source {
 		// Note: this should just be an into_par_iter(), but for some reason
 		// compilation fails under some platforms and not others because it
 		// mistakes it for a reference iter.
-		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].par_iter()
-			.copied()
-			.filter(|x| 0 != src & (*x as u8))
-			.map(Self::fetch_raw)
+		let raw: Cow<str> = [Self::AdAway, Self::Adbyss, Self::StevenBlack, Self::Yoyo].into_par_iter()
+			.filter_map(|x: Self|
+				if 0 == src & (x as u8) { None }
+				else { Some(x.fetch_raw()) }
+			)
 			// Merge the raw data into a single block so we can better
 			// parallelize parsing. If any sources failed, operations will
 			// abort here.
