@@ -2,6 +2,12 @@
 
 
 
+## [0.7.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.2) - 2022-04-07
+
+There are no changes from version 0.7.1; this was a binary-only update.
+
+
+
 ## [0.7.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.1) - 2022-03-29
 
 ### Changed
@@ -21,7 +27,7 @@
 
 ## [0.6.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.2) - 2022-02-08
 
-### Changes
+### Changed
 
 * Improved documentation;
 
@@ -29,7 +35,7 @@
 
 ## [0.6.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.1) - 2022-01-19
 
-### Changes
+### Changed
 
 * 2x-3x performance improvements for PUNY and Unicode domain parsing;
 * Build script cleanup;
@@ -39,7 +45,7 @@
 
 ## [0.6.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.0) - 2022-01-13
 
-### New
+### Added
 
 * `Domain::strip_www`;
 * `Domain` impls:
@@ -47,7 +53,7 @@
   * `PartialEq<&str>`
   * `PartialEq<String>`
 
-### Changes
+### Changed
 
 * 10x performance improvements for non-PUNY, non-Unicode domain parsing;
 * IDNA/Unicode normalization is not handled internally;
