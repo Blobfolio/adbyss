@@ -1,10 +1,10 @@
 [package]
 name = "adbyss"
-version = "0.7.1"
+version = "0.7.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.59"
 description = "Adbyss is a DNS blacklist manager for Linux."
 repository = "https://github.com/Blobfolio/adbyss"
 publish = false
@@ -29,7 +29,6 @@ maintainer-scripts = "./skel/systemd/"
 [package.metadata.deb.systemd-units]
 unit-scripts = "/share/adbyss/skel/systemd"
 enable = false
-
 
 [package.metadata.bashman]
 name = "Adbyss"
@@ -95,11 +94,11 @@ argyle = "0.5.*, >=0.5.3"
 dactyl = "0.3.*"
 fyi_msg = "0.9.*"
 libc = "0.2.*"
-serde_yaml = "0.8.*, >=0.8.4"
+serde_yaml = "=0.8.23"
 
 [dependencies.adbyss_core]
 path = "../adbyss_core"
 
 [dependencies.serde]
-version = "1.0.*"
+version = "=1.0.136"
 features = [ "derive" ]

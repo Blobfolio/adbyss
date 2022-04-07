@@ -1,12 +1,10 @@
 [Unit]
 Description=Adbyss
-Wants=network-online.target
-After=network.target network-online.target
 
 [Timer]
 Unit=adbyss.service
-OnCalendar=daily
-AccuracySec=12h
+OnCalendar=*-*-* 6,18:00
+RandomizedDelaySec=12h
 Persistent=true
 
 [Install]

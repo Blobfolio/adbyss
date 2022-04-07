@@ -1,21 +1,21 @@
 [package]
 name = "adbyss_core"
-version = "0.7.1"
+version = "0.7.2"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.59"
 description = "Library for Adbyss."
 repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [dependencies]
-ahash = "0.7.*"
-argyle = "0.5.*"
+ahash = "=0.7.6"
+argyle = "0.5.*, >=0.5.3"
 dactyl = "0.3.*"
 fyi_msg = "0.9.*"
-rayon = "1.5.*"
-regex = "1.5.*, >=1.5.5"
+rayon = "=1.5.1"
+regex = "=1.5.5"
 utc2k = "0.4.*"
 write_atomic = "0.2.*"
 
@@ -23,6 +23,6 @@ write_atomic = "0.2.*"
 path = "../adbyss_psl"
 
 [dependencies.ureq]
-version = "2.4.*"
+version = "=2.4.0"
 default-features = false
 features = [ "tls", "gzip" ]

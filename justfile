@@ -26,8 +26,6 @@ cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 
-rustflags   := "-C link-arg=-s"
-
 
 
 # Bench PSL!
@@ -36,13 +34,13 @@ bench BENCH="":
 
 	clear
 	if [ -z "{{ BENCH }}" ]; then
-		RUSTFLAGS="{{ rustflags }}" cargo bench \
+		cargo bench \
 			-p adbyss_psl \
 			--benches \
 			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}"
 	else
-		RUSTFLAGS="{{ rustflags }}" cargo bench \
+		cargo bench \
 			-p adbyss_psl \
 			--bench "{{ BENCH }}" \
 			--target x86_64-unknown-linux-gnu \
@@ -54,7 +52,7 @@ bench BENCH="":
 # Build Release!
 @build:
 	# First let's build the Rust bit.
-	RUSTFLAGS="--emit asm {{ rustflags }}" cargo build \
+	RUSTFLAGS="--emit asm" cargo build \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target x86_64-unknown-linux-gnu \
@@ -78,10 +76,32 @@ bench BENCH="":
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
 
+@build-pgo: clean
+	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+	"{{ cargo_bin }}" -y
+	"{{ cargo_bin }}" --systemd
+
+	/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
+		merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+
+	RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" cargo build \
+		--bin "{{ pkg_id }}" \
+		--release \
+		--target x86_64-unknown-linux-gnu \
+		--target-dir "{{ cargo_dir }}"
+
+
 # Check Release!
 @check:
 	# First let's build the Rust bit.
-	RUSTFLAGS="{{ rustflags }}" cargo check \
+	cargo check \
 		--workspace \
 		--release \
 		--target x86_64-unknown-linux-gnu \
@@ -105,7 +125,7 @@ bench BENCH="":
 # Clippy.
 @clippy:
 	clear
-	RUSTFLAGS="{{ rustflags }}" cargo clippy \
+	cargo clippy \
 		--workspace \
 		--release \
 		--target x86_64-unknown-linux-gnu \
@@ -140,7 +160,7 @@ bench BENCH="":
 @run *ARGS:
 	clear
 
-	RUSTFLAGS="{{ rustflags }}" cargo run \
+	cargo run \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target x86_64-unknown-linux-gnu \

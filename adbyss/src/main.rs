@@ -168,6 +168,9 @@ fn _main() -> Result<(), AdbyssError> {
 		return shitlist.unwrite();
 	}
 
+	// Make sure we're online if in systemd mode.
+	if systemd { adbyss_core::check_internet()?; }
+
 	// Build it.
 	let shitlist = shitlist.build()?;
 

@@ -30,6 +30,8 @@ pub enum AdbyssError {
 	HostsRead(Box<Path>),
 	/// # Write error.
 	HostsWrite(Box<Path>),
+	/// # No Internet.
+	NoInternet,
 	/// # Root required.
 	Root,
 	/// # Fetching source failed.
@@ -48,6 +50,7 @@ impl fmt::Display for AdbyssError {
 			Self::HostsInvalid(path) => f.write_fmt(format_args!("Invalid hostfile: {:?}", path)),
 			Self::HostsRead(path) => f.write_fmt(format_args!("Unable to read hostfile: {:?}", path)),
 			Self::HostsWrite(path) => f.write_fmt(format_args!("Unable to write hostfile: {:?}", path)),
+			Self::NoInternet => f.write_str("No internet connection was available."),
 			Self::Root => f.write_str("Adbyss requires root privileges."),
 			Self::SourceFetch(src) => f.write_fmt(format_args!("Unable to fetch source: {}", src.as_str())),
 		}
