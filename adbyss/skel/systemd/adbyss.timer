@@ -3,8 +3,7 @@ Description=Adbyss
 
 [Timer]
 Unit=adbyss.service
-OnCalendar=*-*-* 6,18:00
-RandomizedDelaySec=12h
+OnCalendar=daily
 Persistent=true
 
 [Install]
