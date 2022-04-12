@@ -749,10 +749,7 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 		.for_each(|(host, flag)|
 			// This is a wildcard exception.
 			if 0 != flag & FLAG_EXCEPTION {
-				if let Some(idx) = host.as_bytes()
-					.iter()
-					.position(|x| x == &b'.')
-				{
+				if let Some(idx) = host.bytes().position(|x| x == b'.') {
 					let (before, after) = host.split_at(idx);
 					psl_wild.entry(after[1..].to_string())
 						.or_insert_with(Vec::new)

@@ -719,9 +719,8 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 		raw.par_lines()
 			.filter_map(|x| {
 				// Split on whitespace, up to the first #comment, if any.
-				let mut split = x.as_bytes()
-					.iter()
-					.position(|b| b'#'.eq(b))
+				let mut split = x.bytes()
+					.position(|b| b'#' == b)
 					.map_or(x, |p|
 						if x.is_char_boundary(p) {
 							unsafe { x.get_unchecked(0..p) }
