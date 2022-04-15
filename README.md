@@ -47,23 +47,21 @@ Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
 The following flags are available:
 
-```bash
-    --disable       Remove *all* Adbyss entries from the hostfile.
--h, --help          Prints help information.
--q, --quiet         Do *not* summarize changes after write.
-    --show          Print a sorted blackholable hosts list to STDOUT, one per
-                    line.
-    --stdout        Print the would-be hostfile to STDOUT instead of writing
-                    it to disk.
--V, --version       Prints version information.
--y, --yes           Non-interactive mode; answer "yes" to all prompts.
-```
+| Short | Long | Description |
+| ----- | ---- | ----------- |
+| | `--disable` | Remove all Adbyss entries from the hostfile. |
+| `-h` | `--help` | Print help information and exit. |
+| `-q` | `--quiet` | Do *not* summarize changes after write. |
+| | `--show` | Print a sorted blackholable hosts list to STDOUT, one per line. |
+| | `--stdout` | Print the would-be hostfile to STDOUT instead of writing it to disk. |
+| `-V` | `--version` | Print program version and exit. |
+| `-y` | `--yes` | Non-interactive mode; answer "yes" to all prompts. |
 
 And the following option is available:
 
-```bash
--c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
-```
+| Short | Long | Value | Description |
+| ----- | ---- | ----- | ----------- |
+| `-c` | `--config` | `<PATH>` | Use this configuration instead of /etc/adbyss.yaml. |
 
 After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.yaml` configuration accordingly.
 
