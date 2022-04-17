@@ -116,8 +116,8 @@ impl Default for Shitlist {
 			flags: 0,
 			exclude: HashSet::with_hasher(AHASH_STATE),
 			regexclude: None,
-			found: HashSet::with_capacity_and_hasher(90_000, AHASH_STATE),
-			out: Vec::with_capacity(90_000),
+			found: HashSet::with_capacity_and_hasher(100_000, AHASH_STATE),
+			out: Vec::with_capacity(2_097_152),
 		}
 	}
 }
