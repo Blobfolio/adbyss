@@ -285,6 +285,7 @@ impl Shitlist {
 
 /// # Conversion.
 impl Shitlist {
+	#[allow(unsafe_code)]
 	#[must_use]
 	/// # As Str.
 	///
@@ -708,6 +709,7 @@ fn hash64(src: &[u8]) -> u64 {
 	hasher.finish()
 }
 
+#[allow(unsafe_code)]
 /// # Parse Custom Hosts.
 ///
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.

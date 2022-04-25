@@ -148,7 +148,7 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Reformat again, this time for output.
 	// Format the array.
 	let map = format!(
-		"static MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
+		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
 		map_len,
 		map.into_iter()
 			.map(|(first, last, label)|
