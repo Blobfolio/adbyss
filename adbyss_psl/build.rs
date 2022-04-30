@@ -772,7 +772,7 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 
 
 
-#[cfg(feature = "docs-workaround")]
+#[cfg(feature = "docsrs")]
 /// # (FAKE) Download File.
 ///
 /// This is a workaround for `docs.rs`, which does not support network activity
@@ -788,7 +788,7 @@ fn download(name: &str, _url: &str) -> String {
 	}
 }
 
-#[cfg(not(feature = "docs-workaround"))]
+#[cfg(not(feature = "docsrs"))]
 /// # Download File.
 ///
 /// This downloads and caches a remote data file used by the build. There are

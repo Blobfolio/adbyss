@@ -10,7 +10,7 @@ repository = "https://github.com/Blobfolio/adbyss"
 readme = "README.md"
 
 [package.metadata.docs.rs]
-features = [ "docs-workaround", "serde" ]
+features = [ "docsrs", "serde" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
@@ -45,11 +45,13 @@ optional = true
 default = []
 
 # The feature "serde" can be enabled to provide (de)/serialize support for
-# adbyss_psl::Domain.
+# adbyss_psl::Domain. We can't write it here because the name matches the
+# dependency, but it works!
+# serde = []
 
 # This is just a workaround for Docs.rs; don't enable this if you're a human or
 # the library will not function correctly.
-docs-workaround = []
+docsrs = []
 
 [[bench]]
 name = "psl_parse"
