@@ -89,7 +89,7 @@ let owned = dom.take(); // "www.mydomain.com"
 
 #![allow(clippy::module_name_repetitions)]
 
-#![cfg_attr(all(nightly, feature = "docsrs"), feature(doc_cfg))]
+#![cfg_attr(feature = "docsrs", feature(doc_cfg))]
 
 
 
@@ -563,7 +563,7 @@ impl Domain {
 
 
 #[cfg(any(test, feature = "serde"))]
-#[cfg_attr(all(nightly, feature = "docsrs"), doc(cfg(feature = "serde")))]
+#[cfg_attr(feature = "docsrs", doc(cfg(feature = "serde")))]
 impl serde::Serialize for Domain {
 	#[inline]
 	/// # Serialize.
@@ -574,7 +574,7 @@ impl serde::Serialize for Domain {
 }
 
 #[cfg(any(test, feature = "serde"))]
-#[cfg_attr(all(nightly, feature = "docsrs"), doc(cfg(feature = "serde")))]
+#[cfg_attr(feature = "docsrs", doc(cfg(feature = "serde")))]
 impl<'de> serde::Deserialize<'de> for Domain {
 	/// # Deserialize.
 	///
