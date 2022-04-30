@@ -1,98 +1,30 @@
 /*!
 # `Adbyss`
-
-Adbyss is a DNS blocklist manager for x86-64 Linux machines.
-
-While ad-blocking browser extensions are extremely useful, they only block
-unwatned content *in the browser*, and require read/write access to every
-page you visit, which adds overhead and potential security/privacy issues.
-
-Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
-file, preventing all spammy connection attempts system-wide. As this is just a
-text file, no special runtime scripts are required, and there is very little
-overhead.
-
-**This software is a work-in-progress.**
-
-Feel free to use it, but if something weird happens — or if you have ideas for improvement — please open an [issue](https://github.com/Blobfolio/adbyss/issues)!
-
-
-
-## Installation
-
-This application is written in [Rust](https://www.rust-lang.org/) and can be built using [Cargo](https://github.com/rust-lang/cargo). If building manually, don't forget to copy the configuration file:
-```bash
-sudo cp adbyss/misc/adbyss.yaml /etc
-```
-
-Pre-built `.deb` packages are also added for each [release](https://github.com/Blobfolio/adbyss/releases/latest). They should always work for the latest stable Debian and Ubuntu.
-
-
-
-## Usage
-
-It's easy.
-
-Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
-
-Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
-
-The following flags are available:
-```bash
-    --disable       Remove *all* Adbyss entries from the hostfile.
--h, --help          Prints help information.
--q, --quiet         Do *not* summarize changes after write.
-    --show          Print a sorted blackholable hosts list to STDOUT, one per
-                    line.
-    --stdout        Print the would-be hostfile to STDOUT instead of writing
-                    it to disk.
--V, --version       Prints version information.
--y, --yes           Non-interactive mode; answer "yes" to all prompts.
-```
-
-And the following option is available:
-```bash
--c, --config <path> Use this configuration instead of /etc/adbyss.yaml.
-```
-
-After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.yaml` configuration accordingly.
-
-Restart your browser and/or computer and everything should be peachy again.
-
-If ads persist in displaying even after running Adbyss and rebooting, double-check the browser isn't bypassing your computer's local DNS records. (Firefox's DNS-Over-HTTPS feature sometimes does this.) Tweak your settings as needed and you should be back in business.
-
-It is important to remember that scammers and capitalists birth new schemes all the time. It is a good idea to rerun Adbyss weekly or so to ensure your hosts list contains the latest updates.
-
-
-
-## Removal
-
-To remove all Adbyss rules from your hosts file, either run `adbyss --disable`, or open the hostfile in a text editor, find the big-obvious `# ADBYSS #` marker, and delete it and all subsequent lines.
-
-Save, reboot, and you're back to normal.
 */
 
-#![warn(clippy::filetype_is_file)]
-#![warn(clippy::integer_division)]
-#![warn(clippy::needless_borrow)]
-#![warn(clippy::nursery)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::perf)]
-#![warn(clippy::suboptimal_flops)]
-#![warn(clippy::unneeded_field_pattern)]
-#![warn(macro_use_extern_crate)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(non_ascii_idents)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unreachable_pub)]
-#![warn(unused_crate_dependencies)]
-#![warn(unused_extern_crates)]
-#![warn(unused_import_braces)]
+#![deny(unsafe_code)]
 
-#![allow(clippy::module_name_repetitions)]
+#![warn(
+	clippy::filetype_is_file,
+	clippy::integer_division,
+	clippy::needless_borrow,
+	clippy::nursery,
+	clippy::pedantic,
+	clippy::perf,
+	clippy::suboptimal_flops,
+	clippy::unneeded_field_pattern,
+	macro_use_extern_crate,
+	missing_copy_implementations,
+	missing_debug_implementations,
+	missing_docs,
+	non_ascii_idents,
+	trivial_casts,
+	trivial_numeric_casts,
+	unreachable_pub,
+	unused_crate_dependencies,
+	unused_extern_crates,
+	unused_import_braces,
+)]
 
 
 
@@ -263,6 +195,7 @@ Additional global settings are stored in /etc/adbyss.yaml.
 	));
 }
 
+#[allow(unsafe_code)]
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail

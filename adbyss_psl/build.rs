@@ -148,7 +148,7 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Reformat again, this time for output.
 	// Format the array.
 	let map = format!(
-		"static MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
+		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
 		map_len,
 		map.into_iter()
 			.map(|(first, last, label)|
@@ -749,10 +749,7 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 		.for_each(|(host, flag)|
 			// This is a wildcard exception.
 			if 0 != flag & FLAG_EXCEPTION {
-				if let Some(idx) = host.as_bytes()
-					.iter()
-					.position(|x| x == &b'.')
-				{
+				if let Some(idx) = host.bytes().position(|x| x == b'.') {
 					let (before, after) = host.split_at(idx);
 					psl_wild.entry(after[1..].to_string())
 						.or_insert_with(Vec::new)
@@ -775,7 +772,7 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 
 
 
-#[cfg(feature = "docs-workaround")]
+#[cfg(feature = "docsrs")]
 /// # (FAKE) Download File.
 ///
 /// This is a workaround for `docs.rs`, which does not support network activity
@@ -791,7 +788,7 @@ fn download(name: &str, _url: &str) -> String {
 	}
 }
 
-#[cfg(not(feature = "docs-workaround"))]
+#[cfg(not(feature = "docsrs"))]
 /// # Download File.
 ///
 /// This downloads and caches a remote data file used by the build. There are

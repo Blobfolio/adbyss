@@ -116,8 +116,8 @@ impl Default for Shitlist {
 			flags: 0,
 			exclude: HashSet::with_hasher(AHASH_STATE),
 			regexclude: None,
-			found: HashSet::with_capacity_and_hasher(90_000, AHASH_STATE),
-			out: Vec::with_capacity(90_000),
+			found: HashSet::with_capacity_and_hasher(100_000, AHASH_STATE),
+			out: Vec::with_capacity(2_097_152),
 		}
 	}
 }
@@ -285,6 +285,7 @@ impl Shitlist {
 
 /// # Conversion.
 impl Shitlist {
+	#[allow(unsafe_code)]
 	#[must_use]
 	/// # As Str.
 	///
@@ -708,6 +709,7 @@ fn hash64(src: &[u8]) -> u64 {
 	hasher.finish()
 }
 
+#[allow(unsafe_code)]
 /// # Parse Custom Hosts.
 ///
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
@@ -719,9 +721,8 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
 		raw.par_lines()
 			.filter_map(|x| {
 				// Split on whitespace, up to the first #comment, if any.
-				let mut split = x.as_bytes()
-					.iter()
-					.position(|b| b'#'.eq(b))
+				let mut split = x.bytes()
+					.position(|b| b'#' == b)
 					.map_or(x, |p|
 						if x.is_char_boundary(p) {
 							unsafe { x.get_unchecked(0..p) }

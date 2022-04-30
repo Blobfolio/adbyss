@@ -2,6 +2,12 @@
 
 
 
+## [0.7.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.3) - 2022-04-29
+
+This release merely contains some documentation and linting changes.
+
+
+
 ## [0.7.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.2) - 2022-04-07
 
 There are no changes from version 0.7.1; this was a binary-only update.
