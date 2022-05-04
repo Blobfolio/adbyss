@@ -100,5 +100,5 @@ serde_yaml = "=0.8.23"
 path = "../adbyss_core"
 
 [dependencies.serde]
-version = "=1.0.136"
+version = "1.0.*"
 features = [ "derive" ]
