@@ -2,6 +2,14 @@
 
 
 
+## [0.7.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.4) - 2022-05-19
+
+### Changed
+
+* Update and lock third-party dependency versions
+
+
+
 ## [0.7.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.3) - 2022-04-29
 
 This release merely contains some documentation and linting changes.
