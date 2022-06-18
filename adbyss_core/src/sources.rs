@@ -194,7 +194,7 @@ impl Source {
 
 		// There are a lot of duplicates, so let's quickly weed them out before
 		// we move onto the relatively expensive domain validation checks.
-		let mut tmp: HashSet<&str, ahash::RandomState> = HashSet::with_capacity_and_hasher(100_000, AHASH_STATE);
+		let mut tmp: HashSet<&str, ahash::RandomState> = HashSet::with_capacity_and_hasher(131_072, AHASH_STATE);
 		tmp.par_extend(raw.par_lines());
 
 		// And finally, see which of those lines are actual domains.
