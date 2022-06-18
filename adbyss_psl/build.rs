@@ -617,7 +617,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		"/// # Map Keys.\nstatic MAP_K: [u64; {}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {}] = [{}];",
 		len,
 		map_keys.into_iter()
-			.map(|x| NiceU64::with_separator(x, b'_').as_string())
+			.map(|x| String::from(NiceU64::with_separator(x, b'_')))
 			.collect::<Vec<String>>()
 			.join(", "),
 		len,
