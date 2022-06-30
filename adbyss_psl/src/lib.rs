@@ -87,7 +87,10 @@ let owned = dom.take(); // "www.mydomain.com"
 	unused_import_braces,
 )]
 
-#![allow(clippy::module_name_repetitions)]
+#![allow(
+	clippy::module_name_repetitions,
+	clippy::redundant_pub_crate,
+)]
 
 #![cfg_attr(feature = "docsrs", feature(doc_cfg))]
 
