@@ -2,6 +2,14 @@
 
 
 
+## [0.7.7](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.7) - 2022-06-30
+
+### Changed
+
+* Update dependencies
+
+
+
 ## [0.7.6](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.6) - 2022-06-18
 
 ### Changed
