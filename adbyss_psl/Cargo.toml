@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.7.6"
+version = "0.7.7"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -34,7 +34,7 @@ serde_yaml = "0.8.*, >=0.8.4"
 [dependencies]
 ahash = "=0.7.6"
 unicode-bidi = "=0.3.8"
-unicode-normalization = "=0.1.19"
+unicode-normalization = "=0.1.20"
 
 [dependencies.serde]
 version = "1.0.*"

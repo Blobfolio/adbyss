@@ -26,6 +26,8 @@
 	unused_import_braces,
 )]
 
+#![allow(clippy::redundant_pub_crate)]
+
 
 
 mod settings;
