@@ -21,7 +21,7 @@ idna = "=0.2.3"
 regex = "=1.6.0"
 
 [build-dependencies.ureq]
-version = "=2.4.0"
+version = "=2.5.0"
 default-features = false
 features = [ "tls", "gzip" ]
 
