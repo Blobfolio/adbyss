@@ -2,7 +2,7 @@
 
 
 
-## [0.7.8](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.8) - 2022-07-14
+## [0.7.9](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.9) - 2022-08-11
 
 ### Changed
 
