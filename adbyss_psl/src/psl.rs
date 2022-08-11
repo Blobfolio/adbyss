@@ -2,8 +2,6 @@
 # Adbyss: PSL
 */
 
-use std::hash::Hasher;
-
 // This is compiled by `build.rs` using the template `../skel/psl.rs.txt`. It
 // brings in:
 // * `static MAP_K: [u64]`
@@ -50,11 +48,7 @@ impl SuffixKind {
 ///
 /// Both arrays are ordered the same way.
 fn map_get(src: &[u8]) -> Option<SuffixKind> {
-	let src: u64 = {
-		let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-		hasher.write(src);
-		hasher.finish()
-	};
+	let src: u64 = wyhash::wyhash(src, 13);
 
 	if let Ok(idx) = MAP_K.binary_search(&src) { Some(MAP_V[idx]) }
 	else { None }
