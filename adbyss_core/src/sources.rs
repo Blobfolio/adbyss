@@ -5,7 +5,6 @@
 use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
-	AHASH_STATE,
 	FLAG_ADAWAY,
 	FLAG_ADBYSS,
 	FLAG_STEVENBLACK,
@@ -170,7 +169,7 @@ impl Source {
 	/// ## Errors
 	///
 	/// This returns an error if any source data could be downloaded or parsed.
-	pub fn fetch_many(src: u8) -> Result<HashSet<Domain, ahash::RandomState>, AdbyssError> {
+	pub fn fetch_many(src: u8) -> Result<HashSet<Domain>, AdbyssError> {
 		// First, build a consolidated string of all the entries.
 		// Note: this should just be an into_par_iter(), but for some reason
 		// compilation fails under some platforms and not others because it
@@ -194,11 +193,11 @@ impl Source {
 
 		// There are a lot of duplicates, so let's quickly weed them out before
 		// we move onto the relatively expensive domain validation checks.
-		let mut tmp: HashSet<&str, ahash::RandomState> = HashSet::with_capacity_and_hasher(131_072, AHASH_STATE);
+		let mut tmp: HashSet<&str> = HashSet::with_capacity(131_072);
 		tmp.par_extend(raw.par_lines());
 
 		// And finally, see which of those lines are actual domains.
-		let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_capacity_and_hasher(tmp.len(), AHASH_STATE);
+		let mut out: HashSet<Domain> = HashSet::with_capacity(tmp.len());
 		out.par_extend(tmp.into_par_iter().filter_map(Domain::new));
 		Ok(out)
 	}

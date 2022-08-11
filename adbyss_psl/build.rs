@@ -17,7 +17,6 @@ use std::{
 		File,
 		Metadata,
 	},
-	hash::Hasher,
 	io::Write,
 	path::{
 		Path,
@@ -847,11 +846,7 @@ fn format_unicode_chars(src: &str) -> String {
 /// In testing, the `ahash` algorithm is far and away the fastest, so that is
 /// what we use, both during build and at runtime (i.e. search needles) during
 /// lookup matching.
-fn hash_tld(src: &[u8]) -> u64 {
-	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-	hasher.write(src);
-	hasher.finish()
-}
+fn hash_tld(src: &[u8]) -> u64 { wyhash::wyhash(src, 13) }
 
 /// # Out path.
 ///

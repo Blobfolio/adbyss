@@ -5,7 +5,6 @@
 use adbyss_psl::Domain;
 use crate::{
 	AdbyssError,
-	AHASH_STATE,
 	FLAG_BACKUP,
 	FLAG_COMPACT,
 	FLAG_Y,
@@ -102,9 +101,9 @@ impl Watermark {
 pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
-	exclude: HashSet<Domain, ahash::RandomState>,
+	exclude: HashSet<Domain>,
 	regexclude: Option<RegexSet>,
-	found: HashSet<Domain, ahash::RandomState>,
+	found: HashSet<Domain>,
 	out: Vec<u8>,
 }
 
@@ -114,9 +113,9 @@ impl Default for Shitlist {
 		Self {
 			hostfile: PathBuf::from("/etc/hosts"),
 			flags: 0,
-			exclude: HashSet::with_hasher(AHASH_STATE),
+			exclude: HashSet::default(),
 			regexclude: None,
-			found: HashSet::with_capacity_and_hasher(131_072, AHASH_STATE),
+			found: HashSet::with_capacity(131_072),
 			out: Vec::with_capacity(2_097_152),
 		}
 	}
@@ -479,11 +478,10 @@ impl Shitlist {
 	/// Note: The reverse is not enforced as that would be madness!
 	fn add_www_tlds(&mut self) {
 		if ! self.found.is_empty() {
-			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
-			extra.par_extend(self.found
+			let extra = self.found
 				.par_iter()
 				.filter_map(Domain::without_www)
-			);
+				.collect::<HashSet<Domain>>();
 			self.found.par_extend(extra);
 		}
 	}
@@ -576,7 +574,7 @@ impl Shitlist {
 		let mut found: Vec<String> = self.found
 			.iter()
 			.fold(
-				HashMap::<u64, Vec<&Domain>, ahash::RandomState>::with_capacity_and_hasher(self.found.len(), AHASH_STATE),
+				HashMap::<u64, Vec<&Domain>>::with_capacity(self.found.len()),
 				|mut acc, dom| {
 					let hash: u64 = hash64(dom.tld().as_bytes());
 
@@ -684,13 +682,7 @@ impl Shitlist {
 		}
 
 		if let Some(cb) = self.strip_excludes_cb() {
-			let mut extra: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
-			extra.par_extend(
-				self.found.par_iter()
-					.filter(cb)
-					.cloned()
-			);
-			for x in &extra { self.found.remove(x); }
+			self.found.retain(|x| ! cb(&x));
 		}
 	}
 }
@@ -703,12 +695,8 @@ impl Shitlist {
 /// This is a convenience method for quickly hashing bytes using the
 /// [`AHash`](https://crates.io/crates/ahash) crate. Check out that project's
 /// home page for more details. Otherwise, TL;DR it is very fast.
-fn hash64(src: &[u8]) -> u64 {
-	use std::hash::Hasher;
-	let mut hasher = ahash::AHasher::new_with_keys(1319, 2371);
-	hasher.write(src);
-	hasher.finish()
-}
+fn hash64(src: &[u8]) -> u64 { wyhash::wyhash(src, 13) }
+
 
 #[allow(unsafe_code)]
 /// # Parse Custom Hosts.
@@ -716,32 +704,29 @@ fn hash64(src: &[u8]) -> u64 {
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
 /// We'll want to exclude these from the blackhole list to prevent duplicates,
 /// however unlikely that may be.
-fn parse_custom_hosts(raw: &str) -> HashSet<Domain, ahash::RandomState> {
-	let mut out: HashSet<Domain, ahash::RandomState> = HashSet::with_hasher(AHASH_STATE);
-	out.par_extend(
-		raw.par_lines()
-			.filter_map(|x| {
-				// Split on whitespace, up to the first #comment, if any.
-				let mut split = x.bytes()
-					.position(|b| b'#' == b)
-					.map_or(x, |p|
-						if x.is_char_boundary(p) {
-							unsafe { x.get_unchecked(0..p) }
-						}
-						else { "" }
-					)
-					.split_whitespace();
+fn parse_custom_hosts(raw: &str) -> HashSet<Domain> {
+	raw.par_lines()
+		.filter_map(|x| {
+			// Split on whitespace, up to the first #comment, if any.
+			let mut split = x.bytes()
+				.position(|b| b'#' == b)
+				.map_or(x, |p|
+					if x.is_char_boundary(p) {
+						unsafe { x.get_unchecked(0..p) }
+					}
+					else { "" }
+				)
+				.split_whitespace();
 
-				// If the first entry is an IP address, parse all subsequent
-				// entries as possible hosts.
-				if split.next().and_then(|x| x.parse::<std::net::IpAddr>().ok()).is_some() {
-					Some(split.filter_map(Domain::new).collect::<Vec<Domain>>())
-				}
-				else { None }
-			})
-			.flatten()
-	);
-	out
+			// If the first entry is an IP address, parse all subsequent
+			// entries as possible hosts.
+			if split.next().and_then(|x| x.parse::<std::net::IpAddr>().ok()).is_some() {
+				Some(split.filter_map(Domain::new).collect::<Vec<Domain>>())
+			}
+			else { None }
+		})
+		.flatten()
+		.collect()
 }
 
 /// # Write Helper.
