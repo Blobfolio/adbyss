@@ -636,6 +636,7 @@ impl Shitlist {
 		found
 	}
 
+	#[allow(clippy::type_complexity)] // This is it.
 	/// # Strip Ignores: Static Filter
 	///
 	/// Because this filter could run 60K times or more, it is worth taking
