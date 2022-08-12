@@ -846,7 +846,9 @@ fn format_unicode_chars(src: &str) -> String {
 /// In testing, the `ahash` algorithm is far and away the fastest, so that is
 /// what we use, both during build and at runtime (i.e. search needles) during
 /// lookup matching.
-fn hash_tld(src: &[u8]) -> u64 { wyhash::wyhash(src, 13) }
+fn hash_tld(src: &[u8]) -> u64 {
+	ahash::RandomState::with_seeds(13, 19, 23, 71).hash_one(src)
+}
 
 /// # Out path.
 ///

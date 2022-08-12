@@ -695,7 +695,9 @@ impl Shitlist {
 /// This is a convenience method for quickly hashing bytes using the
 /// [`AHash`](https://crates.io/crates/ahash) crate. Check out that project's
 /// home page for more details. Otherwise, TL;DR it is very fast.
-fn hash64(src: &[u8]) -> u64 { wyhash::wyhash(src, 13) }
+fn hash64(src: &[u8]) -> u64 {
+	ahash::RandomState::with_seeds(13, 19, 23, 71).hash_one(src)
+}
 
 
 #[allow(unsafe_code)]
