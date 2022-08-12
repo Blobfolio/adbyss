@@ -2,12 +2,20 @@
 
 
 
+## [0.7.10](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.10) - 2022-08-12
+
+### Changed
+
+* Go back to using `ahash` for internal keying
+
+
+
 ## [0.7.9](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.9) - 2022-08-11
 
 ### Changed
 
-* Replace `ahash` with `wyhash` (the former no longer supports static keys);
-* Remove `serde_yaml` dev dependency.
+* Replace `ahash` with `wyhash` (the former no longer supports static keys)
+* Remove `serde_yaml` dev dependency
 
 
 

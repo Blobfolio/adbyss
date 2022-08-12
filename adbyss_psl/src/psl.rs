@@ -48,7 +48,7 @@ impl SuffixKind {
 ///
 /// Both arrays are ordered the same way.
 fn map_get(src: &[u8]) -> Option<SuffixKind> {
-	let src: u64 = wyhash::wyhash(src, 13);
+	let src: u64 = ahash::RandomState::with_seeds(13, 19, 23, 71).hash_one(src);
 
 	if let Ok(idx) = MAP_K.binary_search(&src) { Some(MAP_V[idx]) }
 	else { None }
