@@ -12,7 +12,10 @@ use crate::{
 	Source,
 };
 use fyi_msg::confirm;
-use dactyl::NiceU64;
+use dactyl::{
+	NiceU64,
+	NoHash,
+};
 use rayon::{
 	iter::{
 		IntoParallelRefIterator,
@@ -574,7 +577,7 @@ impl Shitlist {
 		let mut found: Vec<String> = self.found
 			.iter()
 			.fold(
-				HashMap::<u64, Vec<&Domain>>::with_capacity(self.found.len()),
+				HashMap::<u64, Vec<&Domain>, NoHash>::with_capacity_and_hasher(self.found.len(), NoHash::default()),
 				|mut acc, dom| {
 					let hash: u64 = hash64(dom.tld().as_bytes());
 
