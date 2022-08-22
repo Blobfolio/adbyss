@@ -5,6 +5,7 @@ guest-experience.triptease.io
 js.trendmd.com
 medtargetsystem.com
 onboard.triptease.io
+pixel.wp.com
 rum-static.pingdom.net
 s.pinimg.com
 shareasale-analytics.com
@@ -12,6 +13,7 @@ snid.snitcher.com
 snitcher.com
 static-meta.triptease.io
 static.triptease.io
+stats.wp.com
 trendmd.com
 triptease.io
 www.medtargetsystem.com
