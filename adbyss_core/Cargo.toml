@@ -13,7 +13,7 @@ publish = false
 ahash = "=0.8.0"
 argyle = "0.6.*"
 dactyl = "0.4.*"
-fyi_msg = "0.9.*"
+fyi_msg = "0.10.*"
 rayon = "=1.5.3"
 regex = "=1.6.0"
 utc2k = "0.5.*"
