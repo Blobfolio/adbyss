@@ -7,6 +7,7 @@ edition = "2021"
 rust-version = "1.61"
 description = "A minimal Public Suffix List hostname validator."
 repository = "https://github.com/Blobfolio/adbyss"
+keywords = [ "hostname", "validation", "publicsuffix", "idna", "punycode" ]
 readme = "README.md"
 
 [package.metadata.docs.rs]
