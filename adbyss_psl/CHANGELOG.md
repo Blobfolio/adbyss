@@ -2,6 +2,14 @@
 
 
 
+## [0.7.12](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.12) - TBD
+
+### Changed
+
+* Bump MSRV `1.63`
+
+
+
 ## [0.7.11](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.11) - 2022-08-22
 
 ### Changed
