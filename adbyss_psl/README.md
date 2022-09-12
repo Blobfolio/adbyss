@@ -1,6 +1,7 @@
 # Adbyss: Public Suffix
 
 [![Documentation](https://docs.rs/adbyss_psl/badge.svg)](https://docs.rs/adbyss_psl/)
+[![Changelog](https://img.shields.io/crates/v/adbyss_psl.svg?label=Changelog&color=9cf)](https://github.com/Blobfolio/adbyss/blob/master/adbyss_psl/CHANGELOG.md)
 [![crates.io](https://img.shields.io/crates/v/adbyss_psl.svg)](https://crates.io/crates/adbyss_psl)
 [![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
 
