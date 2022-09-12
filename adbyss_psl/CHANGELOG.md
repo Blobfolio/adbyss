@@ -2,11 +2,12 @@
 
 
 
-## [0.7.12](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.12) - TBD
+## [0.7.12](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.12) - 2022-09-11
 
 ### Changed
 
 * Bump MSRV `1.63`
+* Cleanup dependencies
 
 
 
