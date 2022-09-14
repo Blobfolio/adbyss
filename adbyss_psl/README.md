@@ -1,9 +1,12 @@
 # Adbyss: Public Suffix
 
-[![Documentation](https://docs.rs/adbyss_psl/badge.svg)](https://docs.rs/adbyss_psl/)
-[![Changelog](https://img.shields.io/crates/v/adbyss_psl.svg?label=Changelog&color=9cf)](https://github.com/Blobfolio/adbyss/blob/master/adbyss_psl/CHANGELOG.md)
-[![crates.io](https://img.shields.io/crates/v/adbyss_psl.svg)](https://crates.io/crates/adbyss_psl)
-[![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
+[![docs.rs](https://img.shields.io/docsrs/adbyss_psl.svg?style=flat-square&label=docs.rs)](https://docs.rs/adbyss_psl/)
+[![changelog](https://img.shields.io/crates/v/adbyss_psl.svg?style=flat-square&label=changelog&color=9b59b6)](https://github.com/Blobfolio/adbyss/blob/master/adbyss_psl/CHANGELOG.md)<br>
+[![crates.io](https://img.shields.io/crates/v/adbyss_psl.svg?style=flat-square&label=crates.io)](https://crates.io/crates/adbyss_psl)
+[![ci](https://img.shields.io/github/workflow/status/Blobfolio/adbyss/Build.svg?style=flat-square&label=ci)](https://github.com/Blobfolio/adbyss/actions)
+[![deps.rs](https://deps.rs/repo/github/blobfolio/adbyss/status.svg?style=flat-square&label=deps.rs)](https://deps.rs/repo/github/blobfolio/adbyss)<br>
+[![license](https://img.shields.io/badge/license-wtfpl-ff1493?style=flat-square)](https://en.wikipedia.org/wiki/WTFPL)
+[![contributions welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&label=contributions)](https://github.com/Blobfolio/adbyss/issues)
 
 This library contains a single public-facing struct — `adbyss_psl::Domain` — used for validating and normalizing Internet hostnames, like "www.domain.com".
 
