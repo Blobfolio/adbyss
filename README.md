@@ -1,7 +1,9 @@
 # Adbyss
 
-[![Build Status](https://github.com/Blobfolio/adbyss/workflows/Build/badge.svg)](https://github.com/Blobfolio/adbyss/actions)
-[![Dependency Status](https://deps.rs/repo/github/blobfolio/adbyss/status.svg)](https://deps.rs/repo/github/blobfolio/adbyss)
+[![ci](https://img.shields.io/github/workflow/status/Blobfolio/adbyss/Build.svg?style=flat-square&label=ci)](https://github.com/Blobfolio/adbyss/actions)
+[![deps.rs](https://deps.rs/repo/github/blobfolio/adbyss/status.svg?style=flat-square&label=deps.rs)](https://deps.rs/repo/github/blobfolio/adbyss)<br>
+[![license](https://img.shields.io/badge/license-wtfpl-ff1493?style=flat-square)](https://en.wikipedia.org/wiki/WTFPL)
+[![contributions welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&label=contributions)](https://github.com/Blobfolio/adbyss/issues)
 
 Adbyss is a DNS blocklist manager for x86-64 Linux machines.
 
