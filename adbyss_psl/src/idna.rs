@@ -55,7 +55,7 @@ impl CharKind {
 /// This is a very crude character traversal iterator that checks for character
 /// legality and applies any mapping substitutions as needed before yielding.
 ///
-/// This is an interator rather than a collector to take advantage of the
+/// This is an iterator rather than a collector to take advantage of the
 /// `UnicodeNormalization::nfc` trait.
 ///
 /// The internal `error` field holds a reference to a shared error state, so

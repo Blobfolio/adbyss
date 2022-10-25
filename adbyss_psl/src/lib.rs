@@ -674,7 +674,7 @@ fn idna_to_ascii(src: &str) -> Option<String> {
 		// Everything is alphanumeric, a dash, or a dot. During the check,
 		// we'll check to make sure there is at least one dot, and note
 		// whether there are any uppercase characters or dashes, which would
-		// require aditional checking.
+		// require additional checking.
 		bytes.iter().all(|&b| match b {
 			b'.' => {
 				dot = true;
