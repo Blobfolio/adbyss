@@ -2,6 +2,16 @@
 
 
 
+## [0.7.14](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.14) - 2022-11-03
+
+### Changed
+
+* Relax `ahash` version requirements
+* Improved docs
+* Minor code lints
+
+
+
 ## [0.7.13](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.13) - 2022-09-22
 
 ### Changed
