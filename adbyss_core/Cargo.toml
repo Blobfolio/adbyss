@@ -19,7 +19,7 @@ utc2k = "0.5.*"
 write_atomic = "0.2.*"
 
 [dependencies.ahash]
-version = "=0.8.0"
+version = "0.8.*"
 default-features = false
 
 [dependencies.adbyss_psl]
