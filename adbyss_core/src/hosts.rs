@@ -100,7 +100,7 @@ impl Watermark {
 /// `with_*` methods, followed by [`build()`](Shitlist::build).
 ///
 /// Results are cumulative, so if you plan on doing this more than once with
-/// different setups, instantiate a new oject.
+/// different setups, instantiate a new object.
 pub struct Shitlist {
 	hostfile: PathBuf,
 	flags: u8,
@@ -500,7 +500,7 @@ impl Shitlist {
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			std::fs::copy(&dst, &dst2)
+			std::fs::copy(dst, &dst2)
 				.map_err(|_| AdbyssError::BackupWrite(Box::from(dst2)))?;
 		}
 

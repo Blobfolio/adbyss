@@ -115,7 +115,7 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 
 		// This shouldn't happen; we've already asserted all mappings are
 		// present.
-		panic!("Mising mapping {}", src);
+		panic!("Missing mapping {}", src);
 	};
 
 	// Update the mappings.
@@ -572,7 +572,7 @@ fn psl() {
 /// Ultimately, there are three kinds of entries:
 /// * TLD: a normal TLD.
 /// * Wild: a TLD that comprises both the explicit entry, as well as any arbitrary "subdomain".
-/// * Wild-But: a Wild entry that contains one or more exceptions to chunks that may preceed it.
+/// * Wild-But: a Wild entry that contains one or more exceptions to chunks that may precede it.
 fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String) {
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
