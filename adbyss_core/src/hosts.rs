@@ -500,7 +500,7 @@ impl Shitlist {
 			].concat()));
 
 			// Copy the original, clobbering only as a fallback.
-			std::fs::copy(&dst, &dst2)
+			std::fs::copy(dst, &dst2)
 				.map_err(|_| AdbyssError::BackupWrite(Box::from(dst2)))?;
 		}
 

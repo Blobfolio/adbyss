@@ -46,7 +46,7 @@ pub(super) fn decode(input: &[char]) -> Option<Vec<char>> {
 	let mut bias: u32 = INITIAL_BIAS;
 
 	let mut it = input.iter().copied().peekable();
-	while it.peek() != None {
+	while it.peek().is_some() {
 		let old_i = i;
 		let mut weight = 1;
 
