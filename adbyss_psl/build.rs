@@ -32,8 +32,8 @@ type RawWildMap = HashMap<String, Vec<String>>;
 
 
 
-const IDNA_TEST_URL: &str = "https://www.unicode.org/Public/idna/14.0.0/IdnaTestV2.txt";
-const IDNA_URL: &str = "https://www.unicode.org/Public/idna/14.0.0/IdnaMappingTable.txt";
+const IDNA_TEST_URL: &str = "https://www.unicode.org/Public/idna/15.0.0/IdnaTestV2.txt";
+const IDNA_URL: &str = "https://www.unicode.org/Public/idna/15.0.0/IdnaMappingTable.txt";
 const SUFFIX_URL: &str = "https://publicsuffix.org/list/public_suffix_list.dat";
 
 

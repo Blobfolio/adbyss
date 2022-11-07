@@ -2,6 +2,15 @@
 
 
 
+## [0.7.15](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.15) - 2022-11-06
+
+### Changed
+
+* Bump Unicode 15
+* Bump regex `1.7.0`
+
+
+
 ## [0.7.14](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.14) - 2022-11-03
 
 ### Changed

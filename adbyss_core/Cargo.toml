@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_core"
-version = "0.7.14"
+version = "0.7.15"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -14,7 +14,7 @@ argyle = "0.6.*"
 dactyl = "0.4.*"
 fyi_msg = "0.10.*"
 rayon = "=1.5.3"
-regex = "=1.6.0"
+regex = "=1.7.0"
 utc2k = "0.5.*"
 write_atomic = "0.2.*"
 

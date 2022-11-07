@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.7.14
-    Generated: 2022-11-03 15:25:01 UTC
+    Version:   0.7.15
+    Generated: 2022-11-07 05:51:35 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.7.14 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.7.14 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.7.15 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.7.15 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.8.1 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.19 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
@@ -35,15 +35,15 @@
 | [memoffset](https://github.com/Gilnaa/memoffset) | 0.6.5 | [Gilad Naaman](mailto:gilad.naaman@gmail.com) | MIT |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.5.4 | [Frommi](mailto:daniil.liferenko@gmail.com) and [oyvindln](mailto:oyvindln@users.noreply.github.com) | Apache-2.0, MIT, or Zlib |
 | [num-traits](https://github.com/rust-num/num-traits) | 0.2.15 | The Rust Project Developers | Apache-2.0 or MIT |
-| [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.13.1 | [Sean McArthur](mailto:sean@seanmonstar.com) | Apache-2.0 or MIT |
+| [num_cpus](https://github.com/seanmonstar/num_cpus) | 1.14.0 | [Sean McArthur](mailto:sean@seanmonstar.com) | Apache-2.0 or MIT |
 | [once_cell](https://github.com/matklad/once_cell) | 1.16.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 or MIT |
 | [percent-encoding](https://github.com/servo/rust-url/) | 2.2.0 | The rust-url developers | Apache-2.0 or MIT |
 | [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.47 | [David Tolnay](mailto:dtolnay@gmail.com) and [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
 | [quote](https://github.com/dtolnay/quote) | 1.0.21 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [rayon](https://github.com/rayon-rs/rayon) | 1.5.3 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
 | [rayon-core](https://github.com/rayon-rs/rayon) | 1.9.3 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
-| [regex](https://github.com/rust-lang/regex) | 1.6.0 | The Rust Project Developers | Apache-2.0 or MIT |
-| [regex-syntax](https://github.com/rust-lang/regex) | 0.6.27 | The Rust Project Developers | Apache-2.0 or MIT |
+| [regex](https://github.com/rust-lang/regex) | 1.7.0 | The Rust Project Developers | Apache-2.0 or MIT |
+| [regex-syntax](https://github.com/rust-lang/regex) | 0.6.28 | The Rust Project Developers | Apache-2.0 or MIT |
 | [remove_dir_all](https://github.com/XAMPPRocky/remove_dir_all.git) | 0.5.3 | [Aaronepower](mailto:theaaronepower@gmail.com) | Apache-2.0 or MIT |
 | [ring](https://github.com/briansmith/ring) | 0.16.20 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [rustls](https://github.com/rustls/rustls) | 0.20.7 |  | Apache-2.0, ISC, or MIT |
