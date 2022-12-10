@@ -13,7 +13,7 @@ publish = false
 argyle = "0.6.*"
 dactyl = "0.4.*"
 fyi_msg = "0.10.*"
-rayon = "=1.6.0"
+rayon = "=1.6.1"
 regex = "=1.7.0"
 utc2k = "0.5.*"
 write_atomic = "0.2.*"
