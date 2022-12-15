@@ -2,6 +2,12 @@
 
 
 
+## [0.7.16](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.16) - 2022-12-15
+
+(Bin-only release.)
+
+
+
 ## [0.7.15](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.15) - 2022-11-06
 
 ### Changed
