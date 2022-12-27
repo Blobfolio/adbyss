@@ -21,12 +21,13 @@ pkg_dir1    := justfile_directory() + "/adbyss"
 pkg_dir2    := justfile_directory() + "/adbyss_core"
 pkg_dir3    := justfile_directory() + "/adbyss_psl"
 
-features    := "serde"
+features    := "serde build-debug"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
+skel_dir    := pkg_dir3 + "/skel"
 
 
 
@@ -62,7 +63,7 @@ bench BENCH="":
 
 
 # Build Debian package!
-@build-deb: clean credits build
+@build-deb: clean credits fetch-vendor build
 	# cargo-deb doesn't support target_dir flags yet.
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	mv "{{ cargo_dir }}" "{{ justfile_directory() }}/target"
@@ -159,6 +160,38 @@ bench BENCH="":
 	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
 	mv "{{ cargo_dir }}/x86_64-unknown-linux-gnu/doc" "{{ justfile_directory() }}"
 	just _fix-chown "{{ doc_dir }}"
+
+
+# Fetch Vendor Files.
+@fetch-vendor:
+	clear
+
+	fyi info "Original vendor files."
+	md5sum \
+		"{{ skel_dir }}/raw/IdnaMappingTable.txt" \
+		"{{ skel_dir }}/raw/IdnaTestV2.txt" \
+		"{{ skel_dir }}/raw/public_suffix_list.dat"
+
+	wget -nv \
+		-O "{{ skel_dir }}/raw/IdnaMappingTable.txt" \
+		"https://www.unicode.org/Public/idna/15.0.0/IdnaMappingTable.txt"
+
+	wget -nv \
+		-O "{{ skel_dir }}/raw/IdnaTestV2.txt" \
+		"https://www.unicode.org/Public/idna/15.0.0/IdnaTestV2.txt"
+
+	wget -nv \
+		-O "{{ skel_dir }}/raw/public_suffix_list.dat" \
+		"https://publicsuffix.org/list/public_suffix_list.dat"
+
+	just _fix-chown "{{ skel_dir }}"
+	just _fix-chmod "{{ skel_dir }}"
+
+	fyi info "New vendor files."
+	md5sum \
+		"{{ skel_dir }}/raw/IdnaMappingTable.txt" \
+		"{{ skel_dir }}/raw/IdnaTestV2.txt" \
+		"{{ skel_dir }}/raw/public_suffix_list.dat"
 
 
 # Test Run.

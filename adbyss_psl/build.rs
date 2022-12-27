@@ -13,10 +13,7 @@ use std::{
 		HashMap,
 		HashSet,
 	},
-	fs::{
-		File,
-		Metadata,
-	},
+	fs::File,
 	io::Write,
 	path::{
 		Path,
@@ -29,12 +26,6 @@ use std::{
 type RawIdna = Vec<(u32, u32, IdnaLabel, String)>;
 type RawMainMap = HashSet<String>;
 type RawWildMap = HashMap<String, Vec<String>>;
-
-
-
-const IDNA_TEST_URL: &str = "https://www.unicode.org/Public/idna/15.0.0/IdnaTestV2.txt";
-const IDNA_URL: &str = "https://www.unicode.org/Public/idna/15.0.0/IdnaMappingTable.txt";
-const SUFFIX_URL: &str = "https://publicsuffix.org/list/public_suffix_list.dat";
 
 
 
@@ -68,6 +59,9 @@ fn idna() {
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
 	let (map_str, map, map_len) = idna_build(raw);
+
+	#[cfg(feature = "build-debug")]
+	println!("cargo:warning=Parsed {map_len} IDNA lines.");
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna.rs"))
@@ -328,16 +322,11 @@ where I: IntoIterator<Item = &'a str> {
 
 /// # Load Data.
 ///
-/// This loads the raw IDNA/Unicode table data. With the exception of `docs.rs`
-/// builds — which just pull a stale copy included with this library — the data
-/// is downloaded fresh from `unicode.org`.
-///
-/// At the moment, version `14.0.0` is used, but that will change as new
-/// standards are released.
+/// This loads the raw IDNA/Unicode table data.
 fn idna_load_data() -> RawIdna {
 	// First pass: parse each line, and group by type.
 	let mut tbd: HashMap<IdnaLabel, RawIdna> = HashMap::new();
-	for mut line in download("IdnaMappingTable.txt", IDNA_URL).lines().filter(|x| ! x.starts_with('#') && ! x.trim().is_empty()) {
+	for mut line in load_file("IdnaMappingTable.txt").lines().filter(|x| ! x.starts_with('#') && ! x.trim().is_empty()) {
 		// Strip comments.
 		if let Some(idx) = line.bytes().position(|b| b == b'#') {
 			line = &line[..idx];
@@ -455,6 +444,9 @@ fn idna_tests() {
 	let raw = idna_load_test_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
+	#[cfg(feature = "build-debug")]
+	println!("cargo:warning=Parsed {} IDNA test lines.", raw.len());
+
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna-tests.rs"))
 		.expect("Unable to create adbyss-idna.rs");
@@ -481,9 +473,6 @@ fn idna_tests() {
 
 /// # Load Data.
 ///
-/// For typical builds, this downloads the raw unit tests from `unicode.org`,
-/// but for `docs.rs`, a stale copy provided by this library is used instead.
-///
 /// As mentioned in [`idna_tests`] above, the `idna` crate is leveraged to
 /// give us a trusted second opinion on how the lines should be parsed,
 /// however there are a couple cases where Adbyss intentionally disagrees;
@@ -494,7 +483,7 @@ fn idna_load_test_data() -> Vec<(String, Option<String>)> {
 		.verify_dns_length(true)
 		.check_hyphens(true);
 
-	download("IdnaTestV2.txt", IDNA_TEST_URL)
+	load_file("IdnaTestV2.txt")
 		.lines()
 		.filter(|x| ! x.starts_with('#') && ! x.trim().is_empty())
 		.filter_map(|mut line| {
@@ -540,6 +529,13 @@ fn psl() {
 	for host in psl_wild.keys() {
 		assert!(! psl_main.contains(host), "Duplicate host.");
 	}
+
+	#[cfg(feature = "build-debug")]
+	println!(
+		"cargo:warning=Parsed {} generic PSL entries, and {} wildcard ones.",
+		psl_main.len(),
+		psl_wild.len(),
+	);
 
 	// Reformat it.
 	let (
@@ -670,13 +666,9 @@ fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String
 
 /// # Fetch Suffixes.
 ///
-/// This downloads and lightly cleans the raw Public Suffix List data, except
-/// when building for `docs.rs`, in which case it just grabs (and lightly
-/// cleans) a stale copy included with the library.
-///
-/// The "cleaning" is really just a simple line trim.
+/// This loads and lightly cleans the raw Public Suffix List data.
 fn psl_fetch_suffixes() -> String {
-	let raw = download("public_suffix_list.dat", SUFFIX_URL);
+	let raw = load_file("public_suffix_list.dat");
 	let re = Regex::new(r"(?m)^\s*").unwrap();
 	re.replace_all(&raw, "").to_string()
 }
@@ -771,58 +763,14 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 
 
 
-#[cfg(feature = "docsrs")]
-/// # (FAKE) Download File.
+/// # Load File.
 ///
-/// This is a workaround for `docs.rs`, which does not support network activity
-/// during the build process. This library ships with stale copies of each data
-/// file required by the library. This version of the [`download`] method just
-/// pulls them straight from disk.
-fn download(name: &str, _url: &str) -> String {
-	let mut path = PathBuf::from("./skel/raw");
-	path.push(name);
-	match std::fs::read_to_string(path) {
+/// Read the third-party data file into a string.
+fn load_file(name: &str) -> String {
+	match std::fs::read_to_string(Path::new("./skel/raw").join(name)) {
 		Ok(x) => x,
 		Err(_) => panic!("Unable to load {}.", name),
 	}
-}
-
-#[cfg(not(feature = "docsrs"))]
-/// # Download File.
-///
-/// This downloads and caches a remote data file used by the build. There are
-/// three difference sources we need to pull:
-/// * Public Suffix List
-/// * IDNA/Unicode tables
-/// * IDNA/Unicode unit tests
-///
-/// The files get cached locally in the `target` directory for up to an hour to
-/// keep network traffic from being obnoxious during repeated builds. If a
-/// cached entry outlives that hour, or if the `target` directory is cleaned,
-/// it will just download it anew.
-fn download(name: &str, url: &str) -> String {
-	// Cache this locally for up to an hour.
-	let cache = out_path(name);
-	if let Some(x) = try_cache(&cache) {
-		return x;
-	}
-
-	// Download it fresh.
-	let raw: String = match ureq::get(url)
-		.set("user-agent", "Mozilla/5.0")
-		.call()
-		.and_then(|r| r.into_string().map_err(|e| e.into())) {
-		Ok(x) => x,
-		Err(_) => panic!("Unable to download {}.", name),
-	};
-
-	// We don't need to panic if the cache-save fails; the system is only
-	// hurting its future self in such cases. ;)
-	let _res = File::create(cache)
-		.and_then(|mut file| file.write_all(raw.as_bytes()).and_then(|_| file.flush()));
-
-	// Return the data.
-	raw
 }
 
 /// # Format Unicode Chars.
@@ -858,23 +806,6 @@ fn out_path(name: &str) -> PathBuf {
 	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
 	out.push(name);
 	out
-}
-
-/// # Try Cache.
-///
-/// The downloaded files are cached locally in the `target` directory, but we
-/// don't want to run the risk of those growing stale if they persist between
-/// sessions, etc.
-///
-/// At the moment, cached files are used if they are less than an hour old,
-/// otherwise the cache is ignored and they're downloaded fresh.
-fn try_cache(path: &Path) -> Option<String> {
-	std::fs::metadata(path)
-		.ok()
-		.filter(Metadata::is_file)
-		.and_then(|meta| meta.modified().ok())
-		.and_then(|time| time.elapsed().ok().filter(|secs| secs.as_secs() < 3600))
-		.and_then(|_| std::fs::read_to_string(path).ok())
 }
 
 
