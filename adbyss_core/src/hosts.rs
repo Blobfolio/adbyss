@@ -388,7 +388,7 @@ impl Shitlist {
 		// Prompt about writing it?
 		if
 			0 == self.flags & FLAG_Y &&
-			! confirm!(format!(
+			! confirm!(yes: format!(
 				"Remove all Adbyss blackhole entries from {:?}?",
 				&self.hostfile
 			))
@@ -457,7 +457,7 @@ impl Shitlist {
 			// Prompt about writing it?
 			if
 				0 == self.flags & FLAG_Y &&
-				! confirm!(format!(
+				! confirm!(yes: format!(
 					"Write {} hosts to {:?}?",
 					NiceU64::from(self.len()).as_str(),
 					dst
