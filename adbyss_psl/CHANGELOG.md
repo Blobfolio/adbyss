@@ -2,6 +2,14 @@
 
 
 
+## [0.7.17](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.17) - 2022-12-26
+
+### Changed
+
+* Drop `ureq` build dependency; the remote data are now bundled with each release.
+
+
+
 ## [0.7.16](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.16) - 2022-12-15
 
 (Bin-only release.)
