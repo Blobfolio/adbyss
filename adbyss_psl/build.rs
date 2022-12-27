@@ -15,10 +15,7 @@ use std::{
 	},
 	fs::File,
 	io::Write,
-	path::{
-		Path,
-		PathBuf,
-	},
+	path::PathBuf,
 };
 
 
@@ -109,7 +106,7 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 
 		// This shouldn't happen; we've already asserted all mappings are
 		// present.
-		panic!("Missing mapping {}", src);
+		panic!("Missing mapping {src}");
 	};
 
 	// Update the mappings.
@@ -141,19 +138,17 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Reformat again, this time for output.
 	// Format the array.
 	let map = format!(
-		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {}] = [{}];",
-		map_len,
+		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {map_len}] = [{}];",
 		map.into_iter()
 			.map(|(first, last, label)|
 				if let Some(last) = last {
 					format!(
-						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {})",
+						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {label})",
 						NiceU32::with_separator(first, b'_'),
 						NiceU32::with_separator(last, b'_'),
-						label,
 					)
 				}
-				else { format!("({}, None, {})", NiceU32::with_separator(first, b'_'), label) }
+				else { format!("({}, None, {label})", NiceU32::with_separator(first, b'_')) }
 			)
 			.collect::<Vec<String>>()
 			.join(", "),
@@ -314,7 +309,7 @@ where I: IntoIterator<Item = &'a str> {
 
 	// Make sure we didn't lose anything along the way.
 	for entry in old {
-		assert!(flat.contains(&entry), "Missing mapping: {}", entry);
+		assert!(flat.contains(&entry), "Missing mapping: {entry}");
 	}
 
 	flat.chars().collect()
@@ -458,7 +453,7 @@ fn idna_tests() {
 		raw.into_iter()
 			.map(|(i, mut o)|
 				if let Some(o) = o.take() {
-					format!(r#"("{}", Some("{}"))"#, format_unicode_chars(&i), o)
+					format!(r#"("{}", Some("{o}"))"#, format_unicode_chars(&i))
 				}
 				else {
 					format!("({:?}, None)", format_unicode_chars(&i))
@@ -581,17 +576,17 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		// We'll prioritize these.
 		if host == "com" || host == "net" || host == "org" { continue; }
 		let hash = hash_tld(host.as_bytes());
-		map.push((hash, String::from("SuffixKind::Tld")));
+		map.push((hash, "SuffixKind::Tld".to_owned()));
 	}
 	for (host, ex) in wild {
 		let hash = hash_tld(host.as_bytes());
 		if ex.is_empty() {
-			map.push((hash, String::from("SuffixKind::Wild")));
+			map.push((hash, "SuffixKind::Wild".to_owned()));
 		}
 		else {
 			let ex = psl_format_wild(ex);
 			let ex = wild_map.get(&ex).expect("Missing wild arm.");
-			map.push((hash, format!("SuffixKind::WildEx(WildKind::{})", ex)));
+			map.push((hash, format!("SuffixKind::WildEx(WildKind::{ex})")));
 		}
 	}
 
@@ -609,13 +604,11 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 
 	// Format the arrays.
 	let map = format!(
-		"/// # Map Keys.\nstatic MAP_K: [u64; {}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {}] = [{}];",
-		len,
+		"/// # Map Keys.\nstatic MAP_K: [u64; {len}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {len}] = [{}];",
 		map_keys.into_iter()
 			.map(|x| String::from(NiceU64::with_separator(x, b'_')))
 			.collect::<Vec<String>>()
 			.join(", "),
-		len,
 		map_values.join(", "),
 	);
 
@@ -642,22 +635,22 @@ fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String
 	let mut wild_kinds: Vec<String> = Vec::new();
 	let mut wild_map: HashMap<String, String> = HashMap::new();
 	for (k, v) in tmp.into_iter().enumerate() {
-		let name = format!("Ex{}", k);
-		wild_kinds.push(format!("{},", name));
+		let name = format!("Ex{k}");
+		wild_kinds.push(format!("{name},"));
 		wild_map.insert(v, name);
 	}
 
 	// If there aren't any wild exceptions, we can just return an empty
 	// placeholder that will never be referenced.
 	if wild_kinds.is_empty() {
-		return (wild_map, String::from("\tNone,"), String::from("\t\t\tSelf::None => false,"));
+		return (wild_map, "\tNone,".to_owned(), "\t\t\tSelf::None => false,".to_owned());
 	}
 
 	let wild_kinds: String = wild_kinds.join("\n");
 	let mut wild_arms: Vec<(&String, &String)> = wild_map.iter().collect();
 	wild_arms.sort_by(|a, b| a.1.cmp(b.1));
 	let wild_arms = wild_arms.into_iter()
-		.map(|(cond, name)| format!("\t\t\tSelf::{} => {},", name, cond))
+		.map(|(cond, name)| format!("\t\t\tSelf::{name} => {cond},"))
 		.collect::<Vec<String>>()
 		.join("\n");
 
@@ -690,7 +683,7 @@ fn psl_format_wild(src: &[String]) -> String {
 		format!(
 			"[{}].contains(src)",
 			src.iter()
-				.map(|s| format!("b\"{}\"", s))
+				.map(|s| format!("b\"{s}\""))
 				.collect::<Vec<String>>()
 				.join(", ")
 		)
@@ -767,9 +760,9 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 ///
 /// Read the third-party data file into a string.
 fn load_file(name: &str) -> String {
-	match std::fs::read_to_string(Path::new("./skel/raw").join(name)) {
+	match std::fs::read_to_string(format!("./skel/raw/{name}")) {
 		Ok(x) => x,
-		Err(_) => panic!("Unable to load {}.", name),
+		Err(_) => panic!("Unable to load {name}."),
 	}
 }
 
@@ -831,10 +824,7 @@ impl std::fmt::Display for IdnaLabel {
 			Self::Ignored => f.write_str("CharKind::Ignored"),
 			Self::Mapped(a, b, l) => write!(
 				f,
-				"CharKind::Mapped({}, {}, {})",
-				a,
-				b,
-				l,
+				"CharKind::Mapped({a}, {b}, {l})",
 			),
 		}
 	}
