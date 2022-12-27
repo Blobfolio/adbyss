@@ -24,11 +24,6 @@ regex = "1.7.*"
 version = "0.8.*"
 default-features = false
 
-[build-dependencies.ureq]
-version = "2.5.*"
-default-features = false
-features = [ "tls", "gzip" ]
-
 [dev-dependencies]
 brunch = "0.3.*"
 serde = "1.0.*"
@@ -54,6 +49,9 @@ default = []
 # adbyss_psl::Domain. We can't write it here because the name matches the
 # dependency, but it works!
 # serde = []
+
+# Print information about the number of parsed entries during build.
+build-debug = []
 
 # This is just a workaround for Docs.rs; don't enable this if you're a human or
 # the library will not function correctly.
