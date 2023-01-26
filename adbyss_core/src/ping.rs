@@ -31,7 +31,7 @@ pub fn check_internet() -> Result<(), AdbyssError> {
 	let mut tries: u8 = 0;
 	loop {
 		// Are you there?
-		if let Ok(200_u16) = agent.head("https://github.com/").call().map(|r| r.status()) {
+		if matches!(agent.head("https://github.com/").call().map(|r| r.status()), Ok(200_u16)) {
 			return Ok(());
 		}
 

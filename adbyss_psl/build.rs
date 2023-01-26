@@ -161,7 +161,7 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 		map_str.len(),
 		map_str.into_iter()
 			.map(|c|
-				if c.is_ascii() { format!("'{}'", c) }
+				if c.is_ascii() { format!("'{c}'") }
 				else { format!("'\\u{{{:x}}}'", c as u32) }
 			)
 			.collect::<Vec<String>>()
