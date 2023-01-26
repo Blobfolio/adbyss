@@ -2,6 +2,15 @@
 
 
 
+## [0.7.18](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.18) - 2023-01-26
+
+### Changed
+
+* Bump brunch `0.4`
+* Minor code lints
+
+
+
 ## [0.7.17](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.17) - 2022-12-26
 
 ### Changed
