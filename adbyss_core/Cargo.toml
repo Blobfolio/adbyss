@@ -15,7 +15,7 @@ dactyl = "0.4.*"
 fyi_msg = "0.10.*"
 rayon = "=1.6.1"
 regex = "1.7.*"
-ureq = "=2.6.1"
+ureq = "2.6.1"
 utc2k = "0.5.*"
 write_atomic = "0.2.*"
 
