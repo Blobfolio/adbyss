@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.7.17"
+version = "0.7.18"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -25,7 +25,7 @@ version = "0.8.*"
 default-features = false
 
 [dev-dependencies]
-brunch = "0.3.*"
+brunch = "0.4.*"
 serde = "1.0.*"
 serde_json = "1.0.*"
 
