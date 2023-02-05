@@ -2,6 +2,15 @@
 
 
 
+## [0.7.19](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.19) - 2023-02-04
+
+### Changed
+
+* Improve docs.rs environment detection
+* Declare "serde" feature explicitly
+
+
+
 ## [0.7.18](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.18) - 2023-01-26
 
 ### Changed

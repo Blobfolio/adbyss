@@ -61,7 +61,7 @@ bench BENCH="":
 
 
 # Build Debian package!
-@build-deb: clean credits fetch-vendor build
+@build-deb: clean credits fetch-vendor test build
 	# cargo-deb doesn't support target_dir flags yet.
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	mv "{{ cargo_dir }}" "{{ justfile_directory() }}/target"
