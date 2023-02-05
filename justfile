@@ -21,8 +21,6 @@ pkg_dir1    := justfile_directory() + "/adbyss"
 pkg_dir2    := justfile_directory() + "/adbyss_core"
 pkg_dir3    := justfile_directory() + "/adbyss_psl"
 
-features    := "serde build-debug"
-
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
@@ -107,7 +105,7 @@ bench BENCH="":
 	cargo check \
 		--workspace \
 		--release \
-		--features "{{ features }}" \
+		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
@@ -132,7 +130,7 @@ bench BENCH="":
 	cargo clippy \
 		--workspace \
 		--release \
-		--features "{{ features }}" \
+		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
@@ -148,13 +146,14 @@ bench BENCH="":
 # Build Docs.
 @doc:
 	# Make the docs.
-	cargo +nightly doc \
-		--workspace \
+	cargo +nightly rustdoc \
+		--manifest-path "{{ pkg_dir3 }}/Cargo.toml" \
 		--release \
-		--features "docsrs,{{ features }}" \
-		--no-deps \
+		--all-features \
 		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}"
+		--target-dir "{{ cargo_dir }}" \
+		-- \
+		--cfg docsrs
 
 	# Move the docs and clean up ownership.
 	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
@@ -211,7 +210,7 @@ bench BENCH="":
 	clear
 	cargo test \
 		--workspace \
-		--features "{{ features }}" \
+		--all-features \
 		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 

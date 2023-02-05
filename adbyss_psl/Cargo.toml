@@ -11,7 +11,9 @@ keywords = [ "hostname", "validation", "publicsuffix", "idna", "punycode" ]
 readme = "README.md"
 
 [package.metadata.docs.rs]
-features = [ "docsrs", "serde" ]
+rustc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs"]
+features = [ "serde" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
@@ -52,10 +54,6 @@ default = []
 
 # Print information about the number of parsed entries during build.
 build-debug = []
-
-# This is just a workaround for Docs.rs; don't enable this if you're a human or
-# the library will not function correctly.
-docsrs = []
 
 [[bench]]
 name = "psl_parse"
