@@ -47,10 +47,8 @@ optional = true
 [features]
 default = []
 
-# The feature "serde" can be enabled to provide (de)/serialize support for
-# adbyss_psl::Domain. We can't write it here because the name matches the
-# dependency, but it works!
-# serde = []
+# Expose (de)/serialize support for adbyss_psl::Domain.
+serde = [ "dep:serde" ]
 
 # Print information about the number of parsed entries during build.
 build-debug = []
