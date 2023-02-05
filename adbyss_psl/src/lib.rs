@@ -100,7 +100,7 @@ let owned = dom.take(); // "www.mydomain.com"
 	clippy::redundant_pub_crate,
 )]
 
-#![cfg_attr(feature = "docsrs", feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 
 
@@ -574,7 +574,7 @@ impl Domain {
 
 
 #[cfg(any(test, feature = "serde"))]
-#[cfg_attr(feature = "docsrs", doc(cfg(feature = "serde")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl serde::Serialize for Domain {
 	#[inline]
 	/// # Serialize.
@@ -585,7 +585,7 @@ impl serde::Serialize for Domain {
 }
 
 #[cfg(any(test, feature = "serde"))]
-#[cfg_attr(feature = "docsrs", doc(cfg(feature = "serde")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> serde::Deserialize<'de> for Domain {
 	/// # Deserialize.
 	///

@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.7.18"
+version = "0.7.19"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -11,7 +11,9 @@ keywords = [ "hostname", "validation", "publicsuffix", "idna", "punycode" ]
 readme = "README.md"
 
 [package.metadata.docs.rs]
-features = [ "docsrs", "serde" ]
+rustc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs"]
+features = [ "serde" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
@@ -45,17 +47,8 @@ optional = true
 [features]
 default = []
 
-# The feature "serde" can be enabled to provide (de)/serialize support for
-# adbyss_psl::Domain. We can't write it here because the name matches the
-# dependency, but it works!
-# serde = []
-
-# Print information about the number of parsed entries during build.
-build-debug = []
-
-# This is just a workaround for Docs.rs; don't enable this if you're a human or
-# the library will not function correctly.
-docsrs = []
+# Expose (de)/serialize support for adbyss_psl::Domain.
+serde = [ "dep:serde" ]
 
 [[bench]]
 name = "psl_parse"

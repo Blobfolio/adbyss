@@ -18,8 +18,8 @@ use dactyl::{
 };
 use rayon::{
 	iter::{
+		IntoParallelIterator,
 		IntoParallelRefIterator,
-		ParallelDrainFull,
 		ParallelExtend,
 		ParallelIterator,
 	},
@@ -307,8 +307,8 @@ impl Shitlist {
 	///
 	/// Consume the struct and return a sorted vector of the qualifying
 	/// blackholeable hosts.
-	pub fn into_vec(mut self) -> Vec<String> {
-		let mut found: Vec<String> = self.found.par_drain()
+	pub fn into_vec(self) -> Vec<String> {
+		let mut found: Vec<String> = self.found.into_par_iter()
 			.filter(|x| x.len() <= MAX_LINE)
 			.map(Domain::take)
 			.collect();
@@ -574,23 +574,15 @@ impl Shitlist {
 	/// lines (and overall byte size), but without going overboard.
 	fn found_compact(&self) -> Vec<String> {
 		// Start by building up a map keyed by root domain...
-		let mut found: Vec<String> = self.found
-			.iter()
-			.fold(
-				HashMap::<u64, Vec<&Domain>, NoHash>::with_capacity_and_hasher(self.found.len(), NoHash::default()),
-				|mut acc, dom| {
-					let hash: u64 = hash64(dom.tld().as_bytes());
+		let mut found = HashMap::<u64, Vec<&Domain>, NoHash>::with_capacity_and_hasher(self.found.len(), NoHash::default());
+		for dom in &self.found {
+			let hash: u64 = hash64(dom.tld().as_bytes());
+			found.entry(hash).or_insert_with(Vec::new).push(dom);
+		}
 
-					acc.entry(hash)
-						.or_insert_with(Vec::new)
-						.push(dom);
-
-					acc
-				}
-			)
-			// Now run through each set to build out the lines.
-			.par_drain()
-			.flat_map(|(_k, mut x)| {
+		// Now build up each line.
+		let mut found: Vec<String> = found.into_par_iter()
+			.flat_map(|(_, mut x)| {
 				// We have to split this into multiple lines so it can
 				// fit.
 				let mut out: Vec<String> = Vec::new();
