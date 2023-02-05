@@ -13,6 +13,7 @@ use std::{
 		HashMap,
 		HashSet,
 	},
+	env,
 	fs::File,
 	io::Write,
 	path::PathBuf,
@@ -57,8 +58,9 @@ fn idna() {
 
 	let (map_str, map, map_len) = idna_build(raw);
 
-	#[cfg(feature = "build-debug")]
-	println!("cargo:warning=Parsed {map_len} IDNA lines.");
+	if env::var("SHOW_TOTALS").is_ok() {
+		println!("cargo:warning=Parsed {map_len} IDNA lines.");
+	}
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna.rs"))
@@ -439,8 +441,9 @@ fn idna_tests() {
 	let raw = idna_load_test_data();
 	assert!(! raw.is_empty(), "Missing IDNA data.");
 
-	#[cfg(feature = "build-debug")]
-	println!("cargo:warning=Parsed {} IDNA test lines.", raw.len());
+	if env::var("SHOW_TOTALS").is_ok() {
+		println!("cargo:warning=Parsed {} IDNA test lines.", raw.len());
+	}
 
 	// Our generated script will live here.
 	let mut file = File::create(out_path("adbyss-idna-tests.rs"))
@@ -525,12 +528,13 @@ fn psl() {
 		assert!(! psl_main.contains(host), "Duplicate host.");
 	}
 
-	#[cfg(feature = "build-debug")]
-	println!(
-		"cargo:warning=Parsed {} generic PSL entries, and {} wildcard ones.",
-		psl_main.len(),
-		psl_wild.len(),
-	);
+	if env::var("SHOW_TOTALS").is_ok() {
+		println!(
+			"cargo:warning=Parsed {} generic PSL entries, and {} wildcard ones.",
+			psl_main.len(),
+			psl_wild.len(),
+		);
+	}
 
 	// Reformat it.
 	let (

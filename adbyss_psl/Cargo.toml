@@ -50,9 +50,6 @@ default = []
 # Expose (de)/serialize support for adbyss_psl::Domain.
 serde = [ "dep:serde" ]
 
-# Print information about the number of parsed entries during build.
-build-debug = []
-
 [[bench]]
 name = "psl_parse"
 harness = false

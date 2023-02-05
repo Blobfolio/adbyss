@@ -53,7 +53,7 @@ bench BENCH="":
 # Build Release!
 @build:
 	# First let's build the Rust bit.
-	cargo build \
+	env SHOW_TOTALS=1 cargo build \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target x86_64-unknown-linux-gnu \
