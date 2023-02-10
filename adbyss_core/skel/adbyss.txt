@@ -1,6 +1,7 @@
 api.triptease.io
 collect.snitcher.com
 ct.pinterest.com
+edge.fullstory.com
 guest-experience.triptease.io
 js.trendmd.com
 medtargetsystem.com
