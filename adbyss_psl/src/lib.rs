@@ -130,6 +130,7 @@ use std::{
 		Deref,
 		Range,
 	},
+	str::FromStr,
 };
 use unicode_bidi::{
 	bidi_class,
@@ -221,6 +222,13 @@ impl fmt::Display for Domain {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(self.as_str())
+	}
+}
+
+impl FromStr for Domain {
+	type Err = Error;
+	fn from_str(src: &str) -> Result<Self, Self::Err> {
+		Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 	}
 }
 
