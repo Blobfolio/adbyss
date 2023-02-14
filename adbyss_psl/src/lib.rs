@@ -614,9 +614,9 @@ impl<'de> serde::Deserialize<'de> for Domain {
 					.ok_or_else(|| serde::de::Error::custom("invalid domain"))
 			}
 
-			fn visit_bytes<S>(self, value: &[u8]) -> Result<Domain, S>
+			fn visit_bytes<S>(self, src: &[u8]) -> Result<Domain, S>
 			where S: serde::de::Error {
-				std::str::from_utf8(value)
+				std::str::from_utf8(src)
 					.ok()
 					.and_then(Domain::new)
 					.ok_or_else(|| serde::de::Error::custom("invalid domain"))
