@@ -2,6 +2,15 @@
 
 
 
+## [0.7.20](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.20) - 2023-03-09
+
+### Changed
+
+* Deserialize from string slice instead of Cow
+* impl `FromStr` for `Domain`
+
+
+
 ## [0.7.19](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.19) - 2023-02-04
 
 ### Changed
