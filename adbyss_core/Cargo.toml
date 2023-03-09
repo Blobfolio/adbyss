@@ -17,7 +17,7 @@ rayon = "1.7.*"
 regex = "1.7.*"
 ureq = "2.6.1"
 utc2k = "0.5.*"
-write_atomic = "0.2.*"
+write_atomic = "0.3.*"
 
 [dependencies.ahash]
 version = "0.8.*"
