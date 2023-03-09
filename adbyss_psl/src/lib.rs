@@ -130,6 +130,7 @@ use std::{
 		Deref,
 		Range,
 	},
+	str::FromStr,
 };
 use unicode_bidi::{
 	bidi_class,
@@ -221,6 +222,13 @@ impl fmt::Display for Domain {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(self.as_str())
+	}
+}
+
+impl FromStr for Domain {
+	type Err = Error;
+	fn from_str(src: &str) -> Result<Self, Self::Err> {
+		Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 	}
 }
 
@@ -592,8 +600,30 @@ impl<'de> serde::Deserialize<'de> for Domain {
 	/// Use the optional `serde` crate feature to enable serialization support.
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: serde::de::Deserializer<'de> {
-		let s: std::borrow::Cow<str> = serde::de::Deserialize::deserialize(deserializer)?;
-		Self::new(s).ok_or_else(|| serde::de::Error::custom("Invalid domain."))
+		struct DomainVisitor;
+
+		impl<'de> serde::de::Visitor<'de> for DomainVisitor {
+			type Value = Domain;
+			fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+				f.write_str("domain string")
+			}
+
+			fn visit_str<S>(self, src: &str) -> Result<Domain, S>
+			where S: serde::de::Error {
+				Domain::new(src)
+					.ok_or_else(|| serde::de::Error::custom("invalid domain"))
+			}
+
+			fn visit_bytes<S>(self, src: &[u8]) -> Result<Domain, S>
+			where S: serde::de::Error {
+				std::str::from_utf8(src)
+					.ok()
+					.and_then(Domain::new)
+					.ok_or_else(|| serde::de::Error::custom("invalid domain"))
+			}
+		}
+
+		deserializer.deserialize_str(DomainVisitor)
 	}
 }
 
