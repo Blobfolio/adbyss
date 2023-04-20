@@ -445,28 +445,13 @@ fn idna_tests() {
 		println!("cargo:warning=Parsed {} IDNA test lines.", raw.len());
 	}
 
-	// Our generated script will live here.
-	let mut file = File::create(out_path("adbyss-idna-tests.rs"))
-		.expect("Unable to create adbyss-idna.rs");
+	let out = serde_json::to_vec(&raw).expect("Unable to serialize IDNA test data.");
 
-	write!(
-		&mut file,
-		"const IDNA_DATA: [(&str, Option<&str>); {}] = [{}];",
-		raw.len(),
-		raw.into_iter()
-			.map(|(i, mut o)|
-				if let Some(o) = o.take() {
-					format!(r#"("{}", Some("{o}"))"#, format_unicode_chars(&i))
-				}
-				else {
-					format!("({:?}, None)", format_unicode_chars(&i))
-				}
-			)
-			.collect::<Vec<String>>()
-			.join(", "),
-	)
-		.and_then(|_| file.flush())
-		.expect("Failed to save IDNA tests.");
+	// Our generated script will live here.
+	let mut file = File::create(out_path("adbyss-idna-tests.json"))
+		.expect("Unable to create adbyss-idna.json");
+
+	file.write(&out).and_then(|_| file.flush()).expect("Failed to write IDNA test data.");
 }
 
 /// # Load Data.
@@ -768,19 +753,6 @@ fn load_file(name: &str) -> String {
 		Ok(x) => x,
 		Err(_) => panic!("Unable to load {name}."),
 	}
-}
-
-/// # Format Unicode Chars.
-///
-/// This builds a new string suitable for inclusion in Rust code, where ASCII
-/// is left alone, but unicode is represented in an escaped format.
-fn format_unicode_chars(src: &str) -> String {
-	src.chars()
-		.map(|c|
-			if c.is_ascii() { c.to_string() }
-			else { format!("\\u{{{:x}}}", c as u32) }
-		)
-		.collect()
 }
 
 /// # Hash TLD.
