@@ -2,6 +2,14 @@
 
 
 
+## [0.7.21](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.21) - 2023-04-20
+
+### Fixed
+
+* Unit test stack overflow in Rust `1.69`
+
+
+
 ## [0.7.20](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.20) - 2023-03-09
 
 ### Changed
