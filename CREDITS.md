@@ -1,15 +1,15 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.7.21
-    Generated: 2023-04-20 16:53:45 UTC
+    Version:   0.7.22
+    Generated: 2023-04-28 03:36:28 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.7.21 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.7.21 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.7.22 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.7.22 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.8.3 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
-| [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 0.7.20 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
+| [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 1.0.1 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
 | [argyle](https://github.com/Blobfolio/argyle) | 0.6.7 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [base64](https://github.com/marshallpierce/rust-base64) | 0.13.1 | [Alice Maz](mailto:alice@alicemaz.com) and [Marshall Pierce](mailto:marshall@mpierce.org) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
@@ -41,8 +41,8 @@
 | [quote](https://github.com/dtolnay/quote) | 1.0.26 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [rayon](https://github.com/rayon-rs/rayon) | 1.7.0 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
 | [rayon-core](https://github.com/rayon-rs/rayon) | 1.11.0 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
-| [regex](https://github.com/rust-lang/regex) | 1.7.3 | The Rust Project Developers | Apache-2.0 or MIT |
-| [regex-syntax](https://github.com/rust-lang/regex) | 0.6.29 | The Rust Project Developers | Apache-2.0 or MIT |
+| [regex](https://github.com/rust-lang/regex) | 1.8.1 | The Rust Project Developers | Apache-2.0 or MIT |
+| [regex-syntax](https://github.com/rust-lang/regex) | 0.7.1 | The Rust Project Developers | Apache-2.0 or MIT |
 | [ring](https://github.com/briansmith/ring) | 0.16.20 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [rustls](https://github.com/rustls/rustls) | 0.20.8 |  | Apache-2.0, ISC, or MIT |
 | [ryu](https://github.com/dtolnay/ryu) | 1.0.13 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or BSL-1.0 |
