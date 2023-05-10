@@ -140,18 +140,16 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Reformat again, this time for output.
 	// Format the array.
 	let map = format!(
-		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {map_len}] = [{}];",
+		"static MAP: [(u32, u32, CharKind); {map_len}] = [{}];",
 		map.into_iter()
-			.map(|(first, last, label)|
-				if let Some(last) = last {
-					format!(
-						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {label})",
-						NiceU32::with_separator(first, b'_'),
-						NiceU32::with_separator(last, b'_'),
-					)
-				}
-				else { format!("({}, None, {label})", NiceU32::with_separator(first, b'_')) }
-			)
+			.map(|(first, last, label)| {
+				let last = last.unwrap_or(0);
+				format!(
+					"({}, {}, {label})",
+					NiceU32::with_separator(first, b'_'),
+					NiceU32::with_separator(last, b'_'),
+				)
+			})
 			.collect::<Vec<String>>()
 			.join(", "),
 	);

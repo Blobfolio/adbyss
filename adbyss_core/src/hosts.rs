@@ -287,13 +287,12 @@ impl Shitlist {
 
 /// # Conversion.
 impl Shitlist {
-	#[allow(unsafe_code)]
 	#[must_use]
 	/// # As Str.
 	///
 	/// Return the output as a string slice.
 	pub fn as_str(&self) -> &str {
-		unsafe { std::str::from_utf8_unchecked(&self.out) }
+		std::str::from_utf8(&self.out).unwrap_or("")
 	}
 
 	#[must_use]
@@ -565,6 +564,9 @@ impl Shitlist {
 
 		self.out.push(b'\n');
 
+		// Triple-check we indeed have valid UTF-8.
+		debug_assert!(std::str::from_utf8(&self.out).is_ok(), "Bug: Output is not UTF.");
+
 		Ok(())
 	}
 
@@ -695,7 +697,6 @@ fn hash64(src: &[u8]) -> u64 {
 }
 
 
-#[allow(unsafe_code)]
 /// # Parse Custom Hosts.
 ///
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
@@ -707,12 +708,7 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain> {
 			// Split on whitespace, up to the first #comment, if any.
 			let mut split = x.bytes()
 				.position(|b| b'#' == b)
-				.map_or(x, |p|
-					if x.is_char_boundary(p) {
-						unsafe { x.get_unchecked(0..p) }
-					}
-					else { "" }
-				)
+				.map_or(x, |p| x.get(0..p).unwrap_or(""))
 				.split_whitespace();
 
 			// If the first entry is an IP address, parse all subsequent

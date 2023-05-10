@@ -46,9 +46,7 @@ fn map_get(ch: u32) -> Option<CharKind> {{
 		// Maybe…
 		else if cmp == Ordering::Greater {{
 			// If this is a range, it's a direct hit if the char is <= the end.
-			if let Some(n) = MAP[mid].1 {{
-				if ch <= n.get() {{ return Some(MAP[mid].2); }}
-			}}
+			if 0 != MAP[mid].1 && ch <= MAP[mid].1 {{ return Some(MAP[mid].2); }}
 
 			// Otherwise the char is too big.
 			left = mid + 1;
