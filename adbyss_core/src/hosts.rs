@@ -355,7 +355,7 @@ impl Shitlist {
 			.map(BufReader::new)
 			.map_err(|_| AdbyssError::HostsRead(Box::from(self.hostfile.clone())))?
 			.lines()
-			.filter_map(std::result::Result::ok)
+			.map_while(std::result::Result::ok)
 		{
 			// We'll want to stop once we have absorbed the watermark.
 			watermark = watermark.is_match(&line);
