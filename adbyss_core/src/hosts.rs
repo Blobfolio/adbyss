@@ -35,10 +35,8 @@ use std::{
 		HashMap,
 		HashSet,
 	},
-	ffi::OsStr,
 	fmt,
 	fs::File,
-	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
 		PathBuf,
@@ -493,10 +491,8 @@ impl Shitlist {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
-			let dst2 = PathBuf::from(OsStr::from_bytes(&[
-				dst.as_os_str().as_bytes(),
-				b".adbyss.bak"
-			].concat()));
+			let mut dst2 = dst.to_path_buf();
+			dst2.as_mut_os_string().push(".adbyss.bak");
 
 			// Copy the original, clobbering only as a fallback.
 			std::fs::copy(dst, &dst2)
