@@ -77,7 +77,7 @@ Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
 
 ```
 [dependencies]
-adbyss_psl = "0.6.*"
+adbyss_psl = "0.8.*"
 ```
 
 

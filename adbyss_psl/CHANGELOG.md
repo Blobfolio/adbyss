@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [0.8.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.0) - 2023-06-01
+
+### Changed
+
+* Remove all `unsafe` code
+* Improve unit test coverage
+* Minor code changes and lints
+* Drop `dactyl` build dependency
+
+
 
 ## [0.7.22](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.22) - 2023-04-27
 
