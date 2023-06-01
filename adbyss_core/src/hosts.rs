@@ -35,10 +35,8 @@ use std::{
 		HashMap,
 		HashSet,
 	},
-	ffi::OsStr,
 	fmt,
 	fs::File,
-	os::unix::ffi::OsStrExt,
 	path::{
 		Path,
 		PathBuf,
@@ -287,13 +285,12 @@ impl Shitlist {
 
 /// # Conversion.
 impl Shitlist {
-	#[allow(unsafe_code)]
 	#[must_use]
 	/// # As Str.
 	///
 	/// Return the output as a string slice.
 	pub fn as_str(&self) -> &str {
-		unsafe { std::str::from_utf8_unchecked(&self.out) }
+		std::str::from_utf8(&self.out).unwrap_or("")
 	}
 
 	#[must_use]
@@ -356,7 +353,7 @@ impl Shitlist {
 			.map(BufReader::new)
 			.map_err(|_| AdbyssError::HostsRead(Box::from(self.hostfile.clone())))?
 			.lines()
-			.filter_map(std::result::Result::ok)
+			.map_while(std::result::Result::ok)
 		{
 			// We'll want to stop once we have absorbed the watermark.
 			watermark = watermark.is_match(&line);
@@ -494,10 +491,8 @@ impl Shitlist {
 		// Back it up!
 		if 0 != self.flags & FLAG_BACKUP {
 			// Tack ".adbyss.bak" onto the original path.
-			let dst2 = PathBuf::from(OsStr::from_bytes(&[
-				dst.as_os_str().as_bytes(),
-				b".adbyss.bak"
-			].concat()));
+			let mut dst2 = dst.to_path_buf();
+			dst2.as_mut_os_string().push(".adbyss.bak");
 
 			// Copy the original, clobbering only as a fallback.
 			std::fs::copy(dst, &dst2)
@@ -564,6 +559,9 @@ impl Shitlist {
 			});
 
 		self.out.push(b'\n');
+
+		// Triple-check we indeed have valid UTF-8.
+		debug_assert!(std::str::from_utf8(&self.out).is_ok(), "Bug: Output is not UTF.");
 
 		Ok(())
 	}
@@ -695,7 +693,6 @@ fn hash64(src: &[u8]) -> u64 {
 }
 
 
-#[allow(unsafe_code)]
 /// # Parse Custom Hosts.
 ///
 /// This is used to parse custom hosts out of the user's `/etc/hosts` file.
@@ -707,12 +704,7 @@ fn parse_custom_hosts(raw: &str) -> HashSet<Domain> {
 			// Split on whitespace, up to the first #comment, if any.
 			let mut split = x.bytes()
 				.position(|b| b'#' == b)
-				.map_or(x, |p|
-					if x.is_char_boundary(p) {
-						unsafe { x.get_unchecked(0..p) }
-					}
-					else { "" }
-				)
+				.map_or(x, |p| x.get(0..p).unwrap_or(""))
 				.split_whitespace();
 
 			// If the first entry is an IP address, parse all subsequent

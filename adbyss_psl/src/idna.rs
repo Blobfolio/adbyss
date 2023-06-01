@@ -4,7 +4,6 @@
 
 use std::{
 	cmp::Ordering,
-	num::NonZeroU32,
 	str::Chars,
 };
 

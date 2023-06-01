@@ -2,11 +2,6 @@
 # Adbyss: Public Suffix - Build
 */
 
-use dactyl::{
-	NiceU32,
-	NiceU64,
-	NoHash,
-};
 use regex::Regex;
 use std::{
 	collections::{
@@ -40,6 +35,14 @@ pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/idna.rs.txt");
 	println!("cargo:rerun-if-changed=skel/psl.rs.txt");
+
+	// Sanity check. Obviously this won't change, but it is nice to know we
+	// thought of it.
+	assert_eq!(
+		u64::MAX.to_string().len(),
+		RANGE.len(),
+		"Number-formatting string has the wrong length.",
+	);
 
 	idna();
 	idna_tests();
@@ -140,18 +143,16 @@ fn idna_build(mut raw: RawIdna) -> (String, String, usize) {
 	// Reformat again, this time for output.
 	// Format the array.
 	let map = format!(
-		"#[allow(unsafe_code)]\nstatic MAP: [(u32, Option<NonZeroU32>, CharKind); {map_len}] = [{}];",
+		"static MAP: [(u32, u32, CharKind); {map_len}] = [{}];",
 		map.into_iter()
-			.map(|(first, last, label)|
-				if let Some(last) = last {
-					format!(
-						"({}, Some(unsafe {{ NonZeroU32::new_unchecked({}) }}), {label})",
-						NiceU32::with_separator(first, b'_'),
-						NiceU32::with_separator(last, b'_'),
-					)
-				}
-				else { format!("({}, None, {label})", NiceU32::with_separator(first, b'_')) }
-			)
+			.map(|(first, last, label)| {
+				let last = last.unwrap_or(0);
+				format!(
+					"({}, {}, {label})",
+					nice_u64(u64::from(first)),
+					nice_u64(u64::from(last)),
+				)
+			})
 			.collect::<Vec<String>>()
 			.join(", "),
 	);
@@ -263,7 +264,7 @@ where I: IntoIterator<Item = &'a str> {
 		// then adding the rest as-were. We need to keep track of the indexes
 		// we've hit along the way so we don't accidentally add anything twice.
 		let mut new: Vec<Vec<char>> = Vec::with_capacity(set.len());
-		let mut seen: HashSet<usize, NoHash> = HashSet::with_capacity_and_hasher(set.len(), NoHash::default());
+		let mut seen: HashSet<usize> = HashSet::with_capacity(set.len());
 
 		for (diff, left, right) in saved {
 			// Join and push any pairing with savings matching the round's
@@ -581,7 +582,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 
 	// Make sure the keys are unique.
 	{
-		let tmp: HashSet<u64, NoHash> = map.iter().map(|(k, _)| *k).collect();
+		let tmp: HashSet<u64> = map.iter().map(|(k, _)| *k).collect();
 		assert_eq!(tmp.len(), map.len(), "Duplicate PSL hash keys.");
 	}
 
@@ -595,7 +596,7 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	let map = format!(
 		"/// # Map Keys.\nstatic MAP_K: [u64; {len}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {len}] = [{}];",
 		map_keys.into_iter()
-			.map(|x| String::from(NiceU64::with_separator(x, b'_')))
+			.map(nice_u64)
 			.collect::<Vec<String>>()
 			.join(", "),
 		map_values.join(", "),
@@ -815,4 +816,34 @@ impl IdnaLabel {
 			_ => None,
 		}
 	}
+}
+
+
+
+/// # Range covering the length of u64::MAX, stringified.
+const RANGE: [usize; 20] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+
+/// # Nice Number.
+///
+/// This stringifies and returns a number with `_` separators, useful for
+/// angering clippy with the code we're generating.
+fn nice_u64(num: u64) -> String {
+	let digits = num.to_string();
+
+	// Return it straight if no separator is needed.
+	let len = digits.len();
+	if len < 4 { return digits; }
+
+	// Otherwise split it into chunks of three, starting at the end.
+	let mut parts: Vec<&str> = RANGE[..len].rchunks(3)
+		.map(|chunk| {
+			let (min, chunk) = chunk.split_first().unwrap();
+			let max = chunk.split_last().map_or(min, |(max, _)| max);
+			&digits[*min..=*max]
+		})
+		.collect();
+
+	// (Re)reverse and glue with the separator.
+	parts.reverse();
+	parts.join("_")
 }

@@ -71,7 +71,7 @@ let owned = dom.take(); // "www.mydomain.com"
 * `serde`: Enables serialization/deserialization support.
 */
 
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 #![warn(
 	clippy::filetype_is_file,
@@ -629,7 +629,6 @@ impl<'de> serde::Deserialize<'de> for Domain {
 
 
 
-#[allow(unsafe_code)]
 /// # Find Dots.
 ///
 /// The hardest part of suffix validation is teasing the suffix out of the
@@ -647,8 +646,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	let mut last: usize = 0;
 	let mut dot: usize = 0;
 	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
-		// Safety: there cannot be trailing dots, so idx+1 is always valid.
-		if let Some(suffix) = SuffixKind::from_slice(unsafe { host.get_unchecked(idx + 1..) }) {
+		if let Some(suffix) = host.get(idx + 1..).and_then(SuffixKind::from_slice) {
 			return match suffix {
 				SuffixKind::Tld => Some((dot, idx + 1)),
 				SuffixKind::Wild =>
@@ -662,9 +660,7 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 
 					// This matches a wildcard exception, making the found suffix
 					// the true suffix.
-					// Safety: there cannot be leading dots, so there is always
-					// something before idx.
-					if ex.is_match(unsafe { host.get_unchecked(after_dot..idx) }) {
+					if host.get(after_dot..idx).map_or(false, |h| ex.is_match(h)) {
 						Some((dot, idx + 1))
 					}
 					// There has to be a before-before part.
