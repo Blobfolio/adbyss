@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.8.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.1) - 2023-07-05
+
+### Changed
+
+* Update dependencies
+
+
+
 ## [0.8.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.0) - 2023-06-01
 
 ### Changed
