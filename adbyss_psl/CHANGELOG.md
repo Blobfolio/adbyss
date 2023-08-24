@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.8.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.2) - 2023-08-24
+
+### Changed
+
+* Update suffix database
+
+
+
 ## [0.8.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.1) - 2023-07-05
 
 ### Changed
