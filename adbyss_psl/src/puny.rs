@@ -8,7 +8,6 @@ underlying Unicode, so we have to do both when the source contains PUNYCODE.
 */
 
 #![allow(clippy::cast_lossless)]
-#![allow(clippy::integer_division)]
 #![allow(clippy::cast_possible_truncation)]
 
 
@@ -58,7 +57,7 @@ pub(super) fn decode(input: &[char]) -> Option<Vec<char>> {
 				return None;
 			}
 
-			if digit > (u32::MAX - i) / weight { return None; }
+			if digit > (u32::MAX - i).wrapping_div(weight) { return None; }
 			i += digit * weight;
 
 			let t =
@@ -68,14 +67,14 @@ pub(super) fn decode(input: &[char]) -> Option<Vec<char>> {
 
 			if digit < t { break; }
 
-			if BASE > (u32::MAX - t) / weight { return None; }
+			if BASE > (u32::MAX - t).wrapping_div(weight) { return None; }
 			weight *= BASE - t;
 		}
 
 		let len = (output.len() + 1) as u32;
 		bias = adapt(i - old_i, len, old_i == 0);
 
-		let il = i / len;
+		let il = i.wrapping_div(len);
 		if n > u32::MAX - il { return None; }
 		n += il;
 		i %= len;
@@ -135,7 +134,7 @@ pub(super) fn encode_into(input: &[char], output: &mut String) -> bool {
 			})
 			.min()
 			.unwrap();
-		if min_code_point - code_point > (u32::MAX - delta) / (processed + 1) {
+		if min_code_point - code_point > (u32::MAX - delta).wrapping_div(processed + 1) {
 			return false;
 		}
 
@@ -161,7 +160,7 @@ pub(super) fn encode_into(input: &[char], output: &mut String) -> bool {
 					let value = t + ((q - t) % (BASE - t));
 					output.push(value_to_digit(value));
 					written += 1;
-					q = (q - t) / (BASE - t);
+					q = (q - t).wrapping_div(BASE - t);
 					k += BASE;
 				}
 				output.push(value_to_digit(q));
@@ -186,13 +185,13 @@ pub(super) fn encode_into(input: &[char], output: &mut String) -> bool {
 #[inline]
 fn adapt(mut delta: u32, num_points: u32, first_time: bool) -> u32 {
 	delta /= if first_time { DAMP } else { 2 };
-	delta += delta / num_points;
+	delta += delta.wrapping_div(num_points);
 	let mut k = 0;
-	while delta > ((BASE - T_MIN) * T_MAX) / 2 {
+	while delta > ((BASE - T_MIN) * T_MAX).wrapping_div(2) {
 		delta /= BASE - T_MIN;
 		k += BASE;
 	}
-	k + (((BASE - T_MIN + 1) * delta) / (delta + SKEW))
+	k + ((BASE - T_MIN + 1) * delta).wrapping_div(delta + SKEW)
 }
 
 #[inline]
