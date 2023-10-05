@@ -64,7 +64,7 @@ fn main() {
 		Err(e) => {
 			Msg::error(e.to_string()).die(1);
 		},
-		Ok(_) => {},
+		Ok(()) => {},
 	}
 }
 
@@ -116,8 +116,8 @@ fn _main() -> Result<(), AdbyssError> {
 		let writer = std::io::stdout();
 		let mut handle = writer.lock();
 		let _res = handle.write_all(raw.as_bytes())
-			.and_then(|_| handle.write_all(b"\n"))
-			.and_then(|_| handle.flush());
+			.and_then(|()| handle.write_all(b"\n"))
+			.and_then(|()| handle.flush());
 	}
 	// Output to STDOUT? This is like `--show`, but formatted as a hosts file.
 	else if args.switch(b"--stdout") {
@@ -126,8 +126,8 @@ fn _main() -> Result<(), AdbyssError> {
 		let writer = std::io::stdout();
 		let mut handle = writer.lock();
 		let _res = handle.write_all(shitlist.as_bytes())
-			.and_then(|_| handle.write_all(b"\n"))
-			.and_then(|_| handle.flush());
+			.and_then(|()| handle.write_all(b"\n"))
+			.and_then(|()| handle.flush());
 	}
 	// Actually write the changes to the host file!
 	else {

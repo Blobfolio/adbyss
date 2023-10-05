@@ -356,7 +356,7 @@ fn idna_load_data() -> RawIdna {
 			else { continue };
 
 		// Group everything by type.
-		tbd.entry(label).or_insert_with(Vec::new).push((
+		tbd.entry(label).or_default().push((
 			first, last, label, sub
 		));
 	}
@@ -726,14 +726,13 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 				if let Some(idx) = host.bytes().position(|x| x == b'.') {
 					let (before, after) = host.split_at(idx);
 					psl_wild.entry(after[1..].to_string())
-						.or_insert_with(Vec::new)
+						.or_default()
 						.push(before.to_string());
 				}
 			}
 			// This is the main wildcard entry.
 			else if 0 != flag & FLAG_WILDCARD {
-				psl_wild.entry(host)
-					.or_insert_with(Vec::new);
+				psl_wild.entry(host).or_default();
 			}
 			// This is a normal suffix.
 			else {

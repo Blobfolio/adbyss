@@ -575,7 +575,7 @@ impl Shitlist {
 		let mut found = HashMap::<u64, Vec<&Domain>, NoHash>::with_capacity_and_hasher(self.found.len(), NoHash::default());
 		for dom in &self.found {
 			let hash: u64 = hash64(dom.tld().as_bytes());
-			found.entry(hash).or_insert_with(Vec::new).push(dom);
+			found.entry(hash).or_default().push(dom);
 		}
 
 		// Now build up each line.
@@ -729,7 +729,7 @@ fn write_to_file(path: &Path, data: &[u8]) -> Result<(), AdbyssError> {
 	// Try an atomic write first.
 	write_atomic::write_file(path, data)
 		.or_else(|_| File::create(path)
-			.and_then(|mut file| file.write_all(data).and_then(|_| file.flush()))
+			.and_then(|mut file| file.write_all(data).and_then(|()| file.flush()))
 		)
 		.map_err(|_| AdbyssError::HostsWrite(Box::from(path)))
 }
