@@ -935,10 +935,7 @@ fn idna_normalize_b(src: &[char], out: &mut Vec<char>) -> bool {
 
 		// Handle PUNY chunk.
 		if let Some(chunk) = part.strip_prefix(&['x', 'n', '-', '-']) {
-			let mut decoded_part = match puny::decode(chunk) {
-				Some(s) => s,
-				None => return false,
-			};
+			let Some(mut decoded_part) = puny::decode(chunk) else { return false; };
 
 			// Make sure the decoded version didn't introduce anything
 			// illegal.
