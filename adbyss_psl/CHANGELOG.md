@@ -6,6 +6,7 @@
 ### Changed
 
 * Loosen build-dependency constraints for better downstream interoperability
+* Bump MSRV to `1.65` to match the latest `regex` release (`1.10`), however Rust `1.63` can still be used if `regex` is capped between `1.7..=1.9`
 
 
 
