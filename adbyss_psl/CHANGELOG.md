@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.9.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.1) - 2023-10-09
+
+### Changed
+
+* Loosen build-dependency constraints for better downstream interoperability
+
+
+
 ## [0.9.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.0) - 2023-10-05
 
 ### Changed
