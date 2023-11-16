@@ -1,12 +1,21 @@
 # Changelog
 
 
+## [0.9.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.2) - 2023-11-16
+
+### Changed
+
+* Update suffix database
+
+
+
 ## [0.9.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.1) - 2023-10-09
 
 ### Changed
 
 * Loosen build-dependency constraints for better downstream interoperability
 * Bump MSRV to `1.65` to match the latest `regex` release (`1.10`), however Rust `1.63` can still be used if `regex` is capped between `1.7..=1.9`
+* Update suffix database
 
 
 
@@ -15,6 +24,7 @@
 ### Changed
 
 * Minor code lints and cleanup
+* Update suffix database
 
 
 
