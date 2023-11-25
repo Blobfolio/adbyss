@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.9.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.3) - TBD
+
+### Changed
+
+* Bump `idna` to `0.5`
+
+
+
 ## [0.9.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.2) - 2023-11-16
 
 ### Changed
