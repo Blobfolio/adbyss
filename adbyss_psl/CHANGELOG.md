@@ -1,7 +1,7 @@
 # Changelog
 
 
-## [0.9.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.3) - TBD
+## [0.9.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.3) - 2023-12-28
 
 ### Changed
 
