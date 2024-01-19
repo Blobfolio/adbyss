@@ -77,28 +77,6 @@ bench BENCH="":
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
 
-@build-pgo: clean
-	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
-
-	RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" cargo build \
-		--bin "{{ pkg_id }}" \
-		--release \
-		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}"
-
-	"{{ cargo_bin }}" -y
-	"{{ cargo_bin }}" --systemd
-
-	/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
-		merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
-
-	RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" cargo build \
-		--bin "{{ pkg_id }}" \
-		--release \
-		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}"
-
-
 @clean:
 	# Most things go here.
 	[ ! -d "{{ cargo_dir }}" ] || rm -rf "{{ cargo_dir }}"
