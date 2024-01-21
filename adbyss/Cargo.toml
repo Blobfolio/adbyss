@@ -18,7 +18,7 @@ depends = "$auto"
 extended-description = ""
 section = "net"
 assets = [
-    ["../target/x86_64-unknown-linux-gnu/release/adbyss", "usr/bin/", "755"],
+    ["../target/release/adbyss", "usr/bin/", "755"],
     ["./skel/adbyss.yaml", "etc/", "644"],
     ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
