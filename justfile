@@ -22,10 +22,12 @@ pkg_dir2    := justfile_directory() + "/adbyss_core"
 pkg_dir3    := justfile_directory() + "/adbyss_psl"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
-cargo_bin   := cargo_dir + "/x86_64-unknown-linux-gnu/release/" + pkg_id
+cargo_bin   := cargo_dir + "/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 skel_dir    := pkg_dir3 + "/skel"
+
+export RUSTFLAGS := "-C target-cpu=x86-64-v3"
 
 
 
@@ -38,13 +40,11 @@ bench BENCH="":
 		cargo bench \
 			-p adbyss_psl \
 			--benches \
-			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}"
 	else
 		cargo bench \
 			-p adbyss_psl \
 			--bench "{{ BENCH }}" \
-			--target x86_64-unknown-linux-gnu \
 			--target-dir "{{ cargo_dir }}"
 	fi
 	exit 0
@@ -56,7 +56,6 @@ bench BENCH="":
 	env SHOW_TOTALS=1 cargo build \
 		--bin "{{ pkg_id }}" \
 		--release \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
 
@@ -75,28 +74,6 @@ bench BENCH="":
 	just _fix-chown "{{ pkg_dir3 }}"
 	just _fix-chown "{{ release_dir }}"
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
-
-
-@build-pgo: clean
-	[ ! -d "/tmp/pgo-data" ] || rm -rf /tmp/pgo-data
-
-	RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" cargo build \
-		--bin "{{ pkg_id }}" \
-		--release \
-		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}"
-
-	"{{ cargo_bin }}" -y
-	"{{ cargo_bin }}" --systemd
-
-	/usr/local/rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/llvm-profdata \
-		merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
-
-	RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function" cargo build \
-		--bin "{{ pkg_id }}" \
-		--release \
-		--target x86_64-unknown-linux-gnu \
-		--target-dir "{{ cargo_dir }}"
 
 
 @clean:
@@ -120,7 +97,6 @@ bench BENCH="":
 		--workspace \
 		--release \
 		--all-features \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
 
@@ -139,14 +115,13 @@ bench BENCH="":
 		--manifest-path "{{ pkg_dir3 }}/Cargo.toml" \
 		--release \
 		--all-features \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}" \
 		-- \
 		--cfg docsrs
 
 	# Move the docs and clean up ownership.
 	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
-	mv "{{ cargo_dir }}/x86_64-unknown-linux-gnu/doc" "{{ justfile_directory() }}"
+	mv "{{ cargo_dir }}/doc" "{{ justfile_directory() }}"
 	just _fix-chown "{{ doc_dir }}"
 
 
@@ -189,7 +164,6 @@ bench BENCH="":
 	cargo run \
 		--bin "{{ pkg_id }}" \
 		--release \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}" \
 		-- {{ ARGS }}
 
@@ -200,14 +174,12 @@ bench BENCH="":
 	cargo test \
 		--workspace \
 		--all-features \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
 	cargo test \
 		--workspace \
 		--release \
 		--all-features \
-		--target x86_64-unknown-linux-gnu \
 		--target-dir "{{ cargo_dir }}"
 
 

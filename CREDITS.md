@@ -1,22 +1,22 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.9.3
-    Generated: 2023-12-28 18:54:47 UTC
+    Version:   0.9.4
+    Generated: 2024-01-26 20:33:02 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.9.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.9.3 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.9.4 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.9.4 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [adler](https://github.com/jonas-schievink/adler.git) | 1.0.2 | [Jonas Schievink](mailto:jonasschievink@gmail.com) | 0BSD, Apache-2.0, or MIT |
-| [ahash](https://github.com/tkaitchuck/ahash) | 0.8.6 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
+| [ahash](https://github.com/tkaitchuck/ahash) | 0.8.7 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 1.1.2 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
-| [argyle](https://github.com/Blobfolio/argyle) | 0.6.8 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [base64](https://github.com/marshallpierce/rust-base64) | 0.21.5 | [Alice Maz](mailto:alice@alicemaz.com) and [Marshall Pierce](mailto:marshall@mpierce.org) | Apache-2.0 or MIT |
+| [argyle](https://github.com/Blobfolio/argyle) | 0.7.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [base64](https://github.com/marshallpierce/rust-base64) | 0.21.7 | [Alice Maz](mailto:alice@alicemaz.com) and [Marshall Pierce](mailto:marshall@mpierce.org) | Apache-2.0 or MIT |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
 | [crc32fast](https://github.com/srijs/rust-crc32fast) | 1.3.2 | [Sam Rijs](mailto:srijs@airpost.net) and [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.4 |  | Apache-2.0 or MIT |
-| [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.17 |  | Apache-2.0 or MIT |
-| [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.18 |  | Apache-2.0 or MIT |
+| [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.5 |  | Apache-2.0 or MIT |
+| [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.18 |  | Apache-2.0 or MIT |
+| [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.19 |  | Apache-2.0 or MIT |
 | [dactyl](https://github.com/Blobfolio/dactyl) | 0.6.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [either](https://github.com/bluss/either) | 1.9.0 | bluss | Apache-2.0 or MIT |
 | [equivalent](https://github.com/cuviper/equivalent) | 1.0.1 |  | Apache-2.0 or MIT |
@@ -24,37 +24,37 @@
 | [flate2](https://github.com/rust-lang/flate2-rs) | 1.0.28 | [Alex Crichton](mailto:alex@alexcrichton.com) and [Josh Triplett](mailto:josh@joshtriplett.org) | Apache-2.0 or MIT |
 | [form_urlencoded](https://github.com/servo/rust-url) | 1.2.1 | The rust-url developers | Apache-2.0 or MIT |
 | [fyi_msg](https://github.com/Blobfolio/fyi) | 0.11.8 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [getrandom](https://github.com/rust-random/getrandom) | 0.2.11 | The Rand Project Developers | Apache-2.0 or MIT |
+| [getrandom](https://github.com/rust-random/getrandom) | 0.2.12 | The Rand Project Developers | Apache-2.0 or MIT |
 | [hashbrown](https://github.com/rust-lang/hashbrown) | 0.14.3 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
 | [idna](https://github.com/servo/rust-url/) | 0.5.0 | The rust-url developers | Apache-2.0 or MIT |
 | [indexmap](https://github.com/bluss/indexmap) | 2.1.0 |  | Apache-2.0 or MIT |
 | [itoa](https://github.com/dtolnay/itoa) | 1.0.10 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [libc](https://github.com/rust-lang/libc) | 0.2.151 | The Rust Project Developers | Apache-2.0 or MIT |
+| [libc](https://github.com/rust-lang/libc) | 0.2.152 | The Rust Project Developers | Apache-2.0 or MIT |
 | [log](https://github.com/rust-lang/log) | 0.4.20 | The Rust Project Developers | Apache-2.0 or MIT |
-| [memchr](https://github.com/BurntSushi/memchr) | 2.6.4 | [Andrew Gallant](mailto:jamslam@gmail.com) and bluss | MIT or Unlicense |
+| [memchr](https://github.com/BurntSushi/memchr) | 2.7.1 | [Andrew Gallant](mailto:jamslam@gmail.com) and bluss | MIT or Unlicense |
 | [miniz_oxide](https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide) | 0.7.1 | [Frommi](mailto:daniil.liferenko@gmail.com) and [oyvindln](mailto:oyvindln@users.noreply.github.com) | Apache-2.0, MIT, or Zlib |
 | [once_cell](https://github.com/matklad/once_cell) | 1.19.0 | [Aleksey Kladov](mailto:aleksey.kladov@gmail.com) | Apache-2.0 or MIT |
 | [percent-encoding](https://github.com/servo/rust-url/) | 2.3.1 | The rust-url developers | Apache-2.0 or MIT |
-| [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.71 | [David Tolnay](mailto:dtolnay@gmail.com) and [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
-| [quote](https://github.com/dtolnay/quote) | 1.0.33 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [rayon](https://github.com/rayon-rs/rayon) | 1.8.0 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
-| [rayon-core](https://github.com/rayon-rs/rayon) | 1.12.0 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
-| [regex](https://github.com/rust-lang/regex) | 1.10.2 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
-| [regex-automata](https://github.com/rust-lang/regex/tree/master/regex-automata) | 0.4.3 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
+| [proc-macro2](https://github.com/dtolnay/proc-macro2) | 1.0.78 | [David Tolnay](mailto:dtolnay@gmail.com) and [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
+| [quote](https://github.com/dtolnay/quote) | 1.0.35 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [rayon](https://github.com/rayon-rs/rayon) | 1.8.1 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
+| [rayon-core](https://github.com/rayon-rs/rayon) | 1.12.1 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
+| [regex](https://github.com/rust-lang/regex) | 1.10.3 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
+| [regex-automata](https://github.com/rust-lang/regex/tree/master/regex-automata) | 0.4.5 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
 | [regex-syntax](https://github.com/rust-lang/regex/tree/master/regex-syntax) | 0.8.2 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
 | [ring](https://github.com/briansmith/ring) | 0.17.7 | [Brian Smith](mailto:brian@briansmith.org) |  |
 | [rustls](https://github.com/rustls/rustls) | 0.21.10 |  | Apache-2.0, ISC, or MIT |
 | [rustls-webpki](https://github.com/rustls/webpki) | 0.101.7 |  | ISC |
 | [ryu](https://github.com/dtolnay/ryu) | 1.0.16 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or BSL-1.0 |
 | [sct](https://github.com/rustls/sct.rs) | 0.7.1 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0, ISC, or MIT |
-| [serde](https://github.com/serde-rs/serde) | 1.0.193 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [serde_derive](https://github.com/serde-rs/serde) | 1.0.193 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.9.29 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [syn](https://github.com/dtolnay/syn) | 2.0.43 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [serde](https://github.com/serde-rs/serde) | 1.0.195 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [serde_derive](https://github.com/serde-rs/serde) | 1.0.195 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.9.30 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [syn](https://github.com/dtolnay/syn) | 2.0.48 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [tempfile](https://github.com/Stebalien/tempfile) | 3.9.0 | [Steven Allen](mailto:steven@stebalien.com), The Rust Project Developers, [Ashley Mannix](mailto:ashleymannix@live.com.au), and [Jason White](mailto:me@jasonwhite.io) | Apache-2.0 or MIT |
 | [tinyvec](https://github.com/Lokathor/tinyvec) | 1.6.0 | [Lokathor](mailto:zefria@gmail.com) | Apache-2.0, MIT, or Zlib |
 | [tinyvec_macros](https://github.com/Soveu/tinyvec_macros) | 0.1.1 | [Soveu](mailto:marx.tomasz@gmail.com) | Apache-2.0, MIT, or Zlib |
-| [unicode-bidi](https://github.com/servo/unicode-bidi) | 0.3.14 | The Servo Project Developers | Apache-2.0 or MIT |
+| [unicode-bidi](https://github.com/servo/unicode-bidi) | 0.3.15 | The Servo Project Developers | Apache-2.0 or MIT |
 | [unicode-ident](https://github.com/dtolnay/unicode-ident) | 1.0.12 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 AND Unicode-DFS-2016 or MIT |
 | [unicode-normalization](https://github.com/unicode-rs/unicode-normalization) | 0.1.22 | [kwantam](mailto:kwantam@gmail.com) and [Manish Goregaokar](mailto:manishsmail@gmail.com) | Apache-2.0 or MIT |
 | [unsafe-libyaml](https://github.com/dtolnay/unsafe-libyaml) | 0.2.10 | [David Tolnay](mailto:dtolnay@gmail.com) | MIT |

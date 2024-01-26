@@ -46,6 +46,11 @@ use utc2k::FmtUtc2k;
 
 
 
+/// # End Watermark.
+const END_WATERMARK: &str = "## End of Adbyss Rules ##";
+
+
+
 #[derive(Clone, Copy, PartialEq)]
 /// Watermark.
 ///
@@ -348,6 +353,7 @@ impl Shitlist {
 		// Load existing hosts.
 		let mut txt: String = String::with_capacity(512);
 		let mut watermark: Watermark = Watermark::Zero;
+		let mut inside = false;
 
 		for line in File::open(&self.hostfile)
 			.map(BufReader::new)
@@ -355,18 +361,37 @@ impl Shitlist {
 			.lines()
 			.map_while(std::result::Result::ok)
 		{
-			// We'll want to stop once we have absorbed the watermark.
-			watermark = watermark.is_match(&line);
+			// Trim at the start to make comparisons easier.
+			let trimmed_line = line.trim();
+
+			// Once we've found our opening watermark, everything gets ignored
+			// unless/until we find the corresponding end marker.
+			if inside {
+				// We're free!
+				if trimmed_line == END_WATERMARK {
+					inside = false;
+					watermark = Watermark::Zero;
+				}
+				continue;
+			}
+
+			// Otherwise be on the lookout for the opening marker!
+			watermark = watermark.is_match(trimmed_line);
 			if Watermark::Three == watermark {
 				// Erase the two lines we've already written, and trim the
 				// end once more for good measure.
 				txt.truncate(txt[..txt.len()-23].trim_end().len());
 				txt.push('\n');
-				break;
+				inside = true;
+				continue;
 			}
 
-			txt.push_str(line.trim());
-			txt.push('\n');
+			// Unless we've found an orphaned end marker, this is a user-
+			// defined line. Add it!
+			if trimmed_line != END_WATERMARK {
+				txt.push_str(trimmed_line);
+				txt.push('\n');
+			}
 		}
 
 		Ok(txt)
@@ -558,6 +583,10 @@ impl Shitlist {
 				self.out.extend_from_slice(x.as_bytes());
 			});
 
+		// Add some lines and our closer and call it a day!
+		self.out.push(b'\n');
+		self.out.push(b'\n');
+		self.out.extend_from_slice(END_WATERMARK.as_bytes());
 		self.out.push(b'\n');
 
 		// Triple-check we indeed have valid UTF-8.
