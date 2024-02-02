@@ -145,7 +145,7 @@ bench BENCH="":
 
 	wget -nv \
 		-O "{{ skel_dir }}/raw/public_suffix_list.dat" \
-		"https://publicsuffix.org/list/public_suffix_list.dat"
+		"https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat"
 
 	just _fix-chown "{{ skel_dir }}"
 	just _fix-chmod "{{ skel_dir }}"
