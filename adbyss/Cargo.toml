@@ -91,7 +91,7 @@ items = [
 
 [dependencies]
 argyle = "0.7.*"
-dactyl = "0.6.*"
+dactyl = "0.7.*"
 fyi_msg = "0.12.*"
 libc = "0.2.*"
 serde_yaml = "0.9.*"
