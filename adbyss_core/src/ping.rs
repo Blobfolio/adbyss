@@ -7,7 +7,6 @@ use std::{
 	thread::sleep,
 	time::Duration,
 };
-use ureq::AgentBuilder;
 
 
 
@@ -22,16 +21,15 @@ use ureq::AgentBuilder;
 ///
 /// If the site can't be reached, an error will be returned.
 pub fn check_internet() -> Result<(), AdbyssError> {
-	let agent = AgentBuilder::new()
-		.timeout(Duration::from_secs(15))
-		.user_agent("Mozilla/5.0")
-		.max_idle_connections(0)
-		.build();
-
 	let mut tries: u8 = 0;
 	loop {
 		// Are you there?
-		if matches!(agent.head("https://github.com/").call().map(|r| r.status()), Ok(200_u16)) {
+		let res = minreq::head("https://github.com/")
+			.with_header("user-agent", "Mozilla/5.0")
+			.with_timeout(15)
+			.send();
+
+		if res.map_or(false, |r| r.status_code == 200) {
 			return Ok(());
 		}
 

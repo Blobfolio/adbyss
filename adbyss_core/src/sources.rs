@@ -23,7 +23,6 @@ use std::{
 	collections::HashSet,
 	fs::File,
 	path::PathBuf,
-	time::Duration,
 };
 
 
@@ -211,10 +210,16 @@ impl Source {
 /// possible to reduce the transfer times. All sources currently serve Gzipped
 /// content, so the extra complexity is worth it.
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
-	ureq::get(kind.url())
-		.set("user-agent", "Mozilla/5.0")
-		.timeout(Duration::from_secs(15))
-		.call()
-		.and_then(|r| r.into_string().map_err(std::convert::Into::into))
-		.map_err(|_| AdbyssError::SourceFetch(kind))
+	if let Ok(res) = minreq::get(kind.url())
+		.with_header("user-agent", "Mozilla/5.0")
+		.with_timeout(15)
+		.send()
+	{
+		// Only accept happy response codes with sized bodies.
+		if (200..=399).contains(&res.status_code) {
+			if let Ok(out) = res.as_str() { return Ok(out.to_owned()); }
+		}
+	}
+
+	Err(AdbyssError::SourceFetch(kind))
 }
