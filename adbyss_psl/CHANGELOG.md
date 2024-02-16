@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.10.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.0) - 2024-02-15
+
+### Changed
+
+* Bump MSRV to `1.72`
+* Update suffix database
+
+
+
 ## [0.9.5](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.5) - 2024-02-08
 
 ### Changed
