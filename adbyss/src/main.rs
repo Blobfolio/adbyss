@@ -77,6 +77,23 @@ fn _main() -> Result<(), AdbyssError> {
 	// Parse CLI arguments.
 	let args = Argue::new(FLAG_VERSION | FLAG_HELP)?;
 
+	// Check for invalid CLI options.
+	if let Some(boo) = args.check_keys(
+		&[
+			b"--disable",
+			b"--quiet",
+			b"--show",
+			b"--stdout",
+			b"--systemd",
+			b"--yes",
+			b"-q",
+			b"-y",
+		],
+		&[b"--config", b"-c"],
+	) {
+		return Err(AdbyssError::InvalidCli(String::from_utf8_lossy(boo).into()));
+	}
+
 	// Load configuration. If the user specified one, go with that and print an
 	// error if the path is invalid. Otherwise look for a config at the default
 	// path and go with that if it exists. Otherwise just use the internal
