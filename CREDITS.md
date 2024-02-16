@@ -1,27 +1,27 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.9.5
-    Generated: 2024-02-08 19:07:24 UTC
+    Version:   0.10.0
+    Generated: 2024-02-16 03:20:08 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.9.5 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.9.5 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [ahash](https://github.com/tkaitchuck/ahash) | 0.8.7 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.10.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.10.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [ahash](https://github.com/tkaitchuck/ahash) | 0.8.8 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 1.1.2 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
-| [argyle](https://github.com/Blobfolio/argyle) | 0.7.1 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [argyle](https://github.com/Blobfolio/argyle) | 0.7.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [cfg-if](https://github.com/alexcrichton/cfg-if) | 1.0.0 | [Alex Crichton](mailto:alex@alexcrichton.com) | Apache-2.0 or MIT |
 | [crossbeam-deque](https://github.com/crossbeam-rs/crossbeam) | 0.8.5 |  | Apache-2.0 or MIT |
 | [crossbeam-epoch](https://github.com/crossbeam-rs/crossbeam) | 0.9.18 |  | Apache-2.0 or MIT |
 | [crossbeam-utils](https://github.com/crossbeam-rs/crossbeam) | 0.8.19 |  | Apache-2.0 or MIT |
 | [dactyl](https://github.com/Blobfolio/dactyl) | 0.7.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
-| [either](https://github.com/bluss/either) | 1.9.0 | bluss | Apache-2.0 or MIT |
+| [either](https://github.com/rayon-rs/either) | 1.10.0 | bluss | Apache-2.0 or MIT |
 | [equivalent](https://github.com/cuviper/equivalent) | 1.0.1 |  | Apache-2.0 or MIT |
 | [fastrand](https://github.com/smol-rs/fastrand) | 2.0.1 | [Stjepan Glavina](mailto:stjepang@gmail.com) | Apache-2.0 or MIT |
-| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.12.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [fyi_msg](https://github.com/Blobfolio/fyi) | 0.13.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [getrandom](https://github.com/rust-random/getrandom) | 0.2.12 | The Rand Project Developers | Apache-2.0 or MIT |
 | [hashbrown](https://github.com/rust-lang/hashbrown) | 0.14.3 | [Amanieu d'Antras](mailto:amanieu@gmail.com) | Apache-2.0 or MIT |
-| [indexmap](https://github.com/indexmap-rs/indexmap) | 2.2.2 |  | Apache-2.0 or MIT |
+| [indexmap](https://github.com/indexmap-rs/indexmap) | 2.2.3 |  | Apache-2.0 or MIT |
 | [itoa](https://github.com/dtolnay/itoa) | 1.0.10 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [libc](https://github.com/rust-lang/libc) | 0.2.153 | The Rust Project Developers | Apache-2.0 or MIT |
 | [log](https://github.com/rust-lang/log) | 0.4.20 | The Rust Project Developers | Apache-2.0 or MIT |
@@ -43,7 +43,7 @@
 | [serde](https://github.com/serde-rs/serde) | 1.0.196 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [serde_derive](https://github.com/serde-rs/serde) | 1.0.196 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.9.31 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [syn](https://github.com/dtolnay/syn) | 2.0.48 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [syn](https://github.com/dtolnay/syn) | 2.0.49 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [tempfile](https://github.com/Stebalien/tempfile) | 3.10.0 | [Steven Allen](mailto:steven@stebalien.com), The Rust Project Developers, [Ashley Mannix](mailto:ashleymannix@live.com.au), and [Jason White](mailto:me@jasonwhite.io) | Apache-2.0 or MIT |
 | [tinyvec](https://github.com/Lokathor/tinyvec) | 1.6.0 | [Lokathor](mailto:zefria@gmail.com) | Apache-2.0, MIT, or Zlib |
 | [tinyvec_macros](https://github.com/Soveu/tinyvec_macros) | 0.1.1 | [Soveu](mailto:marx.tomasz@gmail.com) | Apache-2.0, MIT, or Zlib |
