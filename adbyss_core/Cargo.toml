@@ -12,7 +12,7 @@ publish = false
 [dependencies]
 argyle = "0.7.*"
 dactyl = "0.7.*"
-fyi_msg = "0.12.*"
+fyi_msg = "0.13.*"
 rayon = "1.8.*"
 regex = "1.10.*"
 utc2k = "0.8.*"
