@@ -35,6 +35,9 @@ pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/idna.rs.txt");
 	println!("cargo:rerun-if-changed=skel/psl.rs.txt");
+	println!("cargo:rerun-if-changed=skel/raw/IdnaMappingTable.txt");
+	println!("cargo:rerun-if-changed=skel/raw/IdnaTestV2.txt");
+	println!("cargo:rerun-if-changed=skel/raw/public_suffix_list.dat");
 
 	// Sanity check. Obviously this won't change, but it is nice to know we
 	// thought of it.

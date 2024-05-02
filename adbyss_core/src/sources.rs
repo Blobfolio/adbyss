@@ -31,11 +31,11 @@ use std::{
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 /// # Shitlist Sources.
 pub enum Source {
-	/// AdAway.
+	/// Adaway.
 	AdAway = FLAG_ADAWAY,
 	/// Adbyss.
 	Adbyss = FLAG_ADBYSS,
-	/// StevenBlack.
+	/// Steven Black.
 	StevenBlack = FLAG_STEVENBLACK,
 	/// Yoyo.
 	Yoyo = FLAG_YOYO,
