@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.10.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.2) - 2024-05-02
+
+### Changed
+
+* Update suffix database
+
+
+
 ## [0.10.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.1) - 2024-03-21
 
 ### Changed
