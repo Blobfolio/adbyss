@@ -14,9 +14,7 @@ It will:
 * Validate, normalize, and Puny-encode internationalized/Unicode labels ([RFC 3492](https://datatracker.ietf.org/doc/html/rfc3492#ref-IDNA));
 * Validate and normalize the [public suffix](https://publicsuffix.org/list/);
 * Ensure conformance with [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123);
-* And locate the boundaries of the subdomain (if any), root (required), and suffix (required); 
-
-Suffix and IDNA reference data is compiled at build-time, allowing for very fast runtime parsing, but at the cost of _temporality_. Projects using this library will need to periodically issue new releases or risk growing stale.
+* And locate the boundaries of the subdomain (if any), root (required), and suffix (required);
 
 
 
@@ -68,17 +66,6 @@ let owned = dom.take(); // "www.mydomain.com"
 ## Optional Crate Features
 
 * `serde`: Enables serialization/deserialization support.
-
-
-
-## Installation
-
-Add `adbyss_psl` to your `dependencies` in `Cargo.toml`, like:
-
-```
-[dependencies]
-adbyss_psl = "0.10.*"
-```
 
 
 

@@ -102,18 +102,8 @@ let owned = dom.take(); // "www.mydomain.com"
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-
-
-mod idna;
 mod psl;
-mod puny;
 
-
-
-use idna::{
-	CharKind,
-	IdnaChars,
-};
 use psl::SuffixKind;
 use std::{
 	cmp::Ordering,
@@ -132,19 +122,6 @@ use std::{
 	},
 	str::FromStr,
 };
-use unicode_bidi::{
-	bidi_class,
-	BidiClass,
-};
-use unicode_normalization::{
-	IsNormalized,
-	UnicodeNormalization,
-};
-
-
-
-/// # Punycode Prefix.
-const PREFIX: &str = "xn--";
 
 
 
@@ -686,356 +663,26 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 /// Note: this does not enforce public suffix rules; that is processed
 /// elsewhere.
 fn idna_to_ascii(src: &str) -> Option<String> {
+	use idna::uts46::{
+		AsciiDenyList,
+		DnsLength,
+		Hyphens,
+		Uts46,
+	};
+
 	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
 	if src.is_empty() { return None; }
 
 	// Are things looking nice and simple?
-	let bytes = src.as_bytes();
-	let mut cap: bool = false;
-	let mut dot: bool = false;
-	let mut dash: bool = false;
-	if
-		// Not too long.
-		bytes.len() < 254 &&
-		// Everything is alphanumeric, a dash, or a dot. During the check,
-		// we'll check to make sure there is at least one dot, and note
-		// whether there are any uppercase characters or dashes, which would
-		// require additional checking.
-		bytes.iter().all(|&b| match b {
-			b'.' => {
-				dot = true;
-				true
-			},
-			// Dashes might be fine, but we should leave a note as we'll have
-			// to verify a few additional things.
-			b'-' => {
-				dash = true;
-				true
-			}
-			// We'll ultimately want to return a lowercase host string, so we
-			// should make note if there are any characters requiring
-			// conversion.
-			b'A'..=b'Z' => {
-				cap = true;
-				true
-			},
-			b'a'..=b'z' | b'0'..=b'9' => true,
-			_ => false,
-		}) &&
-		// There is at least one dot somewhere in the middle.
-		dot &&
-		// None of the between-dot chunks are empty or too long, and if there
-		// are dashes, they can't be at the start or end, and there can't be
-		// two adjacent ones (which might require PUNY verification).
-		bytes.split(|b| b'.'.eq(b))
-			.all(|chunk|
-				! chunk.is_empty() &&
-				chunk.len() < 64 &&
-				(
-					! dash ||
-					(
-						! chunk.starts_with(b"xn--") &&
-						chunk[0] != b'-' &&
-						chunk[chunk.len() - 1] != b'-'
-					)
-				)
-			)
-	{
-		if cap { Some(src.to_ascii_lowercase()) }
-		else { Some(src.to_owned()) }
-	}
-	// Do it the hard way!
-	else { idna_to_ascii_slow(src) }
-}
-
-/// # To ASCII (Slow).
-///
-/// This method is called by [`to_ascii`] when a string is too complicated to
-/// verify on-the-fly.
-fn idna_to_ascii_slow(src: &str) -> Option<String> {
-	// Walk through the string character by character, mapping and normalizing
-	// as we go.
-	let mut error: bool = false;
-	let iter = IdnaChars::new(src, &mut error).nfc();
-
-	// Suck it into a string buffer, but also note whether we have any
-	// instances of PUNY prefixes.
-	let mut prefix: IdnaPrefix = IdnaPrefix::Dot;
-	let mut scratch: Vec<char> = Vec::with_capacity(253);
-	for c in iter {
-		scratch.push(c);
-		prefix = prefix.advance(c);
-	}
-
-	// Abort if there was an error, or we've ended up with trailing or leading
-	// dots.
-	let scratch_len: usize = scratch.len();
-	if error || scratch_len == 0 || scratch[0] == '.' || scratch[scratch_len - 1] == '.' {
-		return None;
-	}
-
-	// If there were no PUNY prefixes anywhere, we can jump straight to
-	// building the output string.
-	if ! matches!(prefix, IdnaPrefix::Dash2) {
-		return idna_normalize_c(&scratch);
-	}
-
-	// Otherwise we have to decode and validate each entry first.
-	let mut normalized: Vec<char> = Vec::with_capacity(scratch.len());
-	if ! idna_normalize_b(&scratch, &mut normalized) {
-		return None;
-	}
-
-	// Now we can finally build the output.
-	let mut scratch = String::with_capacity(normalized.len());
-	let mut first = true;
-	let mut parts: u8 = 0;
-	for part in normalized.split(|c| '.'.eq(c)) {
-		if first { first = false; }
-		else { scratch.push('.'); }
-
-		// ASCII is nice and easy.
-		if part.iter().all(char::is_ascii) { scratch.extend(part); }
-		// Unicode requires Punyfication.
-		else {
-			scratch.push_str(PREFIX);
-			if ! puny::encode_into(part, &mut scratch) { return None; }
-		}
-
-		parts += 1;
-	}
-
-	// One last validation pass.
-	if 1 < parts && scratch.len() < 254 { Some(scratch) }
-	else { None }
-}
-
-#[allow(clippy::similar_names)]
-/// BIDI Checks.
-///
-/// This runs extra checks for any domains containing BIDI control characters.
-///
-/// See also: <http://tools.ietf.org/html/rfc5893#section-2>
-fn idna_check_bidi(part: &[char]) -> bool {
-	match bidi_class(part[0]) {
-		// LTR.
-		BidiClass::L => {
-			let mut nom: bool = false;
-
-			// Reverse the iterator; looking from the end makes it easier to
-			// check the value of the last non-NSM character.
-			for c in part.iter().skip(1).rev().map(|c| bidi_class(*c)) {
-				match c {
-					BidiClass::NSM => {},
-					BidiClass::BN | BidiClass::CS | BidiClass::EN | BidiClass::ES |
-					BidiClass::ET | BidiClass::L | BidiClass::ON => if ! nom {
-						// The last non-NSM character must be L or EN.
-						if c == BidiClass::L || c == BidiClass::EN {
-							nom = true;
-						}
-						else { return false; }
-					},
-					// Conflicting BIDI.
-					_ => return false,
-				}
-			}
-
-			true
-		},
-
-		// RTL.
-		BidiClass::R | BidiClass::AL => {
-			let mut has_an: bool = false;
-			let mut has_en: bool = false;
-			let mut nom: bool = false;
-
-			// Reverse the iterator; looking from the end makes it easier to
-			// check the value of the last non-NSM character.
-			for c in part.iter().skip(1).rev().map(|c| bidi_class(*c)) {
-				match c {
-					BidiClass::AN => {
-						// There cannot be both AN and EN present.
-						if has_en { return false; }
-						has_an = true;
-						nom = true;
-					},
-					BidiClass::EN => {
-						// There cannot be both AN and EN present.
-						if has_an { return false; }
-						has_en = true;
-						nom = true;
-					},
-					BidiClass::NSM => {},
-					BidiClass::AL | BidiClass::BN | BidiClass::CS | BidiClass::ES |
-					BidiClass::ET | BidiClass::ON | BidiClass::R => if ! nom {
-						// The last non-NSM character must be R, AL, AN, or EN.
-						// AN/EN hit a different match ram, so here we're only
-						// looking for R or AL.
-						if c == BidiClass::R || c == BidiClass::AL {
-							nom = true;
-						}
-						else { return false; }
-					},
-					// Conflicting BIDI.
-					_ => return false,
-				}
-			}
-
-			true
-		},
-
-		// Neither.
-		_ => false,
-	}
-}
-
-/// Check Validity.
-///
-/// This method checks to ensure the part is not empty, does not begin or end
-/// with a dash, does not begin with a combining mark, and does not otherwise
-/// contain any restricted characters.
-///
-/// See also: <http://www.unicode.org/reports/tr46/#Validity_Criteria>
-fn idna_check_validity(part: &[char], deep: bool) -> bool {
-	let len: usize = part.len();
-
-	0 < len &&
-	len < 64 &&
-	part[0] != '-' &&
-	part[len - 1] != '-' &&
-	! unicode_normalization::char::is_combining_mark(part[0]) &&
-	(! deep || part.iter().copied().all(CharKind::is_valid))
-}
-
-/// # Has BIDI?
-///
-/// This method checks for the presence of BIDI control characters.
-fn idna_has_bidi(part: &[char]) -> bool {
-	part.iter()
-		.copied()
-		.any(|c|
-			! c.is_ascii_graphic() &&
-			matches!(bidi_class(c), BidiClass::R | BidiClass::AL | BidiClass::AN)
-		)
-}
-
-/// # Normalize Domain (B).
-///
-/// This pass checks each part of a domain, decoding any PUNY it finds, and
-/// ensures each part passes all the rules it's supposed to pass.
-///
-/// See also: <http://www.unicode.org/reports/tr46/#Processing>
-fn idna_normalize_b(src: &[char], out: &mut Vec<char>) -> bool {
-	let mut first = true;
-	let mut is_bidi = false;
-	for part in src.split(|c| '.'.eq(c)) {
-		// Replace the dot lost in the split.
-		if first { first = false; }
-		else { out.push('.'); }
-
-		// Handle PUNY chunk.
-		if let Some(chunk) = part.strip_prefix(&['x', 'n', '-', '-']) {
-			let Some(mut decoded_part) = puny::decode(chunk) else { return false; };
-
-			// Make sure the decoded version didn't introduce anything
-			// illegal.
-			if ! idna_check_validity(&decoded_part, true) { return false; }
-
-			// We have to make sure the decoded bit is properly NFC.
-			match unicode_normalization::is_nfc_quick(decoded_part.iter().copied()) {
-				IsNormalized::Yes => {},
-				IsNormalized::No => return false,
-				IsNormalized::Maybe => {
-					if ! decoded_part.iter().copied().eq(decoded_part.iter().copied().nfc()) {
-						return false;
-					}
-				},
-			}
-
-			// Check for BIDI again.
-			if ! is_bidi && idna_has_bidi(&decoded_part) { is_bidi = true; }
-
-			out.append(&mut decoded_part);
-		}
-		// Handle normal chunk.
-		else {
-			// This is already NFC, but might be weird in other ways.
-			if ! idna_check_validity(part, false) { return false; }
-
-			// Check for BIDI.
-			if ! is_bidi && idna_has_bidi(part) { is_bidi = true; }
-
-			out.extend_from_slice(part);
-		}
-	}
-
-	// Apply BIDI checks or we're done!
-	! is_bidi || out.split(|c| '.'.eq(c)).all(idna_check_bidi)
-}
-
-/// # Normalize Domain (C).
-///
-/// This pass is used when no PUNY decoding is necessary.
-fn idna_normalize_c(src: &[char]) -> Option<String> {
-	let mut out = String::with_capacity(253);
-	let mut first = true;
-	let mut parts: u8 = 0;
-	let is_bidi: bool = idna_has_bidi(src);
-	for part in src.split(|c| '.'.eq(c)) {
-		// Replace the dot lost in the split.
-		if first { first = false; }
-		else { out.push('.'); }
-
-		// This is already NFC, but might be weird in other ways.
-		if ! idna_check_validity(part, false) || (is_bidi && ! idna_check_bidi(part)) {
-			return None;
-		}
-
-		// We can pass it straight through.
-		if part.iter().all(char::is_ascii) { out.extend(part); }
-		// We have to encode it.
-		else {
-			out.push_str(PREFIX);
-			if ! puny::encode_into(part, &mut out) { return None; }
-		}
-
-		parts += 1;
-	}
-
-	if 1 < parts && out.len() < 254 { Some(out) }
-	else { None }
-}
-
-
-
-#[repr(u8)]
-#[derive(Clone, Copy)]
-/// # IDNA Prefix.
-///
-/// All this does is look for the pattern `b".xn--"` while iterating through a
-/// stream of chars. The goal is to discover whether or not it exists at all,
-/// so once [`IdnaPrefix::Dash2`] is set, it never goes away.
-enum IdnaPrefix {
-	Na,
-	Dot,
-	Ex,
-	En,
-	Dash1,
-	Dash2,
-}
-
-impl IdnaPrefix {
-	/// # Advance.
-	const fn advance(self, ch: char) -> Self {
-		match (ch, self) {
-			(_, Self::Dash2) | ('-', Self::Dash1) => Self::Dash2,
-			('.', _) => Self::Dot,
-			('x', Self::Dot) => Self::Ex,
-			('n', Self::Ex) => Self::En,
-			('-', Self::En) => Self::Dash1,
-			_ => Self::Na,
-		}
-	}
+	let uts = Uts46::new();
+	let mut out = uts.to_ascii(
+		src.as_bytes(),
+		AsciiDenyList::STD3,
+		Hyphens::CheckFirstLast,
+		DnsLength::Verify,
+	).ok()?.into_owned();
+	out.make_ascii_lowercase();
+	Some(out)
 }
 
 
@@ -1232,33 +879,5 @@ mod tests {
 		// Deserialize it.
 		let dom2: Domain = serde_json::from_str(&serial).expect("Deserialize failed.");
 		assert_eq!(dom1, dom2);
-	}
-
-	#[test]
-	fn t_idna_valid() {
-		assert!(matches!(CharKind::from_char('-'), Some(CharKind::Valid)));
-		assert!(matches!(CharKind::from_char('.'), Some(CharKind::Valid)));
-		for c in '0'..='9' {
-			assert!(matches!(CharKind::from_char(c), Some(CharKind::Valid)));
-		}
-		for c in 'a'..='z' {
-			assert!(matches!(CharKind::from_char(c), Some(CharKind::Valid)));
-		}
-	}
-
-	#[test]
-	fn t_idna() {
-		let tests = std::fs::read(concat!(env!("OUT_DIR"), "/adbyss-idna-tests.json"))
-			.expect("Missing IDNA/Unicode test data.");
-		let tests: Vec<(String, Option<String>)> = serde_json::from_slice(&tests)
-			.expect("Failed to parse IDNA/Unicode test data.");
-		assert!(! tests.is_empty(), "Failed to parse IDNA/Unicode test data.");
-		for (i, o) in tests {
-			assert_eq!(
-				idna_to_ascii(&i),
-				o,
-				"IDNA handling failed: {:?}", i
-			);
-		}
 	}
 }

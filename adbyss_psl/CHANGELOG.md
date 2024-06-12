@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.11.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.0) - 2024-06-13
+
+### Changed
+
+* Use `idna` crate for puny/unicode handling
+* Update suffix database
+
+
+
 ## [0.10.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.2) - 2024-05-02
 
 ### Changed
