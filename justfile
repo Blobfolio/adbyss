@@ -21,8 +21,6 @@ pkg_dir1    := justfile_directory() + "/adbyss"
 pkg_dir2    := justfile_directory() + "/adbyss_core"
 pkg_dir3    := justfile_directory() + "/adbyss_psl"
 
-idna_ver    := "15.0.0"
-
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
@@ -132,18 +130,7 @@ bench BENCH="":
 	clear
 
 	fyi info "Original vendor files."
-	md5sum \
-		"{{ skel_dir }}/raw/IdnaMappingTable.txt" \
-		"{{ skel_dir }}/raw/IdnaTestV2.txt" \
-		"{{ skel_dir }}/raw/public_suffix_list.dat"
-
-	wget -nv \
-		-O "{{ skel_dir }}/raw/IdnaMappingTable.txt" \
-		"https://www.unicode.org/Public/idna/{{ idna_ver }}/IdnaMappingTable.txt"
-
-	wget -nv \
-		-O "{{ skel_dir }}/raw/IdnaTestV2.txt" \
-		"https://www.unicode.org/Public/idna/{{ idna_ver }}/IdnaTestV2.txt"
+	md5sum "{{ skel_dir }}/raw/public_suffix_list.dat"
 
 	wget -nv \
 		-O "{{ skel_dir }}/raw/public_suffix_list.dat" \
@@ -153,10 +140,7 @@ bench BENCH="":
 	just _fix-chmod "{{ skel_dir }}"
 
 	fyi info "New vendor files."
-	md5sum \
-		"{{ skel_dir }}/raw/IdnaMappingTable.txt" \
-		"{{ skel_dir }}/raw/IdnaTestV2.txt" \
-		"{{ skel_dir }}/raw/public_suffix_list.dat"
+	md5sum "{{ skel_dir }}/raw/public_suffix_list.dat"
 
 
 # Test Run.

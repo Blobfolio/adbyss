@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.10.2"
+version = "0.11.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -18,7 +18,7 @@ default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
 [build-dependencies]
-idna = "0.5.0"
+idna = "1.0.0"
 regex = "1.7.0"
 serde_json = "1.0.100"
 
@@ -32,8 +32,7 @@ serde = "1.0.*"
 serde_json = "1.0.*"
 
 [dependencies]
-unicode-bidi = "0.3.*"
-unicode-normalization = "0.1.*"
+idna = "1.0.0"
 
 [dependencies.ahash]
 version = "0.8.*"
