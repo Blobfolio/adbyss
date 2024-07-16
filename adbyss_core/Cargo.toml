@@ -23,7 +23,7 @@ version = "0.8.*"
 default-features = false
 
 [dependencies.minreq]
-version = "2.11.*"
+version = "2.12.*"
 default-features = false
 features = ["https"]
 
