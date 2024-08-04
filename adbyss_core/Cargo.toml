@@ -15,7 +15,7 @@ dactyl = "0.7.*"
 fyi_msg = "0.13.*"
 rayon = "1.10.*"
 regex = "1.10.*"
-utc2k = "0.8.*"
+utc2k = "0.9.*"
 write_atomic = "0.5.*"
 
 [dependencies.ahash]
