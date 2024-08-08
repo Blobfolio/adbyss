@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.11.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.2) - TBD
+
+### Fixed
+
+* Remove old assets from `build.rs` `rerun-if-changed` triggers
+
+
+
 ## [0.11.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.1) - 2024-07-25
 
 ### Changed
