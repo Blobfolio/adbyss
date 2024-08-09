@@ -15,6 +15,7 @@
 
 * Specialize `Domain::try_from::<String>`
 * Add dependency `trimothy` (lib)
+* Bump `utc2k` to `0.9`
 * Update suffix database
 
 ### Fixed
