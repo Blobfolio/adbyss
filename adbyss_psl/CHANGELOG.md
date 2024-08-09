@@ -1,6 +1,28 @@
 # Changelog
 
 
+## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - 2024-08-08
+
+### New
+
+* `Domain::try_from::<Cow<str>>`
+
+### Breaking
+
+* Bump MSRV to `1.80`
+
+### Changed
+
+* Specialize `Domain::try_from::<String>`
+* Add dependency `trimothy` (lib)
+* Update suffix database
+
+### Fixed
+
+* Remove old assets from `build.rs` `rerun-if-changed` triggers (lib)
+
+
+
 ## [0.11.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.1) - 2024-07-25
 
 ### Changed

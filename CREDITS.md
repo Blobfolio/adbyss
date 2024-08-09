@@ -1,12 +1,12 @@
 # Project Dependencies
     Package:   adbyss
-    Version:   0.11.1
-    Generated: 2024-07-25 17:36:15 UTC
+    Version:   0.12.0
+    Generated: 2024-08-09 05:10:46 UTC
 
 | Package | Version | Author(s) | License |
 | ---- | ---- | ---- | ---- |
-| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.11.1 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
-| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.11.1 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_core](https://github.com/Blobfolio/adbyss) | 0.12.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
+| [adbyss_psl](https://github.com/Blobfolio/adbyss) | 0.12.0 | [Josh Stoik](mailto:josh@blobfolio.com) | WTFPL |
 | [ahash](https://github.com/tkaitchuck/ahash) | 0.8.11 | [Tom Kaitchuck](mailto:tom.kaitchuck@gmail.com) | Apache-2.0 or MIT |
 | [aho-corasick](https://github.com/BurntSushi/aho-corasick) | 1.1.3 | [Andrew Gallant](mailto:jamslam@gmail.com) | MIT or Unlicense |
 | [argyle](https://github.com/Blobfolio/argyle) | 0.7.2 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
@@ -33,7 +33,7 @@
 | [icu_provider](https://github.com/unicode-org/icu4x) | 1.5.0 | The ICU4X Project Developers | Unicode-3.0 |
 | [icu_provider_macros](https://github.com/unicode-org/icu4x) | 1.5.0 | The ICU4X Project Developers | Unicode-3.0 |
 | [idna](https://github.com/servo/rust-url/) | 1.0.2 | The rust-url developers | Apache-2.0 or MIT |
-| [indexmap](https://github.com/indexmap-rs/indexmap) | 2.2.6 |  | Apache-2.0 or MIT |
+| [indexmap](https://github.com/indexmap-rs/indexmap) | 2.3.0 |  | Apache-2.0 or MIT |
 | [itoa](https://github.com/dtolnay/itoa) | 1.0.11 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [libc](https://github.com/rust-lang/libc) | 0.2.155 | The Rust Project Developers | Apache-2.0 or MIT |
 | [litemap](https://github.com/unicode-org/icu4x) | 0.7.3 | The ICU4X Project Developers | Unicode-3.0 |
@@ -45,7 +45,7 @@
 | [quote](https://github.com/dtolnay/quote) | 1.0.36 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [rayon](https://github.com/rayon-rs/rayon) | 1.10.0 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
 | [rayon-core](https://github.com/rayon-rs/rayon) | 1.12.1 | [Niko Matsakis](mailto:niko@alum.mit.edu) and [Josh Stone](mailto:cuviper@gmail.com) | Apache-2.0 or MIT |
-| [regex](https://github.com/rust-lang/regex) | 1.10.5 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
+| [regex](https://github.com/rust-lang/regex) | 1.10.6 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
 | [regex-automata](https://github.com/rust-lang/regex/tree/master/regex-automata) | 0.4.7 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
 | [regex-syntax](https://github.com/rust-lang/regex/tree/master/regex-syntax) | 0.8.4 | The Rust Project Developers and [Andrew Gallant](mailto:jamslam@gmail.com) | Apache-2.0 or MIT |
 | [ring](https://github.com/briansmith/ring) | 0.17.8 | [Brian Smith](mailto:brian@briansmith.org) |  |
@@ -53,19 +53,20 @@
 | [rustls-webpki](https://github.com/rustls/webpki) | 0.101.7 |  | ISC |
 | [ryu](https://github.com/dtolnay/ryu) | 1.0.18 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or BSL-1.0 |
 | [sct](https://github.com/rustls/sct.rs) | 0.7.1 | [Joseph Birr-Pixton](mailto:jpixton@gmail.com) | Apache-2.0, ISC, or MIT |
-| [serde](https://github.com/serde-rs/serde) | 1.0.204 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
-| [serde_derive](https://github.com/serde-rs/serde) | 1.0.204 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [serde](https://github.com/serde-rs/serde) | 1.0.205 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
+| [serde_derive](https://github.com/serde-rs/serde) | 1.0.205 | [Erick Tryzelaar](mailto:erick.tryzelaar@gmail.com) and [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [serde_yaml](https://github.com/dtolnay/serde-yaml) | 0.9.34+deprecated | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [smallvec](https://github.com/servo/rust-smallvec) | 1.13.2 | The Servo Project Developers | Apache-2.0 or MIT |
 | [stable_deref_trait](https://github.com/storyyeller/stable_deref_trait) | 1.2.0 | [Robert Grosse](mailto:n210241048576@gmail.com) | Apache-2.0 or MIT |
 | [syn](https://github.com/dtolnay/syn) | 2.0.72 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 or MIT |
 | [synstructure](https://github.com/mystor/synstructure) | 0.13.1 | [Nika Layzell](mailto:nika@thelayzells.com) | MIT |
-| [tempfile](https://github.com/Stebalien/tempfile) | 3.10.1 | [Steven Allen](mailto:steven@stebalien.com), The Rust Project Developers, [Ashley Mannix](mailto:ashleymannix@live.com.au), and [Jason White](mailto:me@jasonwhite.io) | Apache-2.0 or MIT |
+| [tempfile](https://github.com/Stebalien/tempfile) | 3.12.0 | [Steven Allen](mailto:steven@stebalien.com), The Rust Project Developers, [Ashley Mannix](mailto:ashleymannix@live.com.au), and [Jason White](mailto:me@jasonwhite.io) | Apache-2.0 or MIT |
 | [tinystr](https://github.com/unicode-org/icu4x) | 0.7.6 | The ICU4X Project Developers | Unicode-3.0 |
+| [trimothy](https://github.com/Blobfolio/trimothy) | 0.3.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [unicode-ident](https://github.com/dtolnay/unicode-ident) | 1.0.12 | [David Tolnay](mailto:dtolnay@gmail.com) | Apache-2.0 AND Unicode-DFS-2016 or MIT |
 | [unsafe-libyaml](https://github.com/dtolnay/unsafe-libyaml) | 0.2.11 | [David Tolnay](mailto:dtolnay@gmail.com) | MIT |
 | [untrusted](https://github.com/briansmith/untrusted) | 0.9.0 | [Brian Smith](mailto:brian@briansmith.org) | ISC |
-| [utc2k](https://github.com/Blobfolio/utc2k) | 0.8.1 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
+| [utc2k](https://github.com/Blobfolio/utc2k) | 0.9.0 | [Blobfolio, LLC.](mailto:hello@blobfolio.com) | WTFPL |
 | [utf16_iter](https://github.com/hsivonen/utf16_iter) | 1.0.5 | [Henri Sivonen](mailto:hsivonen@hsivonen.fi) | Apache-2.0 or MIT |
 | [utf8_iter](https://github.com/hsivonen/utf8_iter) | 1.0.4 | [Henri Sivonen](mailto:hsivonen@hsivonen.fi) | Apache-2.0 or MIT |
 | [webpki-roots](https://github.com/rustls/webpki-roots) | 0.25.4 |  | MPL-2.0 |

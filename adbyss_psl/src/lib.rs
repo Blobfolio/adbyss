@@ -106,6 +106,7 @@ mod psl;
 
 use psl::SuffixKind;
 use std::{
+	borrow::Cow,
 	cmp::Ordering,
 	fmt,
 	hash::{
@@ -204,6 +205,8 @@ impl fmt::Display for Domain {
 
 impl FromStr for Domain {
 	type Err = Error;
+
+	#[inline]
 	fn from_str(src: &str) -> Result<Self, Self::Err> {
 		Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 	}
@@ -272,15 +275,45 @@ macro_rules! impl_try {
 	($($ty:ty),+) => ($(
 		impl TryFrom<$ty> for Domain {
 			type Error = Error;
+
+			#[inline]
 			fn try_from(src: $ty) -> Result<Self, Self::Error> {
-				Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
+				idna_to_ascii_borrowed(src)
+					.and_then(Self::from_ascii_string)
+					.ok_or_else(|| ErrorKind::InvalidData.into())
 			}
 		}
 	)+)
 }
 
 // Aliases for Domain::new.
-impl_try!(&str, String, &String);
+impl_try!(&str, &String);
+
+impl TryFrom<Cow<'_, str>> for Domain {
+	type Error = Error;
+
+	#[inline]
+	fn try_from(src: Cow<'_, str>) -> Result<Self, Self::Error> {
+		let host = match src {
+			Cow::Borrowed(s) => idna_to_ascii_borrowed(s),
+			Cow::Owned(s) => idna_to_ascii_owned(s),
+		};
+
+		host.and_then(Self::from_ascii_string)
+			.ok_or_else(|| ErrorKind::InvalidData.into())
+	}
+}
+
+impl TryFrom<String> for Domain {
+	type Error = Error;
+
+	#[inline]
+	fn try_from(src: String) -> Result<Self, Self::Error> {
+		idna_to_ascii_owned(src)
+			.and_then(Self::from_ascii_string)
+			.ok_or_else(|| ErrorKind::InvalidData.into())
+	}
+}
 
 /// # Main.
 impl Domain {
@@ -338,18 +371,24 @@ impl Domain {
 	/// assert!(Domain::new("not.a.domain.123").is_none());
 	/// ```
 	pub fn new<S>(src: S) -> Option<Self>
-	where S: AsRef<str> {
-		idna_to_ascii(src.as_ref())
-			.and_then(|host| find_dots(host.as_bytes())
-				.map(|(mut d, s)| {
-					if 0 < d { d += 1; }
-					Self {
-						root: d..s - 1,
-						suffix: s..host.len(),
-						host,
-					}
-				})
-			)
+	where S: AsRef<str> { Self::try_from(src.as_ref()).ok() }
+
+	#[inline]
+	/// # From Processed String.
+	///
+	/// This method finds the dots in a string that has come from idna-to-ascii
+	/// conversion and constructs the final `Domain` object.
+	///
+	/// It exists mainly to reduce duplicate code and the accidental
+	/// inconsistencies that stem from it.
+	fn from_ascii_string(host: String) -> Option<Self> {
+		let (mut d, s) = find_dots(host.as_bytes())?;
+		if 0 != d { d += 1; }
+		Some(Self {
+			root: d..s - 1,
+			suffix: s..host.len(),
+			host,
+		})
 	}
 }
 
@@ -655,34 +694,53 @@ fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
 	None
 }
 
-/// # Domain to ASCII.
+/// # Domain to ASCII (Borrowed).
 ///
 /// Normalize a domain according to the IDNA/Punycode guidelines, and return
 /// the result.
 ///
 /// Note: this does not enforce public suffix rules; that is processed
 /// elsewhere.
-fn idna_to_ascii(src: &str) -> Option<String> {
-	use idna::uts46::{
-		AsciiDenyList,
-		DnsLength,
-		Hyphens,
-		Uts46,
-	};
-
+fn idna_to_ascii_borrowed(src: &str) -> Option<String> {
 	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
-	if src.is_empty() { return None; }
+	if src.is_empty() { None }
+	else { idna_to_ascii_bytes(src.as_bytes()).map(Cow::into_owned) }
+}
 
-	// Are things looking nice and simple?
-	let uts = Uts46::new();
-	let mut out = uts.to_ascii(
-		src.as_bytes(),
+/// # Domain to ASCII (Owned).
+///
+/// Same as the borrowed version, but potentially avoids allocating a new
+/// `String` if the source is already a happy one.
+fn idna_to_ascii_owned(mut src: String) -> Option<String> {
+	use trimothy::TrimMatchesMut;
+
+	src.trim_matches_mut(|c: char| c == '.' || c.is_ascii_whitespace());
+	if src.is_empty() { None }
+	else {
+		let out = idna_to_ascii_bytes(src.as_bytes())?;
+
+		// The original was fine.
+		if src == out { Some(src) }
+		// Something changed!
+		else { Some(out.into_owned()) }
+	}
+}
+
+#[inline]
+/// # Domain to ASCII (Bytes).
+///
+/// This handles the actual `idna` portion of the conversion. (We do other
+/// stuff before and after before a domain can be declared good.)
+fn idna_to_ascii_bytes(src: &[u8]) -> Option<Cow<'_, str>> {
+	use idna::uts46::{AsciiDenyList, DnsLength, Hyphens, Uts46};
+
+	// One line'll do it!
+	Uts46::new().to_ascii(
+		src,
 		AsciiDenyList::STD3,
 		Hyphens::CheckFirstLast,
 		DnsLength::Verify,
-	).ok()?.into_owned();
-	out.make_ascii_lowercase();
-	Some(out)
+	).ok()
 }
 
 
@@ -786,7 +844,15 @@ mod tests {
 			let res = Domain::new(a);
 			assert!(
 				res.is_none(),
-				"Unexpectedly parsed: {:?}\n{:?}\n", a, res
+				"Unexpectedly parsed: {a:?}\n{res:?}\n",
+			);
+
+			// The String impl is slightly different; let's make sure it gives
+			// the same result.
+			let res2 = Domain::try_from(a.to_owned());
+			assert!(
+				res2.is_err(),
+				"Unexpectedly parsed: {a:?} (string)\n{res2:?}\n",
 			);
 		}
 		// We should have a TLD!
@@ -795,8 +861,14 @@ mod tests {
 				assert_eq!(
 					dom.tld(),
 					b.unwrap(),
-					"Failed parsing: {:?}", dom
+					"Failed parsing: {dom:?}",
 				);
+
+				// Again, the String impl is slightly different.
+				let Ok(dom2) = Domain::try_from(a.to_owned()) else {
+					panic!("Failed parsing: {a:?} (string)");
+				};
+				assert_eq!(dom, dom2, "String/str parsing mismatch for {a:?}");
 			}
 			else {
 				panic!("Failed parsing: {:?}", a);
@@ -832,6 +904,17 @@ mod tests {
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
 		assert_eq!(dom.host(), "www.blobfolio.com");
+
+		// Make sure case is correctly adjusted.
+		dom = Domain::new("Www.BlobFolio.cOm").unwrap();
+		assert_eq!(dom.subdomain(), Some("www"));
+		assert_eq!(dom.root(), "blobfolio");
+		assert_eq!(dom.suffix(), "com");
+		assert_eq!(dom.tld(), "blobfolio.com");
+		assert_eq!(dom.host(), "www.blobfolio.com");
+
+		// This is also a good place to verify the String impl matches.
+		assert_eq!(dom, Domain::try_from("Www.BlobFolio.cOm".to_owned()).unwrap());
 
 		// Test a long subdomain.
 		dom = Domain::new("another.damn.sub.domain.blobfolio.com").unwrap();
