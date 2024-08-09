@@ -262,7 +262,7 @@ impl Shitlist {
 	/// sources don't know about.
 	pub fn include<I>(&mut self, extras: I)
 	where I: IntoIterator<Item=String> {
-		self.found.extend(extras.into_iter().filter_map(Domain::new));
+		self.found.extend(extras.into_iter().filter_map(|s| Domain::try_from(s).ok()));
 		let _res = self.build_out();
 	}
 
@@ -273,7 +273,7 @@ impl Shitlist {
 	/// an address you want to be able to visit, e.g. `supportxmr.com`.
 	pub fn exclude<I>(&mut self, excludes: I)
 	where I: IntoIterator<Item=String> {
-		self.exclude.extend(excludes.into_iter().filter_map(Domain::new));
+		self.exclude.extend(excludes.into_iter().filter_map(|s| Domain::try_from(s).ok()));
 	}
 
 	/// # Exclude Entries (Regular Expression).
