@@ -1,7 +1,19 @@
 # Changelog
 
 
-## [0.11.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.2) - TBD
+## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - TBD
+
+### New
+
+* `Domain::try_from::<Cow<str>>`
+
+### Breaking
+
+* Bump MSRV to `1.80`
+
+### Changed
+
+* Specialize `Domain::try_from::<String>()`
 
 ### Fixed
 
