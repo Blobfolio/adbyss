@@ -1,7 +1,7 @@
 # Changelog
 
 
-## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - TBD
+## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - 2024-08-08
 
 ### New
 
@@ -9,15 +9,17 @@
 
 ### Breaking
 
-* Bump MSRV to `1.80`
+* Bump MSRV to `1.80` (lib)
 
 ### Changed
 
-* Specialize `Domain::try_from::<String>()`
+* Specialize `Domain::try_from::<String>`
+* Add dependency `trimothy` (lib)
+* Update suffix database
 
 ### Fixed
 
-* Remove old assets from `build.rs` `rerun-if-changed` triggers
+* Remove old assets from `build.rs` `rerun-if-changed` triggers (lib)
 
 
 
