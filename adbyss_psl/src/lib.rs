@@ -204,6 +204,8 @@ impl fmt::Display for Domain {
 
 impl FromStr for Domain {
 	type Err = Error;
+
+	#[inline]
 	fn from_str(src: &str) -> Result<Self, Self::Err> {
 		Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 	}
@@ -272,6 +274,8 @@ macro_rules! impl_try {
 	($($ty:ty),+) => ($(
 		impl TryFrom<$ty> for Domain {
 			type Error = Error;
+
+			#[inline]
 			fn try_from(src: $ty) -> Result<Self, Self::Error> {
 				Self::new(src).ok_or_else(|| ErrorKind::InvalidData.into())
 			}
