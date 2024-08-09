@@ -90,7 +90,7 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.7.2"
+argyle = "0.8.*"
 dactyl = "0.7.*"
 fyi_msg = "0.13.*"
 libc = "0.2.*"
