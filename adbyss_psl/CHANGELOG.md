@@ -9,7 +9,7 @@
 
 ### Breaking
 
-* Bump MSRV to `1.80` (lib)
+* Bump MSRV to `1.80`
 
 ### Changed
 
