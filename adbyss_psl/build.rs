@@ -127,14 +127,11 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		}
 	}
 
-	// Make sure the keys are unique.
-	{
-		let tmp: HashSet<u64> = map.iter().map(|(k, _)| *k).collect();
-		assert_eq!(tmp.len(), map.len(), "Duplicate PSL hash keys.");
-	}
-
+	// Sort and dedup.
 	let len: usize = map.len();
 	map.sort_by(|a, b| a.0.cmp(&b.0));
+	map.dedup_by(|a, b| a.0 == b.0);
+	if map.len() != len { panic!("Duplicate PSL hash keys."); }
 
 	// Separate keys and values.
 	let (map_keys, map_values): (Vec<u64>, Vec<String>) = map.into_iter().unzip();
