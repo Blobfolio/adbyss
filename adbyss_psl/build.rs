@@ -6,6 +6,7 @@ use regex::Regex;
 use std::{
 	borrow::Cow,
 	collections::{
+		BTreeMap,
 		HashMap,
 		HashSet,
 	},
@@ -98,33 +99,43 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
 
-	// Hold map key/value pairs.
-	let mut map: Vec<(u64, Cow<str>)> = Vec::with_capacity(main.len() + wild.len());
-
-	// Populate this with stringified tuples (bytes=>kind).
-	for host in main {
-		// We'll prioritize these.
-		if host == "com" || host == "net" || host == "org" { continue; }
-		let hash = hash_tld(host.as_bytes());
-		map.push((hash, Cow::Borrowed("SuffixKind::Tld")));
-	}
-	for (host, ex) in wild {
-		let hash = hash_tld(host.as_bytes());
-		if ex.is_empty() {
-			map.push((hash, Cow::Borrowed("SuffixKind::Wild")));
-		}
-		else {
-			let ex = psl_format_wild(ex);
-			let ex = wild_map.get(&ex).expect("Missing wild arm.");
-			map.push((hash, Cow::Owned(format!("SuffixKind::WildEx(WildKind::{ex})"))));
-		}
+	// We assume com/net/org are normal; let's verify that!
+	for i in ["com", "net", "org"] {
+		assert!(main.contains(i), "Normal tld list missing {i}!");
+		assert!(! wild.contains_key(i), "Wild list contains {i}!");
 	}
 
-	// Sort and dedup.
+	// Combine the main and wild data into a single, deduped map, sorted for
+	// binary search compatibility, which is how lookups will end up working on
+	// the runtime side of the equation.
+	let map: BTreeMap<u64, Cow<str>> = main.iter()
+		.filter_map(|host|
+			// We handle these three common cases manually for performance
+			// reasons.
+			if host == "com" || host == "net" || host == "org" { None }
+			else {
+				Some((hash_tld(host.as_bytes()), Cow::Borrowed("SuffixKind::Tld")))
+			}
+		)
+		.chain(
+			wild.iter().map(|(host, ex)| {
+				let hash = hash_tld(host.as_bytes());
+				if ex.is_empty() {
+					(hash, Cow::Borrowed("SuffixKind::Wild"))
+				}
+				else {
+					let ex = psl_format_wild(ex);
+					let ex = wild_map.get(&ex).expect("Missing wild arm.");
+					(hash, Cow::Owned(format!("SuffixKind::WildEx(WildKind::{ex})")))
+				}
+			})
+		)
+		.collect();
+
+	// Double-check the lengths; if there's a mismatch we found an (improbable)
+	// hash collision and need to fix it.
 	let len: usize = map.len();
-	map.sort_by(|a, b| a.0.cmp(&b.0));
-	map.dedup_by(|a, b| a.0 == b.0);
-	if map.len() != len { panic!("Duplicate PSL hash keys."); }
+	assert_eq!(len, main.len() + wild.len() - 3, "Duplicate PSL hash keys!");
 
 	// Separate keys and values.
 	let (map_keys, map_values): (Vec<u64>, Vec<Cow<str>>) = map.into_iter().unzip();
@@ -321,7 +332,14 @@ fn load_file(name: &str) -> String {
 /// what we use, both during build and at runtime (i.e. search needles) during
 /// lookup matching.
 fn hash_tld(src: &[u8]) -> u64 {
-	ahash::RandomState::with_seeds(13, 19, 23, 71).hash_one(src)
+	// Note: this needs to match the version exported by lib.rs!
+	const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
+		0x8596_cc44_bef0_1aa0,
+		0x98d4_0948_da60_19ae,
+		0x49f1_3013_c503_a6aa,
+		0xc4d7_82ff_3c9f_7bef,
+	);
+	AHASHER.hash_one(src)
 }
 
 /// # Out path.

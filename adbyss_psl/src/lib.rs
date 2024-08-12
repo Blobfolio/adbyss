@@ -126,6 +126,20 @@ use std::{
 
 
 
+/// # Static Hasher.
+///
+/// This hasher is used internally for searching the (large) public suffix map,
+/// and re-exported just in case any downstream users want to leverage the same
+/// state for whatever reason.
+pub const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
+	0x8596_cc44_bef0_1aa0,
+	0x98d4_0948_da60_19ae,
+	0x49f1_3013_c503_a6aa,
+	0xc4d7_82ff_3c9f_7bef,
+);
+
+
+
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 ///
