@@ -250,8 +250,8 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 	}
 
 	// Let's build the thing we'll be writing about building.
-	let mut psl_main: RawMainMap = HashSet::with_capacity(9500);
-	let mut psl_wild: RawWildMap = HashMap::with_capacity(128);
+	let mut psl_main: RawMainMap = HashSet::with_capacity(10_000);
+	let mut psl_wild: RawWildMap = HashMap::with_capacity(256);
 
 	// Parse the raw data.
 	let mut scratch = String::new();
