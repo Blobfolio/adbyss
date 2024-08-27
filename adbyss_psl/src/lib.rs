@@ -73,32 +73,53 @@ let owned = dom.take(); // "www.mydomain.com"
 
 #![forbid(unsafe_code)]
 
+#![deny(
+	clippy::allow_attributes_without_reason,
+	clippy::correctness,
+	unreachable_pub,
+)]
+
 #![warn(
-	clippy::filetype_is_file,
-	clippy::integer_division,
-	clippy::needless_borrow,
+	clippy::complexity,
 	clippy::nursery,
 	clippy::pedantic,
 	clippy::perf,
-	clippy::suboptimal_flops,
+	clippy::style,
+
+	clippy::allow_attributes,
+	clippy::clone_on_ref_ptr,
+	clippy::create_dir,
+	clippy::filetype_is_file,
+	clippy::format_push_string,
+	clippy::get_unwrap,
+	clippy::impl_trait_in_params,
+	clippy::lossy_float_literal,
+	clippy::missing_assert_message,
+	clippy::missing_docs_in_private_items,
+	clippy::needless_raw_strings,
+	clippy::panic_in_result_fn,
+	clippy::pub_without_shorthand,
+	clippy::rest_pat_in_fully_bound_structs,
+	clippy::semicolon_inside_block,
+	clippy::str_to_string,
+	clippy::string_to_string,
+	clippy::todo,
+	clippy::undocumented_unsafe_blocks,
 	clippy::unneeded_field_pattern,
+	clippy::unseparated_literal_suffix,
+	clippy::unwrap_in_result,
+
 	macro_use_extern_crate,
 	missing_copy_implementations,
-	missing_debug_implementations,
-	missing_docs,
 	non_ascii_idents,
 	trivial_casts,
 	trivial_numeric_casts,
-	unreachable_pub,
 	unused_crate_dependencies,
 	unused_extern_crates,
 	unused_import_braces,
 )]
 
-#![allow(
-	clippy::module_name_repetitions,
-	clippy::redundant_pub_crate,
-)]
+#![expect(clippy::redundant_pub_crate, reason = "Unresolvable.")]
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
@@ -187,8 +208,17 @@ pub const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
 /// when it finds them, ensuring the resulting hostname will always be
 /// lowercase ASCII.
 pub struct Domain {
+	/// # Host.
 	host: String,
+
+	/// # Root.
+	///
+	/// This holds the index range of `host` corresponding to the domain root.
 	root: Range<usize>,
+
+	/// # Root.
+	///
+	/// This holds the index range of `host` corresponding to the domain suffix.
 	suffix: Range<usize>,
 }
 
@@ -241,6 +271,7 @@ impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
+/// # Helper: Symmetrical `PartialEq`.
 macro_rules! partial_eq {
 	// Dereference.
 	(deref: $($cast:ident $ty:ty),+ $(,)?) => ($(
@@ -285,6 +316,7 @@ impl PartialOrd for Domain {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
+/// # Helper: `TryFrom` impl.
 macro_rules! impl_try {
 	($($ty:ty),+) => ($(
 		impl TryFrom<$ty> for Domain {
@@ -511,7 +543,6 @@ impl Domain {
 
 /// # Conversion.
 impl Domain {
-	#[allow(clippy::missing_const_for_fn)] // Doesn't work.
 	#[must_use]
 	/// # Take String
 	///
@@ -630,6 +661,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 	/// Use the optional `serde` crate feature to enable serialization support.
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where D: serde::de::Deserializer<'de> {
+		/// # Visitor Instance.
 		struct DomainVisitor;
 
 		impl<'de> serde::de::Visitor<'de> for DomainVisitor {
@@ -870,27 +902,26 @@ mod tests {
 			);
 		}
 		// We should have a TLD!
-		else {
-			if let Some(dom) = Domain::new(a) {
-				assert_eq!(
-					dom.tld(),
-					b.unwrap(),
-					"Failed parsing: {dom:?}",
-				);
+		else if let Some(dom) = Domain::new(a) {
+			assert_eq!(
+				dom.tld(),
+				b.unwrap(),
+				"Failed parsing: {dom:?}",
+			);
 
-				// Again, the String impl is slightly different.
-				let Ok(dom2) = Domain::try_from(a.to_owned()) else {
-					panic!("Failed parsing: {a:?} (string)");
-				};
-				assert_eq!(dom, dom2, "String/str parsing mismatch for {a:?}");
-			}
-			else {
-				panic!("Failed parsing: {:?}", a);
-			}
+			// Again, the String impl is slightly different.
+			let Ok(dom2) = Domain::try_from(a.to_owned()) else {
+				panic!("Failed parsing: {a:?} (string)");
+			};
+			assert_eq!(dom, dom2, "String/str parsing mismatch for {a:?}");
+		}
+		else {
+			panic!("Failed parsing: {a:?}");
 		}
 	}
 
 	#[test]
+	#[expect(clippy::cognitive_complexity, reason = "It is what it is.")]
 	/// # Test Chunks.
 	///
 	/// This makes sure that the individual host components line up correctly.
@@ -903,7 +934,7 @@ mod tests {
 		assert_eq!(dom.host(), "abc.www.xn--85x722f.xn--fiqs8s");
 
 		// Make sure dereference does the right thing. It should...
-		assert_eq!(dom.host(), dom.deref());
+		assert_eq!(dom.host(), &*dom);
 
 		dom = Domain::new("blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), None);

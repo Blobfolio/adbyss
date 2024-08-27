@@ -18,38 +18,48 @@ use std::path::PathBuf;
 
 
 
-#[allow(clippy::struct_excessive_bools)] // This is coming from Yaml.
+#[expect(clippy::struct_excessive_bools, reason = "The fields mirror our YAML config.")]
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Deserialize)]
 /// # Settings.
 pub(super) struct Settings {
 	#[serde(default = "Settings::config")]
+	/// # Hosts File Path.
 	hostfile: PathBuf,
 
 	#[serde(default = "default_true")]
+	/// # Backup Original Hosts?
 	backup: bool,
 
 	#[serde(default = "default_false")]
+	/// # Join Hosts by TLD?
 	compact: bool,
 
 	#[serde(default = "default_true")]
+	/// # Use Adaway Sources?
 	source_adaway: bool,
 
 	#[serde(default = "default_true")]
+	/// # Use Adbyss Sources?
 	source_adbyss: bool,
 
 	#[serde(default = "default_true")]
+	/// # Use Steven Black Sources?
 	source_stevenblack: bool,
 
 	#[serde(default = "default_true")]
+	/// # Use Yoyo Sources?
 	source_yoyo: bool,
 
 	#[serde(default = "Vec::new")]
+	/// # Domains to Exclude.
 	exclude: Vec<String>,
 
 	#[serde(default = "Vec::new")]
+	/// # Patterns to Exclude.
 	regexclude: Vec<String>,
 
 	#[serde(default = "Vec::new")]
+	/// # Domains to Include.
 	include: Vec<String>,
 }
 

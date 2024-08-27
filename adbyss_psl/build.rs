@@ -352,7 +352,8 @@ fn out_path(name: &str) -> PathBuf {
 	out
 }
 
-#[allow(unsafe_code, clippy::cast_possible_truncation, clippy::integer_division)]
+#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
+#[expect(unsafe_code, reason = "Content is ASCII.")]
 /// # Stringify Map Keys.
 ///
 /// This returns a comma-separated list of stringified (numeric) keys,
@@ -375,7 +376,7 @@ fn nice_map_keys(map: Vec<u64>) -> String {
 
 	#[inline]
 	fn triple(idx: usize) -> [u8; 3] {
-		let a = (idx / 100) as u8 + b'0';
+		let a = idx.wrapping_div(100) as u8 + b'0';
 		let [b, c] = DOUBLE[idx % 100];
 		[a, b, c]
 	}
