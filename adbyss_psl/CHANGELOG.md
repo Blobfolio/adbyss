@@ -1,20 +1,28 @@
 # Changelog
 
 
+
+## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - TBD
+
+### Changed
+
+* Bump MSRV to `1.81`
+* Minor code lints
+* Update suffix database
+
+
+
 ## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - 2024-08-08
 
 ### New
 
 * `Domain::try_from::<Cow<str>>`
 
-### Breaking
-
-* Bump MSRV to `1.80`
-
 ### Changed
 
 * Specialize `Domain::try_from::<String>`
 * Add dependency `trimothy` (lib)
+* Bump MSRV to `1.80`
 * Bump `utc2k` to `0.9`
 * Update suffix database
 
