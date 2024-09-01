@@ -93,7 +93,7 @@ argyle = "0.8.*"
 dactyl = "0.7.*"
 fyi_msg = "0.13.*"
 libc = "0.2.*"
-serde_yaml = "0.9.*"
+serde_yml = "=0.0.12"
 
 [dependencies.adbyss_core]
 path = "../adbyss_core"
