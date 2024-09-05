@@ -2,12 +2,16 @@
 
 
 
-## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - TBD
+## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - 2024-09-05
 
 ### Changed
 
 * Bump MSRV to `1.81`
+* Bump `brunch` to `0.6`
+* Bump `fyi_msg` to `0.14`
 * Minor code lints
+* Reduce build script allocations
+* Replace `serde_yaml` with `serde_yml`
 * Update suffix database
 
 
