@@ -2,6 +2,7 @@
 
 
 
+#[expect(clippy::missing_docs_in_private_items, reason = "List is auto-generated.")]
 #[derive(Clone, Copy)]
 /// # Suffix Kinds.
 ///

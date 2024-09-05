@@ -1,10 +1,9 @@
 [package]
 name = "adbyss"
-version = "0.12.0"
+version = "0.13.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
-rust-version = "1.80"
 description = "Adbyss is a DNS blacklist manager for Linux."
 repository = "https://github.com/Blobfolio/adbyss"
 publish = false
@@ -90,11 +89,11 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.7.2"
+argyle = "0.8.*"
 dactyl = "0.7.*"
-fyi_msg = "0.13.*"
+fyi_msg = "0.14.*"
 libc = "0.2.*"
-serde_yaml = "0.9.*"
+serde_yml = "=0.0.12"
 
 [dependencies.adbyss_core]
 path = "../adbyss_core"

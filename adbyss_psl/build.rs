@@ -4,7 +4,9 @@
 
 use regex::Regex;
 use std::{
+	borrow::Cow,
 	collections::{
+		BTreeMap,
 		HashMap,
 		HashSet,
 	},
@@ -34,14 +36,6 @@ pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/psl.rs.txt");
 	println!("cargo:rerun-if-changed=skel/raw/public_suffix_list.dat");
-
-	// Sanity check. Obviously this won't change, but it is nice to know we
-	// thought of it.
-	assert_eq!(
-		u64::MAX.to_string().len(),
-		RANGE.len(),
-		"Number-formatting string has the wrong length.",
-	);
 
 	psl();
 }
@@ -105,47 +99,56 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
 
-	// Hold map key/value pairs.
-	let mut map: Vec<(u64, String)> = Vec::with_capacity(main.len() + wild.len());
-
-	// Populate this with stringified tuples (bytes=>kind).
-	for host in main {
-		// We'll prioritize these.
-		if host == "com" || host == "net" || host == "org" { continue; }
-		let hash = hash_tld(host.as_bytes());
-		map.push((hash, "SuffixKind::Tld".to_owned()));
-	}
-	for (host, ex) in wild {
-		let hash = hash_tld(host.as_bytes());
-		if ex.is_empty() {
-			map.push((hash, "SuffixKind::Wild".to_owned()));
-		}
-		else {
-			let ex = psl_format_wild(ex);
-			let ex = wild_map.get(&ex).expect("Missing wild arm.");
-			map.push((hash, format!("SuffixKind::WildEx(WildKind::{ex})")));
-		}
+	// We assume com/net/org are normal; let's verify that!
+	for i in ["com", "net", "org"] {
+		assert!(main.contains(i), "Normal tld list missing {i}!");
+		assert!(! wild.contains_key(i), "Wild list contains {i}!");
 	}
 
-	// Make sure the keys are unique.
-	{
-		let tmp: HashSet<u64> = map.iter().map(|(k, _)| *k).collect();
-		assert_eq!(tmp.len(), map.len(), "Duplicate PSL hash keys.");
-	}
+	// Combine the main and wild data into a single, deduped map, sorted for
+	// binary search compatibility, which is how lookups will end up working on
+	// the runtime side of the equation.
+	let map: BTreeMap<u64, Cow<str>> = main.iter()
+		.filter_map(|host|
+			// We handle these three common cases manually for performance
+			// reasons.
+			if host == "com" || host == "net" || host == "org" { None }
+			else {
+				Some((hash_tld(host.as_bytes()), Cow::Borrowed("SuffixKind::Tld")))
+			}
+		)
+		.chain(
+			wild.iter().map(|(host, ex)| {
+				let hash = hash_tld(host.as_bytes());
+				if ex.is_empty() {
+					(hash, Cow::Borrowed("SuffixKind::Wild"))
+				}
+				else {
+					let ex = psl_format_wild(ex);
+					let ex = wild_map.get(&ex).expect("Missing wild arm.");
+					(hash, Cow::Owned(format!("SuffixKind::WildEx(WildKind::{ex})")))
+				}
+			})
+		)
+		.collect();
 
+	// Double-check the lengths; if there's a mismatch we found an (improbable)
+	// hash collision and need to fix it.
 	let len: usize = map.len();
-	map.sort_by(|a, b| a.0.cmp(&b.0));
+	assert_eq!(len, main.len() + wild.len() - 3, "Duplicate PSL hash keys!");
 
 	// Separate keys and values.
-	let (map_keys, map_values): (Vec<u64>, Vec<String>) = map.into_iter().unzip();
+	let (map_keys, map_values): (Vec<u64>, Vec<Cow<str>>) = map.into_iter().unzip();
 
 	// Format the arrays.
 	let map = format!(
-		"/// # Map Keys.\nstatic MAP_K: [u64; {len}] = [{}];\n\n/// # Map Values.\nstatic MAP_V: [SuffixKind; {len}] = [{}];",
-		map_keys.into_iter()
-			.map(nice_u64)
-			.collect::<Vec<String>>()
-			.join(", "),
+		r#"/// # Map Keys.
+const MAP_K: &[u64; {len}] = &[{}];
+
+/// # Map Values.
+const MAP_V: &[SuffixKind; {len}] = &[{}];
+"#,
+		nice_map_keys(map_keys),
 		map_values.join(", "),
 	);
 
@@ -237,55 +240,73 @@ fn psl_format_wild(src: &[String]) -> String {
 /// doesn't support network actions — pull a stale copy included with this
 /// library.
 fn psl_load_data() -> (RawMainMap, RawWildMap) {
-	// Let's build the thing we'll be writing about building.
-	let mut psl_main: RawMainMap = HashSet::with_capacity(9500);
-	let mut psl_wild: RawWildMap = HashMap::with_capacity(128);
-
 	const FLAG_EXCEPTION: u8 = 0b0001;
 	const FLAG_WILDCARD: u8  = 0b0010;
+	const STUB: &str = "a.a.";
+
+	/// # Domain to ASCII.
+	fn idna_to_ascii(src: &[u8]) -> Option<Cow<'_, str>> {
+		use idna::uts46::{AsciiDenyList, DnsLength, Hyphens, Uts46};
+
+		match Uts46::new().to_ascii(src, AsciiDenyList::STD3, Hyphens::CheckFirstLast, DnsLength::Verify) {
+			Ok(Cow::Borrowed(x)) => x.strip_prefix(STUB).map(Cow::Borrowed),
+			Ok(Cow::Owned(mut x)) =>
+				if x.starts_with(STUB) {
+					x.drain(..STUB.len());
+					Some(Cow::Owned(x))
+				}
+				else { None },
+			Err(_) => None,
+		}
+	}
+
+	// Let's build the thing we'll be writing about building.
+	let mut psl_main: RawMainMap = HashSet::with_capacity(10_000);
+	let mut psl_wild: RawWildMap = HashMap::with_capacity(256);
 
 	// Parse the raw data.
-	psl_fetch_suffixes().lines()
-		.filter(|line| ! line.is_empty() && ! line.starts_with("//"))
-		.filter_map(|mut line| {
-			let mut flags: u8 = 0;
+	let mut scratch = String::new();
+	for mut line in psl_fetch_suffixes().lines() {
+		line = line.trim_end();
+		if line.is_empty() || line.starts_with("//") { continue; }
 
-			if line.starts_with('!') {
-				line = &line[1..];
-				flags |= FLAG_EXCEPTION;
-			}
+		// Figure out what kind of entry this is.
+		let mut flags: u8 = 0;
+		if let Some(rest) = line.strip_prefix('!') {
+			line = rest;
+			flags |= FLAG_EXCEPTION;
+		}
+		if let Some(rest) = line.strip_prefix("*.") {
+			line = rest;
+			flags |= FLAG_WILDCARD;
+		}
 
-			if line.starts_with("*.") {
-				line = &line[2..];
-				flags |= FLAG_WILDCARD;
-			}
+		// To correctly handle the suffixes, we'll need to prepend a
+		// hypothetical root and strip it off after cleanup.
+		scratch.truncate(0);
+		scratch.push_str(STUB);
+		scratch.push_str(line);
+		let Some(host) = idna_to_ascii(scratch.as_bytes()) else { continue; };
 
-			// To correctly handle the suffixes, we'll need to prepend a
-			// hypothetical root and strip it off after.
-			idna::domain_to_ascii_strict(&["one.two.", line].concat())
-				.ok()
-				.map(|mut x| x.split_off(8))
-				.zip(Some(flags))
-		})
-		.for_each(|(host, flag)|
-			// This is a wildcard exception.
-			if 0 != flag & FLAG_EXCEPTION {
-				if let Some(idx) = host.bytes().position(|x| x == b'.') {
-					let (before, after) = host.split_at(idx);
-					psl_wild.entry(after[1..].to_string())
-						.or_default()
-						.push(before.to_string());
+		// This is a wildcard exception.
+		if 0 != flags & FLAG_EXCEPTION {
+			if let Some((before, after)) = host.split_once('.') {
+				let before = before.to_owned();
+				if let Some(v) = psl_wild.get_mut(after) { v.push(before); }
+				else {
+					psl_wild.insert(after.to_owned(), vec![before]);
 				}
 			}
-			// This is the main wildcard entry.
-			else if 0 != flag & FLAG_WILDCARD {
-				psl_wild.entry(host).or_default();
-			}
-			// This is a normal suffix.
-			else {
-				psl_main.insert(host);
-			}
-		);
+		}
+		// This is the main wildcard entry.
+		else if 0 != flags & FLAG_WILDCARD {
+			psl_wild.entry(host.into_owned()).or_default();
+		}
+		// This is a normal suffix.
+		else {
+			psl_main.insert(host.into_owned());
+		}
+	}
 
 	(psl_main, psl_wild)
 }
@@ -311,7 +332,14 @@ fn load_file(name: &str) -> String {
 /// what we use, both during build and at runtime (i.e. search needles) during
 /// lookup matching.
 fn hash_tld(src: &[u8]) -> u64 {
-	ahash::RandomState::with_seeds(13, 19, 23, 71).hash_one(src)
+	// Note: this needs to match the version exported by lib.rs!
+	const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
+		0x8596_cc44_bef0_1aa0,
+		0x98d4_0948_da60_19ae,
+		0x49f1_3013_c503_a6aa,
+		0xc4d7_82ff_3c9f_7bef,
+	);
+	AHASHER.hash_one(src)
 }
 
 /// # Out path.
@@ -324,30 +352,79 @@ fn out_path(name: &str) -> PathBuf {
 	out
 }
 
-/// # Range covering the length of u64::MAX, stringified.
-const RANGE: [usize; 20] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-
-/// # Nice Number.
+#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
+#[expect(unsafe_code, reason = "Content is ASCII.")]
+/// # Stringify Map Keys.
 ///
-/// This stringifies and returns a number with `_` separators, useful for
-/// angering clippy with the code we're generating.
-fn nice_u64(num: u64) -> String {
-	let digits = num.to_string();
+/// This returns a comma-separated list of stringified (numeric) keys,
+/// including `_` thousand separators in all the right places to appease
+/// clippy.
+fn nice_map_keys(map: Vec<u64>) -> String {
+	/// # Decimals, 00-99.
+	const DOUBLE: [[u8; 2]; 100] = [
+		[48, 48], [48, 49], [48, 50], [48, 51], [48, 52], [48, 53], [48, 54], [48, 55], [48, 56], [48, 57],
+		[49, 48], [49, 49], [49, 50], [49, 51], [49, 52], [49, 53], [49, 54], [49, 55], [49, 56], [49, 57],
+		[50, 48], [50, 49], [50, 50], [50, 51], [50, 52], [50, 53], [50, 54], [50, 55], [50, 56], [50, 57],
+		[51, 48], [51, 49], [51, 50], [51, 51], [51, 52], [51, 53], [51, 54], [51, 55], [51, 56], [51, 57],
+		[52, 48], [52, 49], [52, 50], [52, 51], [52, 52], [52, 53], [52, 54], [52, 55], [52, 56], [52, 57],
+		[53, 48], [53, 49], [53, 50], [53, 51], [53, 52], [53, 53], [53, 54], [53, 55], [53, 56], [53, 57],
+		[54, 48], [54, 49], [54, 50], [54, 51], [54, 52], [54, 53], [54, 54], [54, 55], [54, 56], [54, 57],
+		[55, 48], [55, 49], [55, 50], [55, 51], [55, 52], [55, 53], [55, 54], [55, 55], [55, 56], [55, 57],
+		[56, 48], [56, 49], [56, 50], [56, 51], [56, 52], [56, 53], [56, 54], [56, 55], [56, 56], [56, 57],
+		[57, 48], [57, 49], [57, 50], [57, 51], [57, 52], [57, 53], [57, 54], [57, 55], [57, 56], [57, 57]
+	];
 
-	// Return it straight if no separator is needed.
-	let len = digits.len();
-	if len < 4 { return digits; }
+	#[inline]
+	fn triple(idx: usize) -> [u8; 3] {
+		let a = idx.wrapping_div(100) as u8 + b'0';
+		let [b, c] = DOUBLE[idx % 100];
+		[a, b, c]
+	}
 
-	// Otherwise split it into chunks of three, starting at the end.
-	let mut parts: Vec<&str> = RANGE[..len].rchunks(3)
-		.map(|chunk| {
-			let (min, chunk) = chunk.split_first().unwrap();
-			let max = chunk.split_last().map_or(min, |(max, _)| max);
-			&digits[*min..=*max]
-		})
-		.collect();
+	// A buffer to hold stringified numbers. The initial value doesn't really
+	// matter, but by starting with u64::MAX we can make sure that all commas
+	// are in the right place and we have enough space for any u64.
+	let mut buf: [u8; 26] = *b"18_446_744_073_709_551_615";
+	let mut out = String::with_capacity(map.len() * 28); // Assume the worst; it'll be close.
 
-	// (Re)reverse and glue with the separator.
-	parts.reverse();
-	parts.join("_")
+	for mut num in map {
+		let mut from = buf.len();
+
+		// Stringify the trailing triplets first, if any.
+		for chunk in buf.rchunks_exact_mut(4) {
+			if 999 < num {
+				chunk[1..].copy_from_slice(triple((num % 1000) as usize).as_slice());
+				num /= 1000;
+				from -= 4;
+			}
+			else { break; }
+		}
+
+		// Three more.
+		if 99 < num {
+			from -= 3;
+			buf[from..from + 3].copy_from_slice(triple(num as usize).as_slice());
+		}
+		// Two more.
+		else if 9 < num {
+			from -= 2;
+			buf[from..from + 2].copy_from_slice(DOUBLE[num as usize].as_slice());
+		}
+		// One more.
+		else {
+			from -= 1;
+			buf[from] = (num as u8) + b'0';
+		}
+
+		// Safety: everything we've written/inherited will be an ASCII digit.
+		out.push_str(unsafe {
+			std::str::from_utf8_unchecked(&buf[from..])
+		});
+		out.push_str(", ");
+	}
+
+	// Remove the trailing punctuation.
+	if out.ends_with(", ") { out.truncate(out.len() - 2); }
+
+	out
 }

@@ -57,9 +57,16 @@ const END_WATERMARK: &str = "## End of Adbyss Rules ##";
 /// This is used to match the boundary between the custom hostfile entries and
 /// Adbyss' contributions.
 enum Watermark {
+	/// # No Match Yet.
 	Zero,
+
+	/// # Matched ### Opening.
 	One,
+
+	/// # Matched ADBYSS title.
 	Two,
+
+	/// # Matched ### Closing.
 	Three,
 }
 
@@ -105,11 +112,22 @@ impl Watermark {
 /// Results are cumulative, so if you plan on doing this more than once with
 /// different setups, instantiate a new object.
 pub struct Shitlist {
+	/// # Hosts File Path.
 	hostfile: PathBuf,
+
+	/// # Flags.
 	flags: u8,
+
+	/// # Domains to Exclude.
 	exclude: HashSet<Domain>,
+
+	/// # Patterns to Exclude.
 	regexclude: Option<RegexSet>,
+
+	/// # Found Entries.
 	found: HashSet<Domain>,
+
+	/// # File Contents.
 	out: Vec<u8>,
 }
 
@@ -656,7 +674,7 @@ impl Shitlist {
 		found
 	}
 
-	#[allow(clippy::type_complexity)] // This is it.
+	#[expect(clippy::type_complexity, reason = "It is what it is.")]
 	/// # Strip Ignores: Static Filter
 	///
 	/// Because this filter could run 60K times or more, it is worth taking
@@ -673,12 +691,12 @@ impl Shitlist {
 			// Both, optimized static.
 			(Some(re), Ordering::Equal) => {
 				let re = re.clone();
-				let val = self.exclude.iter().next().unwrap().clone();
+				let val = self.exclude.iter().next()?.clone();
 				Some(Box::new(move |x| x == &&val || re.is_match(x)))
 			},
 			// Optimized static.
 			(None, Ordering::Equal) => {
-				let val = self.exclude.iter().next().unwrap().clone();
+				let val = self.exclude.iter().next()?.clone();
 				Some(Box::new(move |x| x == &&val))
 			},
 			// Both, many statics.

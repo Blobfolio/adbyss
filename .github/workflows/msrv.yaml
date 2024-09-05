@@ -50,6 +50,4 @@ jobs:
 
     - name: MSRV
       run: |
-        cargo msrv --path adbyss verify
-        cargo msrv --path adbyss_core verify
         cargo msrv --path adbyss_psl verify -- cargo check --all-features
