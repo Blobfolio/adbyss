@@ -5,12 +5,14 @@
 use regex::Regex;
 use std::{
 	borrow::Cow,
+	cell::Cell,
 	collections::{
 		BTreeMap,
 		HashMap,
 		HashSet,
 	},
 	env,
+	fmt,
 	fs::File,
 	io::Write,
 	path::PathBuf,
@@ -148,8 +150,8 @@ const MAP_K: &[u64; {len}] = &[{}];
 /// # Map Values.
 const MAP_V: &[SuffixKind; {len}] = &[{}];
 "#,
-		nice_map_keys(map_keys),
-		map_values.join(", "),
+		NiceMapKeys(map_keys),
+		JoinFmt::new(map_values.into_iter(), ", "),
 	);
 
 	(map, wild_kinds, wild_arms)
@@ -352,14 +354,122 @@ fn out_path(name: &str) -> PathBuf {
 	out
 }
 
-#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
-#[expect(unsafe_code, reason = "Content is ASCII.")]
-/// # Stringify Map Keys.
+
+
+/// # Simple Joiner.
 ///
-/// This returns a comma-separated list of stringified (numeric) keys,
-/// including `_` thousand separators in all the right places to appease
-/// clippy.
-fn nice_map_keys(map: Vec<u64>) -> String {
+/// This helps us avoid intermediary string allocation when joining values.
+struct JoinFmt<'a, I: Iterator>
+where <I as Iterator>::Item: fmt::Display {
+	/// # Wrapped Iterator.
+	iter: Cell<Option<I>>,
+
+	/// # The Glue.
+	glue: &'a str,
+}
+
+impl<'a, I: Iterator> JoinFmt<'a, I>
+where <I as Iterator>::Item: fmt::Display {
+	#[inline]
+	/// # New.
+	const fn new(iter: I, glue: &'a str) -> Self {
+		Self {
+			iter: Cell::new(Some(iter)),
+			glue,
+		}
+	}
+}
+
+impl<I: Iterator> fmt::Display for JoinFmt<'_, I>
+where <I as Iterator>::Item: fmt::Display {
+	#[track_caller]
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		// The iterator is consumed during invocation so we can only do this
+		// once!
+		let mut iter = self.iter.take().ok_or(fmt::Error)?;
+
+		// If the glue is empty, just run through everything in one go.
+		if self.glue.is_empty() {
+			for v in iter { <I::Item as fmt::Display>::fmt(&v, f)?; }
+		}
+		// Otherwise start with the first first, then loop through the rest,
+		// adding the glue at the start of each pass.
+		else if let Some(v) = iter.next() {
+			<I::Item as fmt::Display>::fmt(&v, f)?;
+
+			// Finish it!
+			for v in iter {
+				f.write_str(self.glue)?;
+				<I::Item as fmt::Display>::fmt(&v, f)?;
+			}
+		}
+
+		Ok(())
+	}
+}
+
+
+
+/// # Nice Map Keys.
+///
+/// This helps us avoid intermediary string allocation when formatting the
+/// codegen.
+struct NiceMapKeys(Vec<u64>);
+
+impl fmt::Display for NiceMapKeys {
+	#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
+	#[expect(unsafe_code, reason = "Content is ASCII.")]
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		// A buffer to hold stringified numbers. The initial value doesn't really
+		// matter, but by starting with u64::MAX we can make sure that all commas
+		// are in the right place and we have enough space for any u64.
+		let mut buf: [u8; 26] = *b"18_446_744_073_709_551_615";
+
+		let mut any = false;
+		for mut num in self.0.iter().copied() {
+			let mut from = buf.len();
+
+			// Stringify the trailing triplets first, if any.
+			for chunk in buf.rchunks_exact_mut(4) {
+				if 999 < num {
+					chunk[1..].copy_from_slice(Self::triple((num % 1000) as usize).as_slice());
+					num /= 1000;
+					from -= 4;
+				}
+				else { break; }
+			}
+
+			// Three more.
+			if 99 < num {
+				from -= 3;
+				buf[from..from + 3].copy_from_slice(Self::triple(num as usize).as_slice());
+			}
+			// Two more.
+			else if 9 < num {
+				from -= 2;
+				buf[from..from + 2].copy_from_slice(Self::DOUBLE[num as usize].as_slice());
+			}
+			// One more.
+			else {
+				from -= 1;
+				buf[from] = (num as u8) + b'0';
+			}
+
+			// Separate the last thing we wrote with a comma.
+			if any { f.write_str(", ")?; }
+			else { any = true; }
+
+			// Safety: everything we've written/inherited will be an ASCII digit.
+			f.write_str(unsafe {
+				std::str::from_utf8_unchecked(&buf[from..])
+			})?;
+		}
+
+		Ok(())
+	}
+}
+
+impl NiceMapKeys {
 	/// # Decimals, 00-99.
 	const DOUBLE: [[u8; 2]; 100] = [
 		[48, 48], [48, 49], [48, 50], [48, 51], [48, 52], [48, 53], [48, 54], [48, 55], [48, 56], [48, 57],
@@ -375,56 +485,9 @@ fn nice_map_keys(map: Vec<u64>) -> String {
 	];
 
 	#[inline]
-	fn triple(idx: usize) -> [u8; 3] {
+	const fn triple(idx: usize) -> [u8; 3] {
 		let a = idx.wrapping_div(100) as u8 + b'0';
-		let [b, c] = DOUBLE[idx % 100];
+		let [b, c] = Self::DOUBLE[idx % 100];
 		[a, b, c]
 	}
-
-	// A buffer to hold stringified numbers. The initial value doesn't really
-	// matter, but by starting with u64::MAX we can make sure that all commas
-	// are in the right place and we have enough space for any u64.
-	let mut buf: [u8; 26] = *b"18_446_744_073_709_551_615";
-	let mut out = String::with_capacity(map.len() * 28); // Assume the worst; it'll be close.
-
-	for mut num in map {
-		let mut from = buf.len();
-
-		// Stringify the trailing triplets first, if any.
-		for chunk in buf.rchunks_exact_mut(4) {
-			if 999 < num {
-				chunk[1..].copy_from_slice(triple((num % 1000) as usize).as_slice());
-				num /= 1000;
-				from -= 4;
-			}
-			else { break; }
-		}
-
-		// Three more.
-		if 99 < num {
-			from -= 3;
-			buf[from..from + 3].copy_from_slice(triple(num as usize).as_slice());
-		}
-		// Two more.
-		else if 9 < num {
-			from -= 2;
-			buf[from..from + 2].copy_from_slice(DOUBLE[num as usize].as_slice());
-		}
-		// One more.
-		else {
-			from -= 1;
-			buf[from] = (num as u8) + b'0';
-		}
-
-		// Safety: everything we've written/inherited will be an ASCII digit.
-		out.push_str(unsafe {
-			std::str::from_utf8_unchecked(&buf[from..])
-		});
-		out.push_str(", ");
-	}
-
-	// Remove the trailing punctuation.
-	if out.ends_with(", ") { out.truncate(out.len() - 2); }
-
-	out
 }
