@@ -9,7 +9,6 @@ repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [dependencies]
-argyle = "0.8.*"
 dactyl = "0.7.*"
 fyi_msg = "1.1.*"
 rayon = "1.10.*"
