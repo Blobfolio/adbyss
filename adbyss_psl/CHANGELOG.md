@@ -2,16 +2,23 @@
 
 
 
+## [0.13.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.1) - 2024-10-17
+
+### Changed
+
+* Reduce intermediary string allocations during build
+* Update suffix database
+
+
+
 ## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - 2024-09-05
 
 ### Changed
 
 * Bump MSRV to `1.81`
 * Bump `brunch` to `0.6`
-* Bump `fyi_msg` to `0.14`
 * Minor code lints
 * Reduce build script allocations
-* Replace `serde_yaml` with `serde_yml`
 * Update suffix database
 
 
@@ -27,7 +34,6 @@
 * Specialize `Domain::try_from::<String>`
 * Add dependency `trimothy` (lib)
 * Bump MSRV to `1.80`
-* Bump `utc2k` to `0.9`
 * Update suffix database
 
 ### Fixed

@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.13.0"
+version = "0.13.1"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -89,9 +89,9 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.8.*"
+argyle = "0.10.*"
 dactyl = "0.7.*"
-fyi_msg = "0.14.*"
+fyi_msg = "1.1.*"
 libc = "0.2.*"
 serde_yml = "=0.0.12"
 
@@ -101,3 +101,6 @@ path = "../adbyss_core"
 [dependencies.serde]
 version = "1.0.*"
 features = [ "derive" ]
+
+[build-dependencies]
+argyle = "0.10.*"

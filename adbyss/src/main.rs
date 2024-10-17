@@ -60,12 +60,7 @@ use adbyss_core::{
 	AdbyssError,
 	FLAG_Y,
 };
-use argyle::{
-	Argue,
-	ArgyleError,
-	FLAG_HELP,
-	FLAG_VERSION,
-};
+use argyle::Argument;
 use fyi_msg::Msg;
 use dactyl::NiceU64;
 use settings::Settings;
@@ -76,18 +71,33 @@ use std::{
 
 
 
+/// # CLI: Disable Shitlist.
+const CLI_DISABLE: u8 = 0b0000_0001;
+
+/// # CLI: Quiet.
+const CLI_QUIET: u8 =   0b0000_0010;
+
+/// # CLI: Show Only.
+const CLI_SHOW: u8 =    0b0000_0100;
+
+/// # CLI: To STDOUT.
+const CLI_STDOUT: u8 =  0b0000_1000;
+
+/// # CLI: Systemd Mode.
+const CLI_SYSTEMD: u8 = 0b0001_0000;
+
+/// # CLI: Yes to Prompts.
+const CLI_YES: u8 =     0b0010_0000;
+
+
 /// Main.
 fn main() {
 	match _main() {
-		Err(AdbyssError::Argue(ArgyleError::WantsVersion)) => {
+		Err(AdbyssError::PrintVersion) => {
 			println!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
 		},
-		Err(AdbyssError::Argue(ArgyleError::WantsHelp)) => {
-			helper();
-		},
-		Err(e) => {
-			Msg::error(e.to_string()).die(1);
-		},
+		Err(AdbyssError::PrintHelp) => { helper(); },
+		Err(e) => { Msg::error(e.to_string()).die(1); },
 		Ok(()) => {},
 	}
 }
@@ -98,24 +108,35 @@ fn _main() -> Result<(), AdbyssError> {
 	// We need root!
 	require_root()?;
 
-	// Parse CLI arguments.
-	let args = Argue::new(FLAG_VERSION | FLAG_HELP)?;
+	// Set up the parser.
+	let args = argyle::args().with_keywords(
+		include!(concat!(env!("OUT_DIR"), "/argyle.rs"))
+	);
 
-	// Check for invalid CLI options.
-	if let Some(boo) = args.check_keys(
-		&[
-			b"--disable",
-			b"--quiet",
-			b"--show",
-			b"--stdout",
-			b"--systemd",
-			b"--yes",
-			b"-q",
-			b"-y",
-		],
-		&[b"--config", b"-c"],
-	) {
-		return Err(AdbyssError::InvalidCli(String::from_utf8_lossy(boo).into()));
+	// See what we've got!
+	let mut config = None;
+	let mut flags = 0_u8;
+	for arg in args {
+		match arg {
+			Argument::Key("--disable") => { flags |= CLI_DISABLE; },
+			Argument::Key("-q" | "--quiet") => { flags |= CLI_QUIET; },
+			Argument::Key("--show") => { flags |= CLI_SHOW; },
+			Argument::Key("--stdout") => { flags |= CLI_STDOUT; },
+			Argument::Key("--systemd") => { flags |= CLI_SYSTEMD; },
+			Argument::Key("-y" | "--yes") => { flags |= CLI_YES; },
+
+			Argument::Key("-h" | "--help") => return Err(AdbyssError::PrintHelp),
+			Argument::Key("-V" | "--version") => return Err(AdbyssError::PrintVersion),
+
+			Argument::KeyWithValue("-c" | "--config", s) => {
+				config.replace(PathBuf::from(s));
+			},
+
+			// Nothing else is expected.
+			Argument::Other(s) => return Err(AdbyssError::InvalidCli(s.into_boxed_str())),
+			Argument::InvalidUtf8(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned().into_boxed_str())),
+			_ => {},
+		}
 	}
 
 	// Load configuration. If the user specified one, go with that and print an
@@ -123,8 +144,7 @@ fn _main() -> Result<(), AdbyssError> {
 	// path and go with that if it exists. Otherwise just use the internal
 	// default settings.
 	let mut shitlist =
-		if let Some(sh) = args.option2_os(b"-c", b"--config")
-			.map(PathBuf::from)
+		if let Some(sh) = config
 			.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
 		{
 			Settings::try_from(sh)?
@@ -133,15 +153,13 @@ fn _main() -> Result<(), AdbyssError> {
 		.into_shitlist();
 
 	// Handle runtime flags.
-	let systemd = args.switch(b"--systemd"); // A special mode for systemd runs.
-	if systemd || args.switch2(b"-y", b"--yes") {
+	let systemd = CLI_SYSTEMD == flags & CLI_SYSTEMD; // A special mode for systemd runs.
+	if systemd || CLI_YES == flags & CLI_YES {
 		shitlist.set_flags(FLAG_Y);
 	}
 
 	// Are we just removing shitlist rules?
-	if args.switch(b"--disable") {
-		return shitlist.unwrite();
-	}
+	if CLI_DISABLE == flags & CLI_DISABLE { return shitlist.unwrite(); }
 
 	// Make sure we're online if in systemd mode.
 	if systemd { adbyss_core::check_internet()?; }
@@ -150,7 +168,7 @@ fn _main() -> Result<(), AdbyssError> {
 	let shitlist = shitlist.build()?;
 
 	// Just list the results.
-	if args.switch(b"--show") {
+	if CLI_SHOW == flags & CLI_SHOW {
 		use std::io::Write;
 
 		let raw: String = shitlist.into_vec().join("\n");
@@ -161,7 +179,7 @@ fn _main() -> Result<(), AdbyssError> {
 			.and_then(|()| handle.flush());
 	}
 	// Output to STDOUT? This is like `--show`, but formatted as a hosts file.
-	else if args.switch(b"--stdout") {
+	else if CLI_STDOUT == flags & CLI_STDOUT {
 		use std::io::Write;
 
 		let writer = std::io::stdout();
@@ -181,7 +199,7 @@ fn _main() -> Result<(), AdbyssError> {
 				NiceU64::from(shitlist.len()).as_str()
 			);
 		}
-		else if ! args.switch2(b"-q", b"--quiet") {
+		else if 0 == flags & CLI_QUIET {
 			Msg::success(
 				format!(
 					"{} unique hosts have been cast to a blackhole!",
