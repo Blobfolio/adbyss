@@ -2,6 +2,15 @@
 
 
 
+## [0.13.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.1) - 2024-10-17
+
+### Changed
+
+* Reduce intermediary string allocations during build
+* Update suffix database
+
+
+
 ## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - 2024-09-05
 
 ### Changed
