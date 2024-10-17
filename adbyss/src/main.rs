@@ -109,9 +109,8 @@ fn _main() -> Result<(), AdbyssError> {
 	require_root()?;
 
 	// Set up the parser.
-	let args = argyle::args().with_keywords(
-		include!(concat!(env!("OUT_DIR"), "/argyle.rs"))
-	);
+	let args = argyle::args()
+		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
 
 	// See what we've got!
 	let mut config = None;
