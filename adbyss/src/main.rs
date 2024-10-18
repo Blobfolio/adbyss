@@ -132,7 +132,9 @@ fn _main() -> Result<(), AdbyssError> {
 			},
 
 			// Nothing else is expected.
-			Argument::Other(s) => return Err(AdbyssError::InvalidCli(s.into_boxed_str())),
+			Argument::Other(s) => if s.starts_with('-') {
+				return Err(AdbyssError::InvalidCli(s.into_boxed_str()));
+			},
 			Argument::InvalidUtf8(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned().into_boxed_str())),
 			_ => {},
 		}
