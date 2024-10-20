@@ -2,7 +2,6 @@
 # Adbyss: Public Suffix - Build
 */
 
-use regex::Regex;
 use std::{
 	borrow::Cow,
 	cell::Cell,
@@ -203,9 +202,25 @@ fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String
 ///
 /// This loads and lightly cleans the raw Public Suffix List data.
 fn psl_fetch_suffixes() -> String {
-	let raw = load_file("public_suffix_list.dat");
-	let re = Regex::new(r"(?m)^\s*").unwrap();
-	re.replace_all(&raw, "").to_string()
+	let mut raw = load_file("public_suffix_list.dat");
+
+	// Remove leading whitespace at the start of each line.
+	let mut last = '\n';
+	raw.retain(|c: char|
+		if last == '\n' {
+			if c.is_whitespace() { false }
+			else {
+				last = c;
+				true
+			}
+		}
+		else {
+			last = c;
+			true
+		}
+	);
+
+	raw
 }
 
 /// # Format Wild Exceptions.
