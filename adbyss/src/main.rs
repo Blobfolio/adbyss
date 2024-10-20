@@ -1,5 +1,5 @@
 /*!
-# `Adbyss`
+# Adbyss
 */
 
 #![deny(
@@ -54,18 +54,21 @@
 
 
 
+mod err;
 mod settings;
+mod source;
+mod write;
 
-use adbyss_core::{
-	AdbyssError,
-	FLAG_Y,
-};
+use err::AdbyssError;
+use settings::Settings;
+use source::Source;
+use write::Shitlist;
+
 use argyle::Argument;
 use fyi_msg::Msg;
 use dactyl::NiceU64;
-use settings::Settings;
 use std::{
-	path::PathBuf,
+	io::Write,
 	process::Command,
 };
 
@@ -84,19 +87,24 @@ const CLI_SHOW: u8 =    0b0000_0100;
 const CLI_STDOUT: u8 =  0b0000_1000;
 
 /// # CLI: Systemd Mode.
-const CLI_SYSTEMD: u8 = 0b0001_0000;
+const CLI_SYSTEMD: u8 = 0b0011_0000; // Implies yes.
 
 /// # CLI: Yes to Prompts.
 const CLI_YES: u8 =     0b0010_0000;
+
+/// # Maximum Host Line.
+///
+/// The true limit is `256`; this adds a little padding for `0.0.0.0` and
+/// whitespace.
+const MAX_LINE: usize = 245;
 
 
 /// Main.
 fn main() {
 	match _main() {
-		Err(AdbyssError::PrintVersion) => {
-			println!(concat!("Adbyss v", env!("CARGO_PKG_VERSION")));
+		Err(e @ (AdbyssError::PrintHelp | AdbyssError::PrintVersion)) => {
+			println!("{e}");
 		},
-		Err(AdbyssError::PrintHelp) => { helper(); },
 		Err(e) => { Msg::error(e.to_string()).die(1); },
 		Ok(()) => {},
 	}
@@ -127,84 +135,64 @@ fn _main() -> Result<(), AdbyssError> {
 			Argument::Key("-h" | "--help") => return Err(AdbyssError::PrintHelp),
 			Argument::Key("-V" | "--version") => return Err(AdbyssError::PrintVersion),
 
-			Argument::KeyWithValue("-c" | "--config", s) => {
-				config.replace(PathBuf::from(s));
-			},
+			Argument::KeyWithValue("-c" | "--config", s) => { config.replace(s); },
 
 			// Nothing else is expected.
 			Argument::Other(s) => if s.starts_with('-') {
-				return Err(AdbyssError::InvalidCli(s.into_boxed_str()));
+				return Err(AdbyssError::InvalidCli(s));
 			},
-			Argument::InvalidUtf8(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned().into_boxed_str())),
+			Argument::InvalidUtf8(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned())),
 			_ => {},
 		}
 	}
 
-	// Load configuration. If the user specified one, go with that and print an
-	// error if the path is invalid. Otherwise look for a config at the default
-	// path and go with that if it exists. Otherwise just use the internal
-	// default settings.
-	let mut shitlist =
-		if let Some(sh) = config
-			.or_else(|| Some(Settings::config()).filter(|x| x.is_file()))
-		{
-			Settings::try_from(sh)?
-		}
-		else { Settings::default() }
-		.into_shitlist();
+	// Build the proper settings.
+	if config.is_none() && matches!(std::fs::exists(Settings::DEFAULT_CONFIG), Ok(true)) {
+		config.replace(Settings::DEFAULT_CONFIG.to_owned());
+	}
+	let settings =
+		if let Some(config) = config { Settings::from_file(config)? }
+		else { Settings::default() };
 
-	// Handle runtime flags.
-	let systemd = CLI_SYSTEMD == flags & CLI_SYSTEMD; // A special mode for systemd runs.
-	if systemd || CLI_YES == flags & CLI_YES {
-		shitlist.set_flags(FLAG_Y);
+	// Remove everything?
+	if CLI_DISABLE == flags & CLI_DISABLE {
+		return settings.unwrite(CLI_YES == flags & CLI_YES);
 	}
 
-	// Are we just removing shitlist rules?
-	if CLI_DISABLE == flags & CLI_DISABLE { return shitlist.unwrite(); }
+	// Make sure we're online if any sources other than our own are enabled.
+	if settings.needs_internet() { check_internet()?; }
 
-	// Make sure we're online if in systemd mode.
-	if systemd { adbyss_core::check_internet()?; }
-
-	// Build it.
-	let shitlist = shitlist.build()?;
-
-	// Just list the results.
+	// Just print the domains.
 	if CLI_SHOW == flags & CLI_SHOW {
-		use std::io::Write;
+		let shitlist = settings.shitlist()?.into_vec();
+		if shitlist.is_empty() { return Err(AdbyssError::NoShitlist); }
 
-		let raw: String = shitlist.into_vec().join("\n");
-		let writer = std::io::stdout();
-		let mut handle = writer.lock();
-		let _res = handle.write_all(raw.as_bytes())
-			.and_then(|()| handle.write_all(b"\n"))
-			.and_then(|()| handle.flush());
+		let mut handle = std::io::stdout().lock();
+		for v in shitlist { let _res = writeln!(&mut handle, "{v}"); }
+		let _res = handle.flush();
 	}
-	// Output to STDOUT? This is like `--show`, but formatted as a hosts file.
+	// Build the shitlist, but print it instead of saving it.
 	else if CLI_STDOUT == flags & CLI_STDOUT {
-		use std::io::Write;
-
-		let writer = std::io::stdout();
-		let mut handle = writer.lock();
-		let _res = handle.write_all(shitlist.as_bytes())
-			.and_then(|()| handle.write_all(b"\n"))
-			.and_then(|()| handle.flush());
+		let (out, _) = settings.build()?;
+		let mut handle = std::io::stdout().lock();
+		let _res = handle.write_all(out.as_bytes()).and_then(|()| handle.flush());
 	}
 	// Actually write the changes to the host file!
 	else {
-		shitlist.write()?;
+		let len = settings.write(CLI_YES == flags & CLI_YES)?;
 
 		// Summarize what we've done.
-		if systemd {
+		if CLI_SYSTEMD == flags & CLI_SYSTEMD {
 			println!(
 				"{} unique hosts have been cast to a blackhole!",
-				NiceU64::from(shitlist.len()).as_str()
+				NiceU64::from(len),
 			);
 		}
 		else if 0 == flags & CLI_QUIET {
 			Msg::success(
 				format!(
 					"{} unique hosts have been cast to a blackhole!",
-					NiceU64::from(shitlist.len()).as_str()
+					NiceU64::from(len),
 				)
 			).print();
 		}
@@ -213,48 +201,39 @@ fn _main() -> Result<(), AdbyssError> {
 	Ok(())
 }
 
-#[cold]
-/// Print Help.
-fn helper() {
-	println!(concat!(
-		r#"
- .--,       .--,
-( (  \.---./  ) )
- '.__/o   o\__.'
-    (=  ^  =)       "#, "\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
-     >  -  <        Block ads, trackers, malware, and
-    /       \       other garbage sites in /etc/hosts.
-   //       \\
-  //|   .   |\\
-  "'\       /'"_.-~^`'-.
-     \  _  /--'         `
-   ___)( )(___
+/// # Check Internet.
+///
+/// This method attempts to check for an internet connection by trying to reach
+/// Github (which is serving one of the lists Adbyss needs anyway). It will
+/// give it ten tries, with ten seconds in between each try, returning an
+/// error if nothing has been reached after that.
+///
+/// ## Errors
+///
+/// If the site can't be reached, an error will be returned.
+fn check_internet() -> Result<(), AdbyssError> {
+	use std::{
+		thread::sleep,
+		time::Duration,
+	};
 
-USAGE:
-    adbyss [FLAGS] [OPTIONS]
+	let mut tries: u8 = 0;
+	loop {
+		// Are you there?
+		let res = minreq::head("https://github.com/")
+			.with_header("user-agent", "Mozilla/5.0")
+			.with_timeout(15)
+			.send();
 
-FLAGS:
-        --disable      Remove *all* Adbyss entries from the hostfile.
-    -h, --help         Prints help information.
-    -q, --quiet        Do *not* summarize changes after write.
-        --show         Print a sorted blackholable hosts list to STDOUT, one per
-                       line.
-        --stdout       Print the would-be hostfile to STDOUT instead of writing
-                       it to disk.
-    -V, --version      Prints version information.
-    -y, --yes          Non-interactive mode; answer "yes" to all prompts.
+		if res.map_or(false, |r| r.status_code == 200) { return Ok(()); }
 
-OPTIONS:
-    -c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
+		// Out of tries?
+		if tries == 9 { return Err(AdbyssError::NoInternet); }
 
-SOURCES:
-    AdAway:       <https://adaway.org/>
-    Steven Black: <https://github.com/StevenBlack/hosts>
-    Yoyo:         <https://pgl.yoyo.org/adservers/>
-
-Additional global settings are stored in /etc/adbyss.yaml.
-"#
-	));
+		// Wait and try again.
+		tries += 1;
+		sleep(Duration::from_secs(10));
+	}
 }
 
 #[expect(unsafe_code, reason = "For root.")]

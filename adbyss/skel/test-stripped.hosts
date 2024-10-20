@@ -1,0 +1,27 @@
+#############
+# Localhost #
+#############
+
+127.0.0.1 localhost
+172.19.0.2 mysql
+
+##################
+# Manual Records #
+##################
+
+50.116.18.174 blobfolio.com www.blobfolio.com
+2a03:2880:f10d:183:face:b00c:0:25de facebook.com
+
+
+########
+# IPv6 #
+########
+
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+
+198.143.164.252 wordpress.org # Don't strip me!

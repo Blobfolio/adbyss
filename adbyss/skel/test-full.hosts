@@ -1,0 +1,54 @@
+#############
+# Localhost #
+#############
+
+127.0.0.1 localhost
+172.19.0.2 mysql
+
+##################
+# Manual Records #
+##################
+
+50.116.18.174 blobfolio.com www.blobfolio.com
+2a03:2880:f10d:183:face:b00c:0:25de facebook.com
+
+
+########
+# IPv6 #
+########
+
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+##########
+# ADBYSS #
+##########
+0.0.0.0 0-1x.8632152.xyz www.0-1x.8632152.xyz
+0.0.0.0 0-7l45.cfd www.0-7l45.cfd
+0.0.0.0 0-a5e1.sbs www.0-a5e1.sbs
+0.0.0.0 0-c1j0.lat www.0-c1j0.lat
+## End of Adbyss Rules ##
+
+##########
+# ADBYSS #
+##########
+# Repeated.
+0.0.0.0 0-1x.8632152.xyz www.0-1x.8632152.xyz
+0.0.0.0 0-7l45.cfd www.0-7l45.cfd
+0.0.0.0 0-a5e1.sbs www.0-a5e1.sbs
+0.0.0.0 0-c1j0.lat www.0-c1j0.lat
+
+## End of Adbyss Rules ##
+198.143.164.252 wordpress.org # Don't strip me!
+
+##########
+# ADBYSS #
+##########
+# Repeated again, but no end marker.
+0.0.0.0 0-1x.8632152.xyz www.0-1x.8632152.xyz
+0.0.0.0 0-7l45.cfd www.0-7l45.cfd
+0.0.0.0 0-a5e1.sbs www.0-a5e1.sbs
+0.0.0.0 0-c1j0.lat www.0-c1j0.lat
