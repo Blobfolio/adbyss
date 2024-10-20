@@ -4,14 +4,12 @@
 
 use std::{
 	borrow::Cow,
-	cell::Cell,
 	collections::{
 		BTreeMap,
 		HashMap,
 		HashSet,
 	},
 	env,
-	fmt,
 	fs::File,
 	io::Write,
 	path::PathBuf,
@@ -141,19 +139,31 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// Separate keys and values.
 	let (map_keys, map_values): (Vec<&str>, Vec<Cow<str>>) = map.into_iter().unzip();
 
-	// Format the arrays.
-	let map = format!(
-		r#"/// # Map Keys.
-const MAP_K: &[&[u8]; {len}] = &[{}];
+	// Constant codegen.
+	let mut out = String::with_capacity(340_000);
+	out.push_str("/// # Map Keys.\nconst MAP_K: &[&[u8]] = &[\n");
+	for chunk in map_keys.chunks(256) {
+		out.push('\t');
+		for v in chunk {
+			use std::fmt::Write;
+			write!(&mut out, "b{v:?}, ").unwrap();
+		}
+		out.truncate(out.len() - 1);
+		out.push('\n');
+	}
+	out.push_str("];\n\n/// # Map Values.\nconst MAP_V: &[SuffixKind] = &[\n");
+	for chunk in map_values.chunks(256) {
+		out.push('\t');
+		for v in chunk {
+			use std::fmt::Write;
+			write!(&mut out, "{v}, ").unwrap();
+		}
+		out.truncate(out.len() - 1);
+		out.push('\n');
+	}
+	out.push_str("];\n\n");
 
-/// # Map Values.
-const MAP_V: &[SuffixKind; {len}] = &[{}];
-"#,
-		NiceMapKeys(map_keys),
-		JoinFmt::new(map_values.into_iter(), ", "),
-	);
-
-	(map, wild_kinds, wild_arms)
+	(out, wild_kinds, wild_arms)
 }
 
 /// # Build Wild Enum.
@@ -348,84 +358,4 @@ fn out_path(name: &str) -> PathBuf {
 	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
 	out.push(name);
 	out
-}
-
-
-
-/// # Simple Joiner.
-///
-/// This helps us avoid intermediary string allocation when joining values.
-struct JoinFmt<'a, I: Iterator>
-where <I as Iterator>::Item: fmt::Display {
-	/// # Wrapped Iterator.
-	iter: Cell<Option<I>>,
-
-	/// # The Glue.
-	glue: &'a str,
-}
-
-impl<'a, I: Iterator> JoinFmt<'a, I>
-where <I as Iterator>::Item: fmt::Display {
-	#[inline]
-	/// # New.
-	const fn new(iter: I, glue: &'a str) -> Self {
-		Self {
-			iter: Cell::new(Some(iter)),
-			glue,
-		}
-	}
-}
-
-impl<I: Iterator> fmt::Display for JoinFmt<'_, I>
-where <I as Iterator>::Item: fmt::Display {
-	#[track_caller]
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		// The iterator is consumed during invocation so we can only do this
-		// once!
-		let mut iter = self.iter.take().ok_or(fmt::Error)?;
-
-		// If the glue is empty, just run through everything in one go.
-		if self.glue.is_empty() {
-			for v in iter { <I::Item as fmt::Display>::fmt(&v, f)?; }
-		}
-		// Otherwise start with the first first, then loop through the rest,
-		// adding the glue at the start of each pass.
-		else if let Some(v) = iter.next() {
-			<I::Item as fmt::Display>::fmt(&v, f)?;
-
-			// Finish it!
-			for v in iter {
-				f.write_str(self.glue)?;
-				<I::Item as fmt::Display>::fmt(&v, f)?;
-			}
-		}
-
-		Ok(())
-	}
-}
-
-
-
-/// # Nice Map Keys.
-///
-/// This helps us avoid intermediary string allocation when formatting the
-/// codegen.
-struct NiceMapKeys<'a>(Vec<&'a str>);
-
-impl<'a> fmt::Display for NiceMapKeys<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let mut iter = self.0.iter();
-		if let Some(k) = iter.next() {
-			// The first by itself.
-			write!(f, "b{k:?}")?;
-
-			// The rest get leading separators.
-			for k in iter {
-				f.write_str(", ")?;
-				write!(f, "b{k:?}")?;
-			}
-		}
-
-		Ok(())
-	}
 }
