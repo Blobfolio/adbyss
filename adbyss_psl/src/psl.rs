@@ -35,13 +35,14 @@ impl SuffixKind {
 	///
 	/// Match a suffix from a byte slice, e.g. `b"com"`.
 	pub(super) fn from_slice(src: &[u8]) -> Option<Self> {
-		if src == b"com" || src == b"net" || src == b"org" { Some(Self::Tld) }
+		if src.len() == 3 && (src == b"com" || src == b"net" || src == b"org") {
+			Some(Self::Tld)
+		}
 		else {
 			// Make sure the compiler understands a key for one is a key for
 			// all!
 			const { assert!(MAP_K.len() == MAP_V.len(), "BUG: MAP_K and MAP_V have different sizes?!"); }
 
-			let src: u64 = crate::AHASHER.hash_one(src);
 			let idx = MAP_K.binary_search(&src).ok()?;
 			Some(MAP_V[idx])
 		}

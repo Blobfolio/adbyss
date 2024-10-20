@@ -110,18 +110,18 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// Combine the main and wild data into a single, deduped map, sorted for
 	// binary search compatibility, which is how lookups will end up working on
 	// the runtime side of the equation.
-	let map: BTreeMap<u64, Cow<str>> = main.iter()
+	let map: BTreeMap<&str, Cow<str>> = main.iter()
 		.filter_map(|host|
 			// We handle these three common cases manually for performance
 			// reasons.
 			if host == "com" || host == "net" || host == "org" { None }
 			else {
-				Some((hash_tld(host.as_bytes()), Cow::Borrowed("SuffixKind::Tld")))
+				Some((host.as_str(), Cow::Borrowed("SuffixKind::Tld")))
 			}
 		)
 		.chain(
 			wild.iter().map(|(host, ex)| {
-				let hash = hash_tld(host.as_bytes());
+				let hash = host.as_str();
 				if ex.is_empty() {
 					(hash, Cow::Borrowed("SuffixKind::Wild"))
 				}
@@ -140,12 +140,12 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	assert_eq!(len, main.len() + wild.len() - 3, "Duplicate PSL hash keys!");
 
 	// Separate keys and values.
-	let (map_keys, map_values): (Vec<u64>, Vec<Cow<str>>) = map.into_iter().unzip();
+	let (map_keys, map_values): (Vec<&str>, Vec<Cow<str>>) = map.into_iter().unzip();
 
 	// Format the arrays.
 	let map = format!(
 		r#"/// # Map Keys.
-const MAP_K: &[u64; {len}] = &[{}];
+const MAP_K: &[&[u8]; {len}] = &[{}];
 
 /// # Map Values.
 const MAP_V: &[SuffixKind; {len}] = &[{}];
@@ -325,25 +325,6 @@ fn load_file(name: &str) -> String {
 	}
 }
 
-/// # Hash TLD.
-///
-/// This is just a simple wrapper to convert a slice into a u64, used by the
-/// suffix map builder.
-///
-/// In testing, the `ahash` algorithm is far and away the fastest, so that is
-/// what we use, both during build and at runtime (i.e. search needles) during
-/// lookup matching.
-fn hash_tld(src: &[u8]) -> u64 {
-	// Note: this needs to match the version exported by lib.rs!
-	const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
-		0x8596_cc44_bef0_1aa0,
-		0x98d4_0948_da60_19ae,
-		0x49f1_3013_c503_a6aa,
-		0xc4d7_82ff_3c9f_7bef,
-	);
-	AHASHER.hash_one(src)
-}
-
 /// # Out path.
 ///
 /// This generates a (file/dir) path relative to `OUT_DIR`.
@@ -414,80 +395,22 @@ where <I as Iterator>::Item: fmt::Display {
 ///
 /// This helps us avoid intermediary string allocation when formatting the
 /// codegen.
-struct NiceMapKeys(Vec<u64>);
+struct NiceMapKeys<'a>(Vec<&'a str>);
 
-impl fmt::Display for NiceMapKeys {
-	#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
-	#[expect(unsafe_code, reason = "Content is ASCII.")]
+impl<'a> fmt::Display for NiceMapKeys<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		// A buffer to hold stringified numbers. The initial value doesn't really
-		// matter, but by starting with u64::MAX we can make sure that all commas
-		// are in the right place and we have enough space for any u64.
-		let mut buf: [u8; 26] = *b"18_446_744_073_709_551_615";
+		let mut iter = self.0.iter();
+		if let Some(k) = iter.next() {
+			// The first by itself.
+			write!(f, "b{k:?}")?;
 
-		let mut any = false;
-		for mut num in self.0.iter().copied() {
-			let mut from = buf.len();
-
-			// Stringify the trailing triplets first, if any.
-			for chunk in buf.rchunks_exact_mut(4) {
-				if 999 < num {
-					chunk[1..].copy_from_slice(Self::triple((num % 1000) as usize).as_slice());
-					num /= 1000;
-					from -= 4;
-				}
-				else { break; }
+			// The rest get leading separators.
+			for k in iter {
+				f.write_str(", ")?;
+				write!(f, "b{k:?}")?;
 			}
-
-			// Three more.
-			if 99 < num {
-				from -= 3;
-				buf[from..from + 3].copy_from_slice(Self::triple(num as usize).as_slice());
-			}
-			// Two more.
-			else if 9 < num {
-				from -= 2;
-				buf[from..from + 2].copy_from_slice(Self::DOUBLE[num as usize].as_slice());
-			}
-			// One more.
-			else {
-				from -= 1;
-				buf[from] = (num as u8) + b'0';
-			}
-
-			// Separate the last thing we wrote with a comma.
-			if any { f.write_str(", ")?; }
-			else { any = true; }
-
-			// Safety: everything we've written/inherited will be an ASCII digit.
-			f.write_str(unsafe {
-				std::str::from_utf8_unchecked(&buf[from..])
-			})?;
 		}
 
 		Ok(())
-	}
-}
-
-impl NiceMapKeys {
-	/// # Decimals, 00-99.
-	const DOUBLE: [[u8; 2]; 100] = [
-		[48, 48], [48, 49], [48, 50], [48, 51], [48, 52], [48, 53], [48, 54], [48, 55], [48, 56], [48, 57],
-		[49, 48], [49, 49], [49, 50], [49, 51], [49, 52], [49, 53], [49, 54], [49, 55], [49, 56], [49, 57],
-		[50, 48], [50, 49], [50, 50], [50, 51], [50, 52], [50, 53], [50, 54], [50, 55], [50, 56], [50, 57],
-		[51, 48], [51, 49], [51, 50], [51, 51], [51, 52], [51, 53], [51, 54], [51, 55], [51, 56], [51, 57],
-		[52, 48], [52, 49], [52, 50], [52, 51], [52, 52], [52, 53], [52, 54], [52, 55], [52, 56], [52, 57],
-		[53, 48], [53, 49], [53, 50], [53, 51], [53, 52], [53, 53], [53, 54], [53, 55], [53, 56], [53, 57],
-		[54, 48], [54, 49], [54, 50], [54, 51], [54, 52], [54, 53], [54, 54], [54, 55], [54, 56], [54, 57],
-		[55, 48], [55, 49], [55, 50], [55, 51], [55, 52], [55, 53], [55, 54], [55, 55], [55, 56], [55, 57],
-		[56, 48], [56, 49], [56, 50], [56, 51], [56, 52], [56, 53], [56, 54], [56, 55], [56, 56], [56, 57],
-		[57, 48], [57, 49], [57, 50], [57, 51], [57, 52], [57, 53], [57, 54], [57, 55], [57, 56], [57, 57]
-	];
-
-	#[inline]
-	const fn triple(idx: usize) -> [u8; 3] {
-		let a = idx.wrapping_div(100) as u8 + b'0';
-		let [b, c] = Self::DOUBLE[idx % 100];
-		[a, b, c]
 	}
 }
