@@ -95,6 +95,8 @@ fn psl() {
 /// * Wild: a TLD that comprises both the explicit entry, as well as any arbitrary "subdomain".
 /// * Wild-But: a Wild entry that contains one or more exceptions to chunks that may precede it.
 fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String) {
+	use std::fmt::Write;
+
 	// The wild stuff is the hardest.
 	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
 
@@ -107,15 +109,8 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 	// Combine the main and wild data into a single, deduped map, sorted for
 	// binary search compatibility, which is how lookups will end up working on
 	// the runtime side of the equation.
-	let map: BTreeMap<&str, Cow<str>> = main.iter()
-		.filter_map(|host|
-			// We handle these three common cases manually for performance
-			// reasons.
-			if host == "com" || host == "net" || host == "org" { None }
-			else {
-				Some((host.as_str(), Cow::Borrowed("SuffixKind::Tld")))
-			}
-		)
+	let mut map: BTreeMap<&str, Cow<str>> = main.iter()
+		.map(|host| (host.as_str(), Cow::Borrowed("SuffixKind::Tld")))
 		.chain(
 			wild.iter().map(|(host, ex)| {
 				let hash = host.as_str();
@@ -131,38 +126,82 @@ fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, Stri
 		)
 		.collect();
 
-	// Double-check the lengths; if there's a mismatch we found an (improbable)
-	// hash collision and need to fix it.
-	let len: usize = map.len();
-	assert_eq!(len, main.len() + wild.len() - 3, "Duplicate PSL hash keys!");
+	// Almost half of all domain registrations use .com; we've got specialized
+	// match logic for it so can leave it out of the map.
+	map.remove("com");
 
-	// Separate keys and values.
-	let (map_keys, map_values): (Vec<&str>, Vec<Cow<str>>) = map.into_iter().unzip();
+	// Make sure we didn't lose anything.
+	assert_eq!(
+		map.len(),
+		main.len() + wild.len() - 1,
+		"Main and Wild maps have overlapping keys!",
+	);
 
-	// Constant codegen.
-	let mut out = String::with_capacity(340_000);
-	out.push_str("/// # Map Keys.\nconst MAP_K: &[&[u8]] = &[\n");
-	for chunk in map_keys.chunks(256) {
-		out.push('\t');
-		for v in chunk {
-			use std::fmt::Write;
-			write!(&mut out, "b{v:?}, ").unwrap();
-		}
-		out.truncate(out.len() - 1);
-		out.push('\n');
+	// Reorganize the list by part count since we'll have to split domains into
+	// parts while searching anyway.
+	let mut grouped: BTreeMap<usize, BTreeMap<&str, &str>> = BTreeMap::new();
+	for (k, v) in map.iter() {
+		let count = k.split('.').count();
+		grouped.entry(count).or_default().insert(k, v);
 	}
-	out.push_str("];\n\n/// # Map Values.\nconst MAP_V: &[SuffixKind] = &[\n");
-	for chunk in map_values.chunks(256) {
-		out.push('\t');
-		for v in chunk {
-			use std::fmt::Write;
-			write!(&mut out, "{v}, ").unwrap();
-		}
-		out.truncate(out.len() - 1);
-		out.push('\n');
-	}
-	out.push_str("];\n\n");
 
+	// The *real* maximum part limit is one higher than we found above since
+	// wildcards can match anything.
+	let max_parts = grouped.keys().last().unwrap() + 1;
+	let mut out = String::with_capacity(365_000);
+	writeln!(
+		&mut out,
+		"/// # Max Parts (Matchable).
+const MAX_PARTS: usize = {max_parts};
+"
+	).unwrap();
+
+	// Generate constant maps for each of the grouped suffixes.
+	for (count, set) in grouped.iter() {
+		writeln!(
+			&mut out,
+			"/// # TLDs w/ {count} Part(s).
+const MAP_{count}: &[(&[u8], SuffixKind)] = &[",
+		).unwrap();
+		let set = set.iter().collect::<Vec<_>>();
+		for chunk in set.chunks(256) {
+			out.push('\t');
+			for (k, v) in chunk {
+				write!(&mut out, "(b{k:?}, {v}), ").unwrap();
+			}
+			out.truncate(out.len() - 1);
+			out.push('\n');
+		}
+		out.push_str("];\n\n");
+	}
+
+	// Generate a finder helper that links a count to the appropriate map.
+	out.push_str(
+"impl SuffixKind {
+	/// # Suffix Kind From Slice.
+	///
+	/// Match a suffix from a byte slice, e.g. `com`.
+	pub(super) fn from_parts(src: &[u8], parts: usize) -> Option<Self> {
+		let map = match parts {\n");
+	for count in grouped.keys() {
+		// The aforementioned specialization for .com goes here!
+		if *count == 1 {
+			out.push_str("\t\t\t1 =>
+\t\t\t\tif src == b\"com\" { return Some(Self::Tld); }
+\t\t\t\telse { MAP_1 },");
+		}
+		// Otherwise just map the map.
+		else {
+			writeln!(&mut out, "\t\t\t{count} => MAP_{count},").unwrap();
+		}
+	}
+	out.push_str("\t\t\t_ => return None,
+\t\t};
+\t\tlet pos = map.binary_search_by_key(&src, |(a, _)| a).ok()?;
+\t\tSome(map[pos].1)
+\t}\n}\n\n");
+
+	// Return everything!
 	(out, wild_kinds, wild_arms)
 }
 
