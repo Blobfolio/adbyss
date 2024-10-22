@@ -148,20 +148,6 @@ use std::{
 
 
 
-/// # Static Hasher.
-///
-/// This hasher is used internally for searching the (large) public suffix map,
-/// and re-exported just in case any downstream users want to leverage the same
-/// state for whatever reason.
-pub const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
-	0x8596_cc44_bef0_1aa0,
-	0x98d4_0948_da60_19ae,
-	0x49f1_3013_c503_a6aa,
-	0xc4d7_82ff_3c9f_7bef,
-);
-
-
-
 #[derive(Debug, Default, Clone)]
 /// # Domain.
 ///
@@ -429,13 +415,23 @@ impl Domain {
 	/// It exists mainly to reduce duplicate code and the accidental
 	/// inconsistencies that stem from it.
 	fn from_ascii_string(host: String) -> Option<Self> {
-		let (mut d, s) = find_dots(host.as_bytes())?;
-		if 0 != d { d += 1; }
-		Some(Self {
-			root: d..s - 1,
-			suffix: s..host.len(),
-			host,
-		})
+		let bytes = host.as_bytes();
+		let len = bytes.len();
+
+		// Find the suffix.
+		let suffix = find_suffix(bytes)?;
+		let suffix = len.checked_sub(suffix.len())?..len;
+
+		// Find the root (and make sure there is one).
+		let root_end = suffix.start.checked_sub(1)?;
+		let root = bytes.iter()
+			.copied()
+			.take(root_end)
+			.rposition(|b| b == b'.')
+			.map_or(0, |pos| pos + 1)..root_end;
+
+		// Done!
+		Some(Self { host, root, suffix })
 	}
 }
 
@@ -602,8 +598,7 @@ impl Domain {
 	/// assert_eq!(dom.subdomain(), Some("www"));
 	/// ```
 	pub fn subdomain(&self) -> Option<&str> {
-		if self.root.start > 0 { Some(&self.host[0..self.root.start - 1]) }
-		else { None }
+		self.root.start.checked_sub(1).map(|pos| &self.host[..pos])
 	}
 
 	#[must_use]
@@ -692,50 +687,46 @@ impl<'de> serde::Deserialize<'de> for Domain {
 
 
 
-/// # Find Dots.
+/// # Find Suffix.
 ///
-/// The hardest part of suffix validation is teasing the suffix out of the
-/// hostname. Odd.
+/// Find and return the largest matching suffix, if any.
 ///
-/// The suffix cannot be the whole of the thing, but should be the biggest
-/// matching chunk of the host.
-///
-/// If a match is found, the location of the start of the root (its dot, or zero)
-/// is returned along with the starting index of the suffix (after its dot).
-fn find_dots(host: &[u8]) -> Option<(usize, usize)> {
-	// We can avoid all this if the host is too short or only consists of a TLD.
-	if host.len() < 3 || SuffixKind::from_slice(host).is_some() { return None; }
+/// Note this method can potentially return a match for the entire host, which
+/// isn't valid for our purposes. The caller (`from_ascii_string`) has to
+/// check for that edge case anyway, so it'll fail there if not here.
+fn find_suffix(host: &[u8]) -> Option<&[u8]> {
+	// We can avoid all this if the host is too short.
+	if host.len() < 3 { return None; }
 
-	let mut last: usize = 0;
-	let mut dot: usize = 0;
-	for (idx, _) in host.iter().enumerate().filter(|(_, &b)| b'.' == b) {
-		if let Some(suffix) = host.get(idx + 1..).and_then(SuffixKind::from_slice) {
-			return match suffix {
-				SuffixKind::Tld => Some((dot, idx + 1)),
-				SuffixKind::Wild =>
-					if dot == 0 { None }
-					else { Some((last, dot + 1)) },
-				SuffixKind::WildEx(ex) => {
-					// Our last chunk might start at zero instead of dot-plus-one.
-					let after_dot: usize =
-						if dot == 0 { 0 }
-						else { dot + 1 };
+	// Note the parts array is backwards, so `.rev()` gives us biggest to
+	// smallest.
+	let parts = SuffixKind::suffix_parts(host);
+	for (idx, part) in parts.iter().copied().enumerate().rev().skip(1) {
+		if let Some(part) = part {
+			match SuffixKind::from_parts(part, idx + 1) {
+				// Normal TLD, direct hit!
+				Some(SuffixKind::Tld) => return Some(part),
 
-					// This matches a wildcard exception, making the found suffix
-					// the true suffix.
-					if host.get(after_dot..idx).map_or(false, |h| ex.is_match(h)) {
-						Some((dot, idx + 1))
+				// Wildcards match the earlier (bigger) part.
+				Some(SuffixKind::Wild) => return parts[idx + 1],
+
+				// Wildcards with exceptions might match either the current
+				// part or the earlier (bigger) one, depending on the value.
+				Some(SuffixKind::WildEx(ex)) => {
+					// Pull the earlier (bigger) chunk.
+					let next = parts[idx + 1]?;
+
+					// If the difference between it and the current (minus the
+					// dot) is an exception, the current part *is* the TLD.
+					if ex.is_match(&next[..next.len() - part.len() - 1]) {
+						return Some(part);
 					}
-					// There has to be a before-before part.
-					else if dot == 0 { None }
-					// Otherwise the last chunk is part of the suffix.
-					else { Some((last, after_dot)) }
+					// Otherwise the earlier (bigger) part is the TLD.
+					return Some(next);
 				},
-			};
+				_ => {},
+			}
 		}
-
-		std::mem::swap(&mut dot, &mut last);
-		dot = idx;
 	}
 
 	None

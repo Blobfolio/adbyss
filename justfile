@@ -18,14 +18,13 @@
 pkg_id      := "adbyss"
 pkg_name    := "Adbyss"
 pkg_dir1    := justfile_directory() + "/adbyss"
-pkg_dir2    := justfile_directory() + "/adbyss_core"
-pkg_dir3    := justfile_directory() + "/adbyss_psl"
+pkg_dir2    := justfile_directory() + "/adbyss_psl"
 
 cargo_dir   := "/tmp/" + pkg_id + "-cargo"
 cargo_bin   := cargo_dir + "/release/" + pkg_id
 doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
-skel_dir    := pkg_dir3 + "/skel"
+skel_dir    := pkg_dir2 + "/skel"
 
 export RUSTFLAGS := "-C target-cpu=x86-64-v3"
 
@@ -71,7 +70,7 @@ bench BENCH="":
 		-p {{ pkg_id }} \
 		-o "{{ release_dir }}"
 
-	just _fix-chown "{{ pkg_dir3 }}"
+	just _fix-chown "{{ pkg_dir2 }}"
 	just _fix-chown "{{ release_dir }}"
 	mv "{{ justfile_directory() }}/target" "{{ cargo_dir }}"
 
@@ -85,7 +84,6 @@ bench BENCH="":
 	[ ! -d "{{ justfile_directory() }}/target" ] || rm -rf "{{ justfile_directory() }}/target"
 	[ ! -d "{{ pkg_dir1 }}/target" ] || rm -rf "{{ pkg_dir1 }}/target"
 	[ ! -d "{{ pkg_dir2 }}/target" ] || rm -rf "{{ pkg_dir2 }}/target"
-	[ ! -d "{{ pkg_dir3 }}/target" ] || rm -rf "{{ pkg_dir3 }}/target"
 
 	cargo update -w
 
@@ -112,7 +110,7 @@ bench BENCH="":
 @doc:
 	# Make the docs.
 	cargo +nightly rustdoc \
-		--manifest-path "{{ pkg_dir3 }}/Cargo.toml" \
+		--manifest-path "{{ pkg_dir2 }}/Cargo.toml" \
 		--release \
 		--all-features \
 		--target-dir "{{ cargo_dir }}" \
@@ -191,7 +189,6 @@ version:
 	# Set the release version!
 	just _version "{{ pkg_dir1 }}" "$_ver2"
 	just _version "{{ pkg_dir2 }}" "$_ver2"
-	just _version "{{ pkg_dir3 }}" "$_ver2"
 
 
 # Set version for real.

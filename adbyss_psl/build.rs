@@ -2,17 +2,15 @@
 # Adbyss: Public Suffix - Build
 */
 
-use regex::Regex;
 use std::{
 	borrow::Cow,
-	cell::Cell,
 	collections::{
 		BTreeMap,
+		BTreeSet,
 		HashMap,
 		HashSet,
 	},
 	env,
-	fmt,
 	fs::File,
 	io::Write,
 	path::PathBuf,
@@ -36,7 +34,6 @@ type RawWildMap = HashMap<String, Vec<String>>;
 /// * IDNA/Unicode unit tests;
 pub fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
-	println!("cargo:rerun-if-changed=skel/psl.rs.txt");
 	println!("cargo:rerun-if-changed=skel/raw/public_suffix_list.dat");
 
 	psl();
@@ -66,169 +63,203 @@ fn psl() {
 	}
 
 	// Reformat it.
-	let (
-		map,
-		wild_kinds,
-		wild_arms,
-	) = psl_build_list(&psl_main, &psl_wild);
+	let out = psl_build(&psl_main, &psl_wild);
 
 	// Our generated script will live here.
-	let mut file = File::create(out_path("adbyss-psl.rs"))
-		.expect("Unable to create adbyss-psl.rs");
-
-	// Save it!
-	write!(
-		&mut file,
-		include_str!("./skel/psl.rs.txt"),
-		map = map,
-		wild_kinds = wild_kinds,
-		wild_arms = wild_arms,
-	)
-		.and_then(|_| file.flush())
+	File::create(out_path("adbyss-psl.rs"))
+		.and_then(|mut file|
+			file.write_all(out.as_bytes()).and_then(|()| file.flush())
+		)
 		.expect("Unable to save reference list.");
 }
 
-/// # Build List.
+/// # Codegen.
 ///
-/// This method crunches the (pre-filtered) Public Suffix data into a static
-/// hash map we can query at runtime.
+/// This method crunches the (pre-filtered) Public Suffix data into static maps
+/// we can query at runtime, and provides methods for querying them.
 ///
 /// Ultimately, there are three kinds of entries:
 /// * TLD: a normal TLD.
 /// * Wild: a TLD that comprises both the explicit entry, as well as any arbitrary "subdomain".
 /// * Wild-But: a Wild entry that contains one or more exceptions to chunks that may precede it.
-fn psl_build_list(main: &RawMainMap, wild: &RawWildMap) -> (String, String, String) {
-	// The wild stuff is the hardest.
-	let (wild_map, wild_kinds, wild_arms) = psl_build_wild(wild);
+fn psl_build(main: &RawMainMap, wild: &RawWildMap) -> String {
+	use std::fmt::Write;
 
-	// We assume com/net/org are normal; let's verify that!
-	for i in ["com", "net", "org"] {
-		assert!(main.contains(i), "Normal tld list missing {i}!");
-		assert!(! wild.contains_key(i), "Wild list contains {i}!");
-	}
+	// Pre-stringify and count the wildcard exceptions. There should only be
+	// a couple of them.
+	let wild_ex: BTreeMap<String, usize> = wild.values()
+		.filter_map(|ex| psl_format_wild(ex))
+		.collect::<BTreeSet<String>>()
+		.into_iter()
+		.enumerate()
+		.map(|(v, k)| (k, v))
+		.collect();
 
 	// Combine the main and wild data into a single, deduped map, sorted for
-	// binary search compatibility, which is how lookups will end up working on
-	// the runtime side of the equation.
-	let map: BTreeMap<u64, Cow<str>> = main.iter()
-		.filter_map(|host|
-			// We handle these three common cases manually for performance
-			// reasons.
-			if host == "com" || host == "net" || host == "org" { None }
-			else {
-				Some((hash_tld(host.as_bytes()), Cow::Borrowed("SuffixKind::Tld")))
-			}
-		)
+	// binary search compatibility.
+	assert!(main.contains("com"), "Normal tld list missing COM!");
+	let mut map: BTreeMap<&str, Cow<str>> = main.iter()
+		.map(|host| (host.as_str(), Cow::Borrowed("SuffixKind::Tld")))
 		.chain(
-			wild.iter().map(|(host, ex)| {
-				let hash = hash_tld(host.as_bytes());
-				if ex.is_empty() {
-					(hash, Cow::Borrowed("SuffixKind::Wild"))
-				}
+			wild.iter().map(|(host, ex)|
+				if ex.is_empty() { (host.as_str(), Cow::Borrowed("SuffixKind::Wild")) }
 				else {
-					let ex = psl_format_wild(ex);
-					let ex = wild_map.get(&ex).expect("Missing wild arm.");
-					(hash, Cow::Owned(format!("SuffixKind::WildEx(WildKind::{ex})")))
+					// Allocating a new string for the lookup sucks, but there
+					// aren't many exceptions so this doesn't run often.
+					let ex = psl_format_wild(ex).and_then(|ex| wild_ex.get(&ex))
+						.expect("Missing wild arm.");
+					(host.as_str(), Cow::Owned(format!("SuffixKind::WildEx(WildKind::Ex{ex})")))
 				}
-			})
+			)
 		)
 		.collect();
 
-	// Double-check the lengths; if there's a mismatch we found an (improbable)
-	// hash collision and need to fix it.
-	let len: usize = map.len();
-	assert_eq!(len, main.len() + wild.len() - 3, "Duplicate PSL hash keys!");
+	// Almost half of all domain registrations use .com; we specialize its
+	// matching so can remove it from the lookup map.
+	map.remove("com");
 
-	// Separate keys and values.
-	let (map_keys, map_values): (Vec<u64>, Vec<Cow<str>>) = map.into_iter().unzip();
-
-	// Format the arrays.
-	let map = format!(
-		r#"/// # Map Keys.
-const MAP_K: &[u64; {len}] = &[{}];
-
-/// # Map Values.
-const MAP_V: &[SuffixKind; {len}] = &[{}];
-"#,
-		NiceMapKeys(map_keys),
-		JoinFmt::new(map_values.into_iter(), ", "),
+	// Make sure we didn't lose anything.
+	assert_eq!(
+		map.len(),
+		main.len() + wild.len() - 1,
+		"Main and Wild maps have overlapping keys!",
 	);
 
-	(map, wild_kinds, wild_arms)
-}
-
-/// # Build Wild Enum.
-///
-/// There aren't very many wildcard exceptions, so we end up storing them as a
-/// static enum at runtime. A matcher function is generated with the
-/// appropriate branch tests, which will either be a straight slice comparison
-/// or a `[].contains`-type match.
-fn psl_build_wild(wild: &RawWildMap) -> (HashMap<String, String>, String, String) {
-	// Let's start with the wild kinds and wild arms.
-	let mut tmp: Vec<String> = wild.values()
-		.filter_map(|ex|
-			if ex.is_empty() { None }
-			else { Some(psl_format_wild(ex)) }
-		)
-		.collect();
-	tmp.sort();
-	tmp.dedup();
-
-	let mut wild_kinds: Vec<String> = Vec::new();
-	let mut wild_map: HashMap<String, String> = HashMap::new();
-	for (k, v) in tmp.into_iter().enumerate() {
-		let name = format!("Ex{k}");
-		wild_kinds.push(format!("{name},"));
-		wild_map.insert(v, name);
+	// Reorganize the list by part count since we'll have to split domains into
+	// parts while searching anyway.
+	let mut grouped: BTreeMap<usize, BTreeMap<&str, &str>> = BTreeMap::new();
+	for (k, v) in map.iter() {
+		let count = k.split('.').count();
+		grouped.entry(count).or_default().insert(k, v);
 	}
 
-	// If there aren't any wild exceptions, we can just return an empty
-	// placeholder that will never be referenced.
-	if wild_kinds.is_empty() {
-		return (wild_map, "\tNone,".to_owned(), "\t\t\tSelf::None => false,".to_owned());
+	// Generate the MAX_PARTS const so we know how much suffix splitting to
+	// do when searching for matches. Note that this is one larger than the
+	// discovered count because wildcards require an extra part.
+	let mut out = String::with_capacity(365_000);
+	writeln!(
+		&mut out,
+		"/// # Max Parts (Matchable).
+const MAX_PARTS: usize = {};
+",
+		grouped.keys().last().unwrap() + 1
+	).unwrap();
+
+	// Generate MAP_## const for each of the grouped suffix/kind sets.
+	for (count, set) in grouped.iter() {
+		writeln!(
+			&mut out,
+			"/// # TLDs w/ {count} Part(s).
+const MAP_{count}: &[(&[u8], SuffixKind)] = &[",
+		).unwrap();
+		let set = set.iter().collect::<Vec<_>>();
+		for chunk in set.chunks(256) {
+			out.push('\t');
+			for (k, v) in chunk {
+				write!(&mut out, "(b{k:?}, {v}), ").unwrap();
+			}
+			out.truncate(out.len() - 1);
+			out.push('\n');
+		}
+		out.push_str("];\n\n");
 	}
 
-	let wild_kinds: String = wild_kinds.join("\n");
-	let mut wild_arms: Vec<(&String, &String)> = wild_map.iter().collect();
-	wild_arms.sort_by(|a, b| a.1.cmp(b.1));
-	let wild_arms = wild_arms.into_iter()
-		.map(|(cond, name)| format!("\t\t\tSelf::{name} => {cond},"))
-		.collect::<Vec<String>>()
-		.join("\n");
+	// Generate the WildKind enum.
+	out.push_str(r#"#[derive(Clone, Copy)]
+/// # Wild Kind Exceptions.
+pub(super) enum WildKind {"#);
+	for ex in wild_ex.values() {
+		writeln!(&mut out, "\n\t/// # Exception #{ex}.\n\tEx{ex},").unwrap();
+	}
+	out.push_str("}
 
-	(wild_map, wild_kinds, wild_arms)
+impl WildKind {
+	/// # Is Exception?
+	pub(super) const fn is_match(self, src: &[u8]) -> bool {
+		match self {
+");
+	for (cond, ex) in wild_ex.iter() {
+		writeln!(&mut out, "\t\t\tSelf::Ex{ex} => {cond},").unwrap();
+	}
+	out.push_str("\t\t}
+	}
+}");
+
+	// Lastly, generate a method to perform suffix-to-kind searches (using the
+	// previously-generated maps).
+	out.push_str(
+"impl SuffixKind {
+	/// # Suffix Kind From Slice.
+	///
+	/// Match a suffix from a byte slice, e.g. `com`.
+	pub(super) fn from_parts(src: &[u8], parts: usize) -> Option<Self> {
+		let map = match parts {\n");
+	for count in grouped.keys() {
+		// The aforementioned specialization for .com goes here!
+		if *count == 1 {
+			out.push_str("\t\t\t1 =>
+\t\t\t\tif src == b\"com\" { return Some(Self::Tld); }
+\t\t\t\telse { MAP_1 },\n");
+		}
+		// Otherwise just map the map.
+		else {
+			writeln!(&mut out, "\t\t\t{count} => MAP_{count},").unwrap();
+		}
+	}
+	out.push_str("\t\t\t_ => return None,
+\t\t};
+\t\tlet pos = map.binary_search_by_key(&src, |(a, _)| a).ok()?;
+\t\tSome(map[pos].1)
+\t}\n}\n\n");
+
+	// Return everything!
+	out
 }
 
 /// # Fetch Suffixes.
 ///
 /// This loads and lightly cleans the raw Public Suffix List data.
 fn psl_fetch_suffixes() -> String {
-	let raw = load_file("public_suffix_list.dat");
-	let re = Regex::new(r"(?m)^\s*").unwrap();
-	re.replace_all(&raw, "").to_string()
+	let mut raw = std::fs::read_to_string("skel/raw/public_suffix_list.dat")
+		.expect("Unable to load public_suffix_list.dat");
+
+	// Remove leading whitespace at the start of each line.
+	let mut last = '\n';
+	raw.retain(|c: char|
+		if last == '\n' {
+			if c.is_whitespace() { false }
+			else {
+				last = c;
+				true
+			}
+		}
+		else {
+			last = c;
+			true
+		}
+	);
+
+	raw
 }
 
 /// # Format Wild Exceptions.
 ///
-/// This builds the match condition for a wildcard exception, which will either
-/// take the form of a straight slice comparison, or a `[].contains` match.
-///
-/// Not all wildcards have exceptions. Just in case, this method will return an
-/// empty string in such cases, but those will get filtered out during
-/// processing.
-fn psl_format_wild(src: &[String]) -> String {
-	if src.is_empty() { String::new() }
-	else if src.len() == 1 {
-		format!("src == b\"{}\"", src[0])
-	}
+/// This builds the match condition for a wildcard's exceptions, if any.
+/// (There aren't very many.)
+fn psl_format_wild(src: &[String]) -> Option<String> {
+	use std::fmt::Write;
+
+	if src.is_empty() { None }
 	else {
-		format!(
-			"[{}].contains(src)",
-			src.iter()
-				.map(|s| format!("b\"{s}\""))
-				.collect::<Vec<String>>()
-				.join(", ")
-		)
+		let mut out = "matches!(src, ".to_owned();
+		let mut iter = src.iter();
+		let next = iter.next()?;
+		write!(&mut out, "b\"{next}\"").ok()?;
+		for next in iter {
+			write!(&mut out, " | b\"{next}\"").ok()?;
+		}
+		out.push(')');
+		Some(out)
 	}
 }
 
@@ -315,35 +346,6 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 
 
 
-/// # Load File.
-///
-/// Read the third-party data file into a string.
-fn load_file(name: &str) -> String {
-	match std::fs::read_to_string(format!("./skel/raw/{name}")) {
-		Ok(x) => x,
-		Err(_) => panic!("Unable to load {name}."),
-	}
-}
-
-/// # Hash TLD.
-///
-/// This is just a simple wrapper to convert a slice into a u64, used by the
-/// suffix map builder.
-///
-/// In testing, the `ahash` algorithm is far and away the fastest, so that is
-/// what we use, both during build and at runtime (i.e. search needles) during
-/// lookup matching.
-fn hash_tld(src: &[u8]) -> u64 {
-	// Note: this needs to match the version exported by lib.rs!
-	const AHASHER: ahash::RandomState = ahash::RandomState::with_seeds(
-		0x8596_cc44_bef0_1aa0,
-		0x98d4_0948_da60_19ae,
-		0x49f1_3013_c503_a6aa,
-		0xc4d7_82ff_3c9f_7bef,
-	);
-	AHASHER.hash_one(src)
-}
-
 /// # Out path.
 ///
 /// This generates a (file/dir) path relative to `OUT_DIR`.
@@ -352,142 +354,4 @@ fn out_path(name: &str) -> PathBuf {
 	let mut out = std::fs::canonicalize(dir).expect("Missing OUT_DIR.");
 	out.push(name);
 	out
-}
-
-
-
-/// # Simple Joiner.
-///
-/// This helps us avoid intermediary string allocation when joining values.
-struct JoinFmt<'a, I: Iterator>
-where <I as Iterator>::Item: fmt::Display {
-	/// # Wrapped Iterator.
-	iter: Cell<Option<I>>,
-
-	/// # The Glue.
-	glue: &'a str,
-}
-
-impl<'a, I: Iterator> JoinFmt<'a, I>
-where <I as Iterator>::Item: fmt::Display {
-	#[inline]
-	/// # New.
-	const fn new(iter: I, glue: &'a str) -> Self {
-		Self {
-			iter: Cell::new(Some(iter)),
-			glue,
-		}
-	}
-}
-
-impl<I: Iterator> fmt::Display for JoinFmt<'_, I>
-where <I as Iterator>::Item: fmt::Display {
-	#[track_caller]
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		// The iterator is consumed during invocation so we can only do this
-		// once!
-		let mut iter = self.iter.take().ok_or(fmt::Error)?;
-
-		// If the glue is empty, just run through everything in one go.
-		if self.glue.is_empty() {
-			for v in iter { <I::Item as fmt::Display>::fmt(&v, f)?; }
-		}
-		// Otherwise start with the first first, then loop through the rest,
-		// adding the glue at the start of each pass.
-		else if let Some(v) = iter.next() {
-			<I::Item as fmt::Display>::fmt(&v, f)?;
-
-			// Finish it!
-			for v in iter {
-				f.write_str(self.glue)?;
-				<I::Item as fmt::Display>::fmt(&v, f)?;
-			}
-		}
-
-		Ok(())
-	}
-}
-
-
-
-/// # Nice Map Keys.
-///
-/// This helps us avoid intermediary string allocation when formatting the
-/// codegen.
-struct NiceMapKeys(Vec<u64>);
-
-impl fmt::Display for NiceMapKeys {
-	#[expect(clippy::cast_possible_truncation, reason = "False positive.")]
-	#[expect(unsafe_code, reason = "Content is ASCII.")]
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		// A buffer to hold stringified numbers. The initial value doesn't really
-		// matter, but by starting with u64::MAX we can make sure that all commas
-		// are in the right place and we have enough space for any u64.
-		let mut buf: [u8; 26] = *b"18_446_744_073_709_551_615";
-
-		let mut any = false;
-		for mut num in self.0.iter().copied() {
-			let mut from = buf.len();
-
-			// Stringify the trailing triplets first, if any.
-			for chunk in buf.rchunks_exact_mut(4) {
-				if 999 < num {
-					chunk[1..].copy_from_slice(Self::triple((num % 1000) as usize).as_slice());
-					num /= 1000;
-					from -= 4;
-				}
-				else { break; }
-			}
-
-			// Three more.
-			if 99 < num {
-				from -= 3;
-				buf[from..from + 3].copy_from_slice(Self::triple(num as usize).as_slice());
-			}
-			// Two more.
-			else if 9 < num {
-				from -= 2;
-				buf[from..from + 2].copy_from_slice(Self::DOUBLE[num as usize].as_slice());
-			}
-			// One more.
-			else {
-				from -= 1;
-				buf[from] = (num as u8) + b'0';
-			}
-
-			// Separate the last thing we wrote with a comma.
-			if any { f.write_str(", ")?; }
-			else { any = true; }
-
-			// Safety: everything we've written/inherited will be an ASCII digit.
-			f.write_str(unsafe {
-				std::str::from_utf8_unchecked(&buf[from..])
-			})?;
-		}
-
-		Ok(())
-	}
-}
-
-impl NiceMapKeys {
-	/// # Decimals, 00-99.
-	const DOUBLE: [[u8; 2]; 100] = [
-		[48, 48], [48, 49], [48, 50], [48, 51], [48, 52], [48, 53], [48, 54], [48, 55], [48, 56], [48, 57],
-		[49, 48], [49, 49], [49, 50], [49, 51], [49, 52], [49, 53], [49, 54], [49, 55], [49, 56], [49, 57],
-		[50, 48], [50, 49], [50, 50], [50, 51], [50, 52], [50, 53], [50, 54], [50, 55], [50, 56], [50, 57],
-		[51, 48], [51, 49], [51, 50], [51, 51], [51, 52], [51, 53], [51, 54], [51, 55], [51, 56], [51, 57],
-		[52, 48], [52, 49], [52, 50], [52, 51], [52, 52], [52, 53], [52, 54], [52, 55], [52, 56], [52, 57],
-		[53, 48], [53, 49], [53, 50], [53, 51], [53, 52], [53, 53], [53, 54], [53, 55], [53, 56], [53, 57],
-		[54, 48], [54, 49], [54, 50], [54, 51], [54, 52], [54, 53], [54, 54], [54, 55], [54, 56], [54, 57],
-		[55, 48], [55, 49], [55, 50], [55, 51], [55, 52], [55, 53], [55, 54], [55, 55], [55, 56], [55, 57],
-		[56, 48], [56, 49], [56, 50], [56, 51], [56, 52], [56, 53], [56, 54], [56, 55], [56, 56], [56, 57],
-		[57, 48], [57, 49], [57, 50], [57, 51], [57, 52], [57, 53], [57, 54], [57, 55], [57, 56], [57, 57]
-	];
-
-	#[inline]
-	const fn triple(idx: usize) -> [u8; 3] {
-		let a = idx.wrapping_div(100) as u8 + b'0';
-		let [b, c] = Self::DOUBLE[idx % 100];
-		[a, b, c]
-	}
 }
