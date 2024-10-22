@@ -2,6 +2,19 @@
 
 
 
+## [0.14.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.14.0) - 2024-10-21
+
+### Changed
+
+* Remove `ahash` dependency
+* Remove `regex` dependency (build)
+* Reduce codegen allocations
+* Split suffixes, search by part count
+* Miscellaneous code cleanup and refactoring
+* Update suffix database
+
+
+
 ## [0.13.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.1) - 2024-10-17
 
 ### Changed
