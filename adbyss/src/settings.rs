@@ -377,7 +377,7 @@ where D: de::Deserializer<'de> {
 /// # Deserialize Regexclude.
 fn deserialize_regexclude<'de, D>(deserializer: D) -> Result<Option<RegexSet>, D::Error>
 where D: de::Deserializer<'de> {
-	if let Ok(tmp) = Vec::<&str>::deserialize(deserializer) {
+	if let Ok(tmp) = Vec::<Cow<str>>::deserialize(deserializer) {
 		let tmp = RegexSet::new(tmp).map_err(de::Error::custom)?;
 		if tmp.is_empty() { Ok(None) }
 		else { Ok(Some(tmp)) }
