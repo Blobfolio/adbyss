@@ -98,10 +98,9 @@ bench BENCH="":
 		--target-dir "{{ cargo_dir }}"
 
 
-# Generate CREDITS.
+# Generate CREDITS, completions, man.
 @credits:
-	# Do completions/man.
-	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml"
+	cargo bashman -m "{{ pkg_dir1 }}/Cargo.toml" -t x86_64-unknown-linux-gnu
 	just _fix-chown "{{ justfile_directory() }}/CREDITS.md"
 	just _fix-chown "{{ release_dir }}"
 
