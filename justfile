@@ -118,7 +118,7 @@ bench BENCH="":
 
 	# Move the docs and clean up ownership.
 	[ ! -d "{{ doc_dir }}" ] || rm -rf "{{ doc_dir }}"
-	mv "{{ cargo_dir }}/doc" "{{ justfile_directory() }}"
+	mv "{{ cargo_dir }}/doc" "{{ doc_dir }}"
 	just _fix-chown "{{ doc_dir }}"
 
 
