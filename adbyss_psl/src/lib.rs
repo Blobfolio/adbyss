@@ -348,10 +348,38 @@ impl Domain {
 
 	#[must_use]
 	/// # As String Slice.
+	///
+	/// Return the domain as a string slice.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::new("NETFLIX.COM").unwrap();
+	/// assert_eq!(
+	///     dom.as_str(),
+	///     "netflix.com",
+	/// );
+	/// ```
 	pub fn as_str(&self) -> &str { &self.host }
 
 	#[must_use]
-	/// # As Bytes.
+	/// # As Byte Slice.
+	///
+	/// Return the domain as a byte slice.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::new("rugbypass.tv").unwrap();
+	/// assert_eq!(
+	///     dom.as_bytes(),
+	///     b"rugbypass.tv",
+	/// );
+	/// ```
 	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
@@ -532,6 +560,24 @@ impl Domain {
 	/// # Take String
 	///
 	/// Consume the struct, returning the sanitized host as an owned `String`.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom1: String = Domain::new("KilledByGoogle.com")
+	///     .unwrap()
+	///     .take();
+	///
+	/// // String::from works too if you prefer that:
+	/// let dom2: String = Domain::new("KilledByGoogle.com")
+	///     .unwrap()
+	///     .into();
+	///
+	/// assert_eq!(dom1, dom2);
+	/// assert_eq!(dom1, "killedbygoogle.com");
+	/// ```
 	pub fn take(self) -> String { self.host }
 }
 
@@ -624,7 +670,7 @@ impl Domain {
 	pub fn tld(&self) -> &str { &self.host[self.root.start..] }
 }
 
-/// # Other.
+/// # Miscellaneous.
 impl Domain {
 	#[must_use]
 	/// # Validate/Normalize an Email Address.

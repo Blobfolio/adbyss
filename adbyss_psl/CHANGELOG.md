@@ -13,6 +13,7 @@
 
 * `<Domain as fmt::Display>` now supports width, padding, etc.
 * Minor code cleanup and lints
+* Improved docs
 * Update suffix database
 
 
