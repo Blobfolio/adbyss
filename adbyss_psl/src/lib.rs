@@ -223,6 +223,7 @@ impl AsRef<[u8]> for Domain {
 
 impl Deref for Domain {
 	type Target = str;
+
 	#[inline]
 	fn deref(&self) -> &Self::Target { &self.host }
 }
@@ -265,41 +266,26 @@ impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
-impl PartialEq<str> for Domain {
-	#[inline]
-	fn eq(&self, other: &str) -> bool { self.host == other }
-}
-impl PartialEq<Domain> for str {
-	#[inline]
-	fn eq(&self, other: &Domain) -> bool { other.host == self }
-}
-
-impl PartialEq<&str> for Domain {
-	#[inline]
-	fn eq(&self, other: &&str) -> bool { self.host == *other }
-}
-impl PartialEq<Domain> for &str {
-	#[inline]
-	fn eq(&self, other: &Domain) -> bool { other.host == *self }
-}
-
-impl PartialEq<String> for Domain {
-	#[inline]
-	fn eq(&self, other: &String) -> bool { self.host == *other }
-}
-impl PartialEq<Domain> for String {
-	#[inline]
-	fn eq(&self, other: &Domain) -> bool { other.host == *self }
+/// # Helper: Symmetrical `PartialEq`.
+macro_rules! partial_eq {
+	($($ty:ty),+ $(,)?) => ($(
+		impl PartialEq<$ty> for Domain {
+			#[inline]
+			fn eq(&self, other: &$ty) -> bool {
+				self.as_str() == AsRef::<str>::as_ref(other)
+			}
+		}
+		impl PartialEq<Domain> for $ty {
+			#[inline]
+			fn eq(&self, other: &Domain) -> bool {
+				other.as_str() == AsRef::<str>::as_ref(self)
+			}
+		}
+	)+);
 }
 
-impl PartialEq<&String> for Domain {
-	#[inline]
-	fn eq(&self, other: &&String) -> bool { self.host == **other }
-}
-impl PartialEq<Domain> for &String {
-	#[inline]
-	fn eq(&self, other: &Domain) -> bool { other.host == **self }
-}
+// String equality.
+partial_eq!(str, &str, String, &String);
 
 impl PartialOrd for Domain {
 	#[inline]
@@ -308,7 +294,7 @@ impl PartialOrd for Domain {
 
 /// # Helper: `TryFrom` impl.
 macro_rules! impl_try {
-	($($ty:ty),+) => ($(
+	($($ty:ty),+ $(,)?) => ($(
 		impl TryFrom<$ty> for Domain {
 			type Error = Error;
 
@@ -322,7 +308,7 @@ macro_rules! impl_try {
 	)+)
 }
 
-// Aliases for Domain::new.
+// Same as Domain::new, essentially.
 impl_try!(&str, &String);
 
 impl TryFrom<Cow<'_, str>> for Domain {
