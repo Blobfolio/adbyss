@@ -719,8 +719,9 @@ impl Domain {
 	/// ```
 	pub fn email(src: &str) -> Option<Cow<'_, str>> {
 		// Trim the ends and split on the @.
-		let src = src.trim_start_matches(|c: char| c.is_whitespace() || c == '.' || c == '"');
-		let src = src.trim_end_matches(|c: char| c.is_whitespace() || c == '.');
+		let src = src
+			.trim_start_matches(|c: char| c.is_whitespace() || c == '.' || c == '"')
+			.trim_end_matches(|c: char| c.is_whitespace() || c == '.');
 		let (src_local, src_host) = src.split_once('@')?;
 
 		// Normalize each part.
@@ -926,8 +927,8 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 				// We don't support inner-quote parsing.
 				'"' => return None,
 				// A backslash invalidates whatever comes next.
-				'\'' => { let _ = chars.next(); },
-				// A closing quote is our ticket out of here!
+				'\\' => { let _ = chars.next()?; },
+				// A closing parenthesis is our ticket out of here!
 				')' => {
 					last =
 						// Pretend the last character was a dot if it was.
@@ -943,15 +944,6 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 		}
 
 		match c {
-			// Start of comment section.
-			'(' => { last = c; },
-
-			// Uppercase ASCII is fine, but needs to be lowercased.
-			'A'..='Z' => {
-				last = c.to_ascii_lowercase();
-				address.push(last);
-			},
-
 			// All the regular things that are allowed.
 			'a'..='z' |
 			'0'..='9' |
@@ -960,20 +952,37 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 				address.push(c);
 			},
 
+			// Uppercase ASCII is fine, but needs to be lowercased.
+			'A'..='Z' => {
+				last = c.to_ascii_lowercase();
+				address.push(last);
+			},
+
 			// Periods are fine, but cannot occur back-to-back.
 			'.' => if last != c {
 				last = c;
 				address.push(c);
 			},
 
+			// Start of comment section.
+			'(' => { last = c; },
+
 			// Boo.
 			_ => return None,
 		}
 	}
 
-	// Retrim the end.
-	if last == '.' { address.trim_end_matches_mut(|c| c == '.'); }
-	if (1..=MAX_LOCAL).contains(&address.len()) { Some(Cow::Owned(address)) }
+	// Abort if a comment went unclosed or the address is empty.
+	if last == '(' || address.is_empty() { return None; }
+
+	// Retrim the end if needed.
+	if last == '.' {
+		address.trim_end_matches_mut(|c| c == '.');
+		if address.is_empty() { return None; }
+	}
+
+	// Return unless we're too big!
+	if address.len() <= MAX_LOCAL { Some(Cow::Owned(address)) }
 	else { None }
 }
 
@@ -1213,6 +1222,9 @@ mod tests {
 			// A few more tests.
 			(r#""user"@domain.com"#, Some("user@domain.com")),
 			("USER(STUPID\tCOMMENT).@DOMAIN.COM", Some("user@domain.com")),
+			("user(unclosed@domain.com", None),
+			(r#"user(trailing\@domain.com"#, None),
+			(r#"user(escape\)unescape)@domain.com"#, Some("user@domain.com")),
 			("user@ac.jp", None), // Invalid TLD.
 			("user@食狮.com.cn", Some("user@xn--85x722f.com.cn")),
 			("björk@bjork.com", None), // Sorry Björk!
@@ -1220,7 +1232,11 @@ mod tests {
 			(r#"cow.("björk").moo@domain.com"#, None), // Inner quote in comment.
 			("Princess.Peach@Cat♥.com", Some("princess.peach@xn--cat-1x5a.com")),
 		] {
-			assert_eq!(Domain::email(raw).as_deref(), expected);
+			assert_eq!(
+				Domain::email(raw).as_deref(),
+				expected,
+				"{raw} didn't parse as expected.",
+			);
 		}
 	}
 
