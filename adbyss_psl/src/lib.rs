@@ -60,7 +60,7 @@ assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
 // If you just want the sanitized host back as an owned value, use
-// `Domain::take`:
+// `Domain::take` or `String::from`:
 let owned = dom.take(); // "www.mydomain.com"
 ```
 
@@ -234,6 +234,11 @@ impl fmt::Display for Domain {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.pad(self.as_str())
 	}
+}
+
+impl From<Domain> for String {
+	#[inline]
+	fn from(src: Domain) -> Self { src.host }
 }
 
 impl FromStr for Domain {

@@ -7,6 +7,7 @@
 ### New
 
 * `Domain::email`
+* `impl From<Domain> for String`
 
 ### Changed
 

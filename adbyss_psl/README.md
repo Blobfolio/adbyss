@@ -57,7 +57,7 @@ assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
 // If you just want the sanitized host back as an owned value, use
-// `Domain::take`:
+// `Domain::take` or `String::from`:
 let owned = dom.take(); // "www.mydomain.com"
 ```
 
