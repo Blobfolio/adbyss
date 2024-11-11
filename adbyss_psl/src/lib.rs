@@ -60,7 +60,7 @@ assert_eq!(dom.suffix(), "com");
 assert_eq!(dom.tld(), "mydomain.com");
 
 // If you just want the sanitized host back as an owned value, use
-// `Domain::take`:
+// `Domain::take` or `String::from`:
 let owned = dom.take(); // "www.mydomain.com"
 ```
 
@@ -131,10 +131,7 @@ use std::{
 	borrow::Cow,
 	cmp::Ordering,
 	fmt,
-	hash::{
-		Hash,
-		Hasher,
-	},
+	hash,
 	io::{
 		Error,
 		ErrorKind,
@@ -145,6 +142,11 @@ use std::{
 	},
 	str::FromStr,
 };
+
+
+
+/// # Max Local Part (Email Address) Size.
+const MAX_LOCAL: usize = 64;
 
 
 
@@ -221,6 +223,7 @@ impl AsRef<[u8]> for Domain {
 
 impl Deref for Domain {
 	type Target = str;
+
 	#[inline]
 	fn deref(&self) -> &Self::Target { &self.host }
 }
@@ -230,8 +233,13 @@ impl Eq for Domain {}
 impl fmt::Display for Domain {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(self.as_str())
+		f.pad(self.as_str())
 	}
+}
+
+impl From<Domain> for String {
+	#[inline]
+	fn from(src: Domain) -> Self { src.host }
 }
 
 impl FromStr for Domain {
@@ -243,9 +251,9 @@ impl FromStr for Domain {
 	}
 }
 
-impl Hash for Domain {
+impl hash::Hash for Domain {
 	#[inline]
-	fn hash<H: Hasher>(&self, state: &mut H) { self.host.hash(state); }
+	fn hash<H: hash::Hasher>(&self, state: &mut H) { self.host.hash(state); }
 }
 
 impl Ord for Domain {
@@ -260,43 +268,24 @@ impl PartialEq for Domain {
 
 /// # Helper: Symmetrical `PartialEq`.
 macro_rules! partial_eq {
-	// Dereference.
-	(deref: $($cast:ident $ty:ty),+ $(,)?) => ($(
+	($($ty:ty),+ $(,)?) => ($(
 		impl PartialEq<$ty> for Domain {
 			#[inline]
-			fn eq(&self, other: &$ty) -> bool { self.$cast() == *other }
+			fn eq(&self, other: &$ty) -> bool {
+				self.as_str() == AsRef::<str>::as_ref(other)
+			}
 		}
-
 		impl PartialEq<Domain> for $ty {
 			#[inline]
-			fn eq(&self, other: &Domain) -> bool { other.$cast() == *self }
-		}
-	)+);
-
-	// Plain.
-	($($cast:ident $ty:ty),+ $(,)?) => ($(
-		impl PartialEq<$ty> for Domain {
-			#[inline]
-			fn eq(&self, other: &$ty) -> bool { self.$cast() == other }
-		}
-
-		impl PartialEq<Domain> for $ty {
-			#[inline]
-			fn eq(&self, other: &Domain) -> bool { other.$cast() == self }
+			fn eq(&self, other: &Domain) -> bool {
+				other.as_str() == AsRef::<str>::as_ref(self)
+			}
 		}
 	)+);
 }
 
-partial_eq!(
-	as_str str,
-	as_str String,
-);
-
-partial_eq!(
-	deref:
-	as_str &str,
-	as_str &String,
-);
+// String equality.
+partial_eq!(str, &str, String, &String);
 
 impl PartialOrd for Domain {
 	#[inline]
@@ -305,7 +294,7 @@ impl PartialOrd for Domain {
 
 /// # Helper: `TryFrom` impl.
 macro_rules! impl_try {
-	($($ty:ty),+) => ($(
+	($($ty:ty),+ $(,)?) => ($(
 		impl TryFrom<$ty> for Domain {
 			type Error = Error;
 
@@ -319,7 +308,7 @@ macro_rules! impl_try {
 	)+)
 }
 
-// Aliases for Domain::new.
+// Same as Domain::new, essentially.
 impl_try!(&str, &String);
 
 impl TryFrom<Cow<'_, str>> for Domain {
@@ -327,12 +316,11 @@ impl TryFrom<Cow<'_, str>> for Domain {
 
 	#[inline]
 	fn try_from(src: Cow<'_, str>) -> Result<Self, Self::Error> {
-		let host = match src {
+		match src {
 			Cow::Borrowed(s) => idna_to_ascii_borrowed(s),
 			Cow::Owned(s) => idna_to_ascii_owned(s),
-		};
-
-		host.and_then(Self::from_ascii_string)
+		}
+			.and_then(Self::from_ascii_string)
 			.ok_or_else(|| ErrorKind::InvalidData.into())
 	}
 }
@@ -360,10 +348,38 @@ impl Domain {
 
 	#[must_use]
 	/// # As String Slice.
+	///
+	/// Return the domain as a string slice.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::new("NETFLIX.COM").unwrap();
+	/// assert_eq!(
+	///     dom.as_str(),
+	///     "netflix.com",
+	/// );
+	/// ```
 	pub fn as_str(&self) -> &str { &self.host }
 
 	#[must_use]
-	/// # As Bytes.
+	/// # As Byte Slice.
+	///
+	/// Return the domain as a byte slice.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom = Domain::new("rugbypass.tv").unwrap();
+	/// assert_eq!(
+	///     dom.as_bytes(),
+	///     b"rugbypass.tv",
+	/// );
+	/// ```
 	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
@@ -544,6 +560,24 @@ impl Domain {
 	/// # Take String
 	///
 	/// Consume the struct, returning the sanitized host as an owned `String`.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let dom1: String = Domain::new("KilledByGoogle.com")
+	///     .unwrap()
+	///     .take();
+	///
+	/// // String::from works too if you prefer that:
+	/// let dom2: String = Domain::new("KilledByGoogle.com")
+	///     .unwrap()
+	///     .into();
+	///
+	/// assert_eq!(dom1, dom2);
+	/// assert_eq!(dom1, "killedbygoogle.com");
+	/// ```
 	pub fn take(self) -> String { self.host }
 }
 
@@ -634,6 +668,116 @@ impl Domain {
 	/// assert_eq!(dom.tld(), "blobfolio.com");
 	/// ```
 	pub fn tld(&self) -> &str { &self.host[self.root.start..] }
+}
+
+/// # Miscellaneous.
+impl Domain {
+	#[must_use]
+	/// # Validate/Normalize an Email Address.
+	///
+	/// This one-shot method leverages the power of [`Domain`] to quickly and
+	/// efficiently validate and normalize "regular" Internet email addresses
+	/// like "user@domain.com".
+	///
+	/// For local ("user") parts, it largely follows [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322),
+	/// ensuring values:
+	/// * Are between `1..=64` bytes in length;
+	/// * Comprise only ASCII alphanumerics and ``! # $ % & ' * + - . / = ? ^ _ ` { | } ~``;
+	///   * Exception: UPPERCASE is converted to lowercase, as the gods intended.
+	///   * Exception: comments and quotes are unsupported, but may be removed if superfluous.
+	/// * Do not contain leading, trailing, or consecutive dots;
+	///   * Illegal `.` usage will simply be fixed, though, so don't sweat it!
+	///
+	/// Note: this method will only allocate if the source requires touch-ups.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	/// use std::borrow::Cow;
+	///
+	/// // All output will always be ASCII lowercase.
+	/// assert_eq!(
+	///     Domain::email("Hello@World.COM").as_deref(),
+	///     Some("hello@world.com"),
+	/// );
+	/// assert_eq!(
+	///     Domain::email("Princess.Peach@Cat♥.com").as_deref(),
+	///     Some("princess.peach@xn--cat-1x5a.com"),
+	/// );
+	///
+	/// // Allocation can be avoided for sources that are valid as-are:
+	/// assert!(matches!(
+	///     Domain::email(" user@domain.com "), // Edge trimming is free!
+	///     Some(Cow::Borrowed("user@domain.com")),
+	/// ));
+	///
+	/// // Invalid or unsupported addresses come up `None`:
+	/// assert!(Domain::email("user@localhost").is_none()); // No suffix.
+	/// assert!(Domain::email("björk@post.com").is_none()); // Non-ASCII local.
+	/// assert!(Domain::email("a[b]c@nope.net").is_none()); // Illegal `[]`.
+	/// ```
+	pub fn email(src: &str) -> Option<Cow<'_, str>> {
+		// Trim the absolute ends.
+		let src = src
+			.trim_start_matches(|c: char| matches!(c, '.' | '"') || c.is_ascii_whitespace())
+			.trim_end_matches(|c: char| c == '.' || c.is_ascii_whitespace());
+
+		// Split on @.
+		let (src_local, src_host) = src.split_once('@')?;
+
+		// Trim the "inner ends" of each part and normalize them.
+		let nice_local = sanitize_email_local(src_local.trim_end_matches(['.', '"']))?;
+		let nice_host = sanitize_email_host(src_host.trim_start_matches('.'))?;
+
+		// If nothing changed, return the source.
+		if src_local == nice_local && src_host == nice_host {
+			Some(Cow::Borrowed(src))
+		}
+		// Otherwise build and return a new string.
+		else {
+			let mut out = nice_local.into_owned();
+			out.reserve(1 + nice_host.len());
+			out.push('@');
+			out.push_str(nice_host.as_ref());
+			Some(Cow::Owned(out))
+		}
+	}
+
+	#[must_use]
+	/// # Validate/Normalize Email Address Parts.
+	///
+	/// Like [`Domain::email`], but the local and host parts are kept
+	/// separate and returned as a tuple.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	/// use std::borrow::Cow;
+	///
+	/// let (local, host) = Domain::email_parts("Princess.Peach@Cat♥.com")
+	///     .unwrap();
+	///
+	/// assert_eq!(local, "princess.peach");
+	/// assert_eq!(host, "xn--cat-1x5a.com");
+	/// ```
+	pub fn email_parts(src: &str) -> Option<(Cow<'_, str>, Cow<'_, str>)> {
+		// Trim the absolute ends.
+		let src = src
+			.trim_start_matches(|c: char| matches!(c, '.' | '"') || c.is_ascii_whitespace())
+			.trim_end_matches(|c: char| c == '.' || c.is_ascii_whitespace());
+
+		// Split on @.
+		let (local, host) = src.split_once('@')?;
+
+		// Trim the "inner ends" of each part and normalize them.
+		let local = sanitize_email_local(local.trim_end_matches(['.', '"']))?;
+		let host = sanitize_email_host(host.trim_start_matches('.'))?;
+
+		// Done!
+		Some((local, host))
+	}
 }
 
 
@@ -779,6 +923,147 @@ fn idna_to_ascii_bytes(src: &[u8]) -> Option<Cow<'_, str>> {
 		Hyphens::CheckFirstLast,
 		DnsLength::Verify,
 	).ok()
+}
+
+/// # Sanitize (Email) Host Part.
+///
+/// This performs the same tasks [`Domain::new`] would, but persists
+/// the borrow if possible.
+///
+/// Note values have been pre-trimmed.
+fn sanitize_email_host(src: &str) -> Option<Cow<'_, str>> {
+	let host = idna_to_ascii_bytes(src.as_bytes())?;
+
+	// Make sure there's a suffix.
+	let bytes = host.as_bytes();
+	let suffix = find_suffix(bytes)?;
+
+	// So long as there's a root behind the suffix, we're good!
+	if suffix.len() + 1 < bytes.len() { Some(host) }
+	else { None }
+}
+
+/// # Sanitize (Email) Local Part.
+///
+/// This ensures the local part contains only valid, lowercase characters, and
+/// is between `1..=64` bytes in length, touching up as necessary.
+///
+/// Note values have been pre-trimmed.
+fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
+	// Easy abort.
+	if raw.is_empty() { return None; }
+
+	// Since this pass is merely checking for existing validity and all valid
+	// characters are ASCII, we can loop through bytes rather than chars.
+	let mut checked = 0;
+	let mut last = b'.';
+	if raw.len() <= MAX_LOCAL {
+		for b in raw.bytes() {
+			match b {
+				// Always good.
+				b'!' | b'#'..=b'\'' | b'*' | b'+' | b'-' |
+				b'/'..=b'9' | b'='  | b'?' | b'^'..=b'~' => {},
+
+				// Maybe good, but we'll have to dig deeper to know for sure.
+				b'A'..=b'Z' | b'(' => break,
+
+				// Good if non-consecutive, maybe fixable if not.
+				b'.' => if last == b'.' { break; },
+
+				// Never good.
+				_ => return None,
+			}
+			last = b;
+			checked += 1;
+		}
+
+		// It was already perfect! Hurray!
+		if checked == raw.len() { return Some(Cow::Borrowed(raw)); }
+	}
+
+	// Fine! Do it the hard way!
+	let (good, maybe) = raw.split_at(checked);
+	sanitize_email_local_slow(good, maybe, char::from(last))
+}
+
+/// # Sanitize (Email) Local Part (Slow).
+///
+/// This method takes over from `sanitize_email_local` if/when it realizes
+/// allocating touch-ups will be required to see it through.
+fn sanitize_email_local_slow(good: &str, maybe: &str, mut last: char) -> Option<Cow<'static, str>> {
+	use trimothy::TrimMatchesMut;
+
+	// Start with what we found earlier, if anything.
+	let mut address = String::with_capacity(good.len() + maybe.len());
+	address.push_str(good);
+
+	// Loop through the remainder char-by-char to see what's what!
+	let mut chars = maybe.chars();
+	while let Some(c) = chars.next() {
+		// Skip comments.
+		if last == '(' {
+			match c {
+				// We don't support inner-quote parsing.
+				'"' => return None,
+
+				// A backslash invalidates whatever comes next.
+				'\\' => { let _ = chars.next()?; },
+
+				// A closing parenthesis is our ticket out of here!
+				')' => {
+					last =
+						// Pretend the last character was a dot if it was.
+						if address.is_empty() || address.ends_with('.') { '.' }
+						// Otherwise any non-dot will do.
+						else { c };
+				},
+
+				// Ignore anything else.
+				_ => {},
+			}
+
+			continue;
+		}
+
+		match c {
+			// Unconditionally allowed characters (a-z, 0-9, and non-dot specials).
+			'!' | '#'..='\'' | '*' | '+' | '-' | '/'..='9' | '=' | '?' | '^'..='~' => {
+				last = c;
+				address.push(c);
+			},
+
+			// Uppercase ASCII is fine, but requires lowercasing.
+			'A'..='Z' => {
+				last = c.to_ascii_lowercase();
+				address.push(last);
+			},
+
+			// Periods are fine, but cannot occur back-to-back.
+			'.' => if last != c {
+				last = c;
+				address.push(c);
+			},
+
+			// Start of comment section.
+			'(' => { last = c; },
+
+			// Boo.
+			_ => return None,
+		}
+	}
+
+	// Abort if a comment went unclosed or the address is empty.
+	if last == '(' || address.is_empty() { return None; }
+
+	// Retrim the end if needed.
+	if last == '.' {
+		address.trim_end_matches_mut(|c| c == '.');
+		if address.is_empty() { return None; }
+	}
+
+	// Return it unless we're too big!
+	if address.len() <= MAX_LOCAL { Some(Cow::Owned(address)) }
+	else { None }
 }
 
 
@@ -968,6 +1253,126 @@ mod tests {
 		assert_eq!(dom.suffix(), "com");
 		assert_eq!(dom.tld(), "blobfolio.com");
 		assert_eq!(dom.host(), "blobfolio.com");
+	}
+
+	#[test]
+	fn t_email() {
+		for (raw, expected) in [
+			// Thanks Wikipedia!
+			("simple@example.com", Some("simple@example.com")),
+			("very.common@example.com", Some("very.common@example.com")),
+			("FirstName.LastName@EasierReading.org", Some("firstname.lastname@easierreading.org")),
+			("x@example.com", Some("x@example.com")),
+			("long.email-address-with-hyphens@and.subdomains.example.com", Some("long.email-address-with-hyphens@and.subdomains.example.com")),
+			("user.name+tag+sorting@example.com", Some("user.name+tag+sorting@example.com")),
+			("name/surname@example.com", Some("name/surname@example.com")),
+			("mailhost!username@example.org", Some("mailhost!username@example.org")),
+			("user%example.com@example.org", Some("user%example.com@example.org")),
+			("user-@example.org", Some("user-@example.org")),
+			("abc.example.com", None),
+			("a@b@c@example.com", None),
+			(r#"a"b(c)d,e:f;g<h>i[j\k]l@example.com"#, None),
+			(r#"just"not"right@example.com"#, None),
+			(r#"this is"not\allowed@example.com"#, None),
+			(r#"this\ still\"not\\allowed@example.com"#, None),
+			("1234567890123456789012345678901234567890123456789012345678901234+x@example.com", None),
+
+			// A few more tests.
+			(r#""user"@domain.com"#, Some("user@domain.com")),
+			("USER(STUPID\tCOMMENT).@DOMAIN.COM", Some("user@domain.com")),
+			("user(unclosed@domain.com", None),
+			(r#"user(trailing\@domain.com"#, None),
+			(r#"user(escape\)unescape)@domain.com"#, Some("user@domain.com")),
+			("user@ac.jp", None), // Invalid TLD.
+			("user@食狮.com.cn", Some("user@xn--85x722f.com.cn")),
+			("björk@bjork.com", None), // Sorry Björk!
+			("cow.(goes).moo@domain.com", Some("cow.moo@domain.com")),
+			(r#"cow.("björk").moo@domain.com"#, None), // Inner quote in comment.
+			("Princess.Peach@Cat♥.com", Some("princess.peach@xn--cat-1x5a.com")),
+		] {
+			assert_eq!(
+				Domain::email(raw).as_deref(),
+				expected,
+				"{raw} didn't parse as expected.",
+			);
+
+			if let Some(expected) = expected {
+				let Some((local, host)) = Domain::email_parts(raw) else {
+					panic!("Unable to parse {raw} parts.");
+				};
+				assert_eq!(format!("{local}@{host}"), expected);
+			}
+			else {
+				assert!(Domain::email_parts(raw).is_none());
+			}
+		}
+	}
+
+	#[test]
+	fn t_email_borrowed() {
+		// All of these should be borrowable.
+		for raw in [
+			"simple@example.com",
+			"very.common@example.com",
+			"x@example.com",
+			"long.email-address-with-hyphens@and.subdomains.example.com",
+			"name/surname@example.com",
+			"mailhost!username@example.org",
+			"user%example.com@example.org",
+			"user-@example.org",
+			"  \"..josh@blobfolio.com..  ", // Edge trimming is free.
+		] {
+			assert!(matches!(Domain::email(raw), Some(Cow::Borrowed(_))));
+			let Some((local, host)) = Domain::email_parts(raw) else {
+				panic!("Unable to parse {raw} parts.");
+			};
+			assert!(matches!(local, Cow::Borrowed(_)));
+			assert!(matches!(host, Cow::Borrowed(_)));
+		}
+	}
+
+	#[test]
+	fn t_email_owned() {
+		// These are not borrowable.
+		for raw in [
+			"simple@EXAMPLE.COM",
+			"VERY.COMMON@example.com",
+			"X@EXAMPLE.COM",
+			"LONG.EMAIL-ADDRESS-WITH-HYPHENS@AND.SUBDOMAINS.EXAMPLE.COM",
+			"NAME/SURNAME@EXAMPLE.COM",
+			"MAILHOST!USERNAME@EXAMPLE.ORG",
+			"USER%EXAMPLE.COM@EXAMPLE.ORG",
+			"USER-@EXAMPLE.ORG",
+			r#""user"@domain.com"#,
+			"USER(STUPID\tCOMMENT).@DOMAIN.COM",
+			"user@食狮.com.cn",
+			"cow.(goes).moo@domain.com",
+			r#"cow.(björk).moo@domain.com"#,
+			"Princess.Peach@Cat♥.com",
+			"josh.@blobfolio.com", // Inner trimming is not.
+		] {
+			assert!(matches!(Domain::email(raw), Some(Cow::Owned(_))));
+		}
+
+		// Parts can go both ways.
+		for (raw, b1, b2) in [
+			("simple@EXAMPLE.COM", true, false),
+			("VERY.COMMON@example.com", false, true),
+			("X@EXAMPLE.COM", false, false),
+			(r#""user"@domain.com"#, true, true),
+			("user@食狮.com.cn", true, false),
+			("cow.(goes).moo@domain.com", false, true),
+		] {
+			let Some((local, host)) = Domain::email_parts(raw) else {
+				panic!("Unable to parse {raw} parts.");
+			};
+
+			if b1 { assert!(matches!(local, Cow::Borrowed(_))); }
+			else { assert!(matches!(local, Cow::Owned(_))); }
+
+			if b2 { assert!(matches!(host, Cow::Borrowed(_))); }
+			else { assert!(matches!(host, Cow::Owned(_))); }
+		}
 	}
 
 	#[test]

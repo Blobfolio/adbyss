@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.14.0"
+version = "0.15.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -43,4 +43,8 @@ serde = [ "dep:serde" ]
 
 [[bench]]
 name = "psl_parse"
+harness = false
+
+[[bench]]
+name = "psl_email"
 harness = false

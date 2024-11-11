@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.14.0"
+version = "0.15.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2021"
@@ -9,7 +9,7 @@ repository = "https://github.com/Blobfolio/adbyss"
 publish = false
 
 [package.metadata.deb]
-maintainer = "Josh Stoik <hello@blobfolio.com>"
+maintainer = "Josh Stoik <josh@blobfolio.com>"
 copyright = "2024, Blobfolio, LLC <hello@blobfolio.com>"
 license-file = ["../LICENSE", "0"]
 revision = "1"
@@ -91,12 +91,12 @@ items = [
 [dependencies]
 argyle = "0.10.*"
 dactyl = "0.7.*"
-fyi_msg = "1.1.*"
+fyi_msg = "1.2.*"
 libc = "0.2.*"
 regex = "1.11.*"
 serde_yml = "=0.0.12"
 trimothy = "0.3.*"
-utc2k = "0.10.*"
+utc2k = "0.11.*"
 write_atomic = "0.5.*"
 
 [dependencies.adbyss_psl]

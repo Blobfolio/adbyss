@@ -2,6 +2,23 @@
 
 
 
+## [0.15.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.0) - 2024-11-11
+
+### New
+
+* `Domain::email`
+* `Domain::email_parts`
+* `impl From<Domain> for String`
+
+### Changed
+
+* `<Domain as fmt::Display>` now supports width, padding, etc.
+* Minor code cleanup and lints
+* Improved docs
+* Update suffix database
+
+
+
 ## [0.14.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.14.0) - 2024-10-21
 
 ### Changed
