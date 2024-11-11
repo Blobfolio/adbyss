@@ -1,5 +1,5 @@
 /*!
-# Benchmark: `adbyss_psl::new`
+# Benchmark: `adbyss_psl::Domain`
 */
 
 use brunch::{

@@ -44,3 +44,7 @@ serde = [ "dep:serde" ]
 [[bench]]
 name = "psl_parse"
 harness = false
+
+[[bench]]
+name = "psl_email"
+harness = false

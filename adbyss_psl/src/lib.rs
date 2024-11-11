@@ -718,15 +718,17 @@ impl Domain {
 	/// assert!(Domain::email("a[b]c@nope.net").is_none()); // Illegal `[]`.
 	/// ```
 	pub fn email(src: &str) -> Option<Cow<'_, str>> {
-		// Trim the ends and split on the @.
+		// Trim the absolute ends.
 		let src = src
-			.trim_start_matches(|c: char| c.is_whitespace() || c == '.' || c == '"')
-			.trim_end_matches(|c: char| c.is_whitespace() || c == '.');
+			.trim_start_matches(|c: char| matches!(c, '.' | '"') || c.is_ascii_whitespace())
+			.trim_end_matches(|c: char| c == '.' || c.is_ascii_whitespace());
+
+		// Split on @.
 		let (src_local, src_host) = src.split_once('@')?;
 
-		// Normalize each part.
-		let nice_local = sanitize_email_local(src_local)?;
-		let nice_host = sanitize_email_host(src_host)?;
+		// Trim the "inner ends" of each part and normalize them.
+		let nice_local = sanitize_email_local(src_local.trim_end_matches(['.', '"']))?;
+		let nice_host = sanitize_email_host(src_host.trim_start_matches('.'))?;
 
 		// If nothing changed, return the source.
 		if src_local == nice_local && src_host == nice_host {
@@ -892,8 +894,9 @@ fn idna_to_ascii_bytes(src: &[u8]) -> Option<Cow<'_, str>> {
 ///
 /// This performs the same tasks [`Domain::new`] would, but persists
 /// the borrow if possible.
+///
+/// Note values have been pre-trimmed.
 fn sanitize_email_host(src: &str) -> Option<Cow<'_, str>> {
-	let src: &str = src.trim_matches(|c: char| c == '.' || c.is_ascii_whitespace());
 	let host = idna_to_ascii_bytes(src.as_bytes())?;
 
 	// Make sure there's a suffix.
@@ -909,25 +912,68 @@ fn sanitize_email_host(src: &str) -> Option<Cow<'_, str>> {
 ///
 /// This ensures the local part contains only valid, lowercase characters, and
 /// is between `1..=64` bytes in length, touching up as necessary.
+///
+/// Note values have been pre-trimmed.
 fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
+	// Easy abort.
+	if raw.is_empty() { return None; }
+
+	// Since this pass is merely checking for existing validity and all valid
+	// characters are ASCII, we can loop through bytes rather than chars.
+	let mut checked = 0;
+	let mut last = b'.';
+	if raw.len() <= MAX_LOCAL {
+		for b in raw.bytes() {
+			match b {
+				// Always good.
+				b'!' | b'#'..=b'\'' | b'*' | b'+' | b'-' |
+				b'/'..=b'9' | b'='  | b'?' | b'^'..=b'~' => {},
+
+				// Maybe good, but we'll have to dig deeper to know for sure.
+				b'A'..=b'Z' | b'(' => break,
+
+				// Good if non-consecutive, maybe fixable if not.
+				b'.' => if last == b'.' { break; },
+
+				// Never good.
+				_ => return None,
+			}
+			last = b;
+			checked += 1;
+		}
+
+		// It was already perfect! Hurray!
+		if checked == raw.len() { return Some(Cow::Borrowed(raw)); }
+	}
+
+	// Fine! Do it the hard way!
+	let (good, maybe) = raw.split_at(checked);
+	sanitize_email_local_slow(good, maybe, char::from(last))
+}
+
+/// # Sanitize (Email) Local Part (Slow).
+///
+/// This method takes over from `sanitize_email_local` if/when it realizes
+/// allocating touch-ups will be required to see it through.
+fn sanitize_email_local_slow(good: &str, maybe: &str, mut last: char) -> Option<Cow<'static, str>> {
 	use trimothy::TrimMatchesMut;
 
-	let raw = raw.trim_end_matches(['.', '"']); // The start is trimmed by the caller.
-	if raw.is_empty() { return None; }
-	if validate_email_local(raw.as_bytes()) { return Some(Cow::Borrowed(raw)); }
+	// Start with what we found earlier, if anything.
+	let mut address = String::with_capacity(good.len() + maybe.len());
+	address.push_str(good);
 
-	// We have to allocate.
-	let mut address = String::with_capacity(raw.len());
-	let mut last = '.';
-	let mut chars = raw.chars();
+	// Loop through the remainder char-by-char to see what's what!
+	let mut chars = maybe.chars();
 	while let Some(c) = chars.next() {
 		// Skip comments.
 		if last == '(' {
 			match c {
 				// We don't support inner-quote parsing.
 				'"' => return None,
+
 				// A backslash invalidates whatever comes next.
 				'\\' => { let _ = chars.next()?; },
+
 				// A closing parenthesis is our ticket out of here!
 				')' => {
 					last =
@@ -936,6 +982,7 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 						// Otherwise any non-dot will do.
 						else { c };
 				},
+
 				// Ignore anything else.
 				_ => {},
 			}
@@ -944,15 +991,13 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 		}
 
 		match c {
-			// All the regular things that are allowed.
-			'a'..='z' |
-			'0'..='9' |
-			'!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '/' | '=' | '?' | '^' | '_' | '`' | '{' | '|' | '}' | '~' => {
+			// Unconditionally allowed characters (a-z, 0-9, and non-dot specials).
+			'!' | '#'..='\'' | '*' | '+' | '-' | '/'..='9' | '=' | '?' | '^'..='~' => {
 				last = c;
 				address.push(c);
 			},
 
-			// Uppercase ASCII is fine, but needs to be lowercased.
+			// Uppercase ASCII is fine, but requires lowercasing.
 			'A'..='Z' => {
 				last = c.to_ascii_lowercase();
 				address.push(last);
@@ -981,31 +1026,9 @@ fn sanitize_email_local(raw: &str) -> Option<Cow<'_, str>> {
 		if address.is_empty() { return None; }
 	}
 
-	// Return unless we're too big!
+	// Return it unless we're too big!
 	if address.len() <= MAX_LOCAL { Some(Cow::Owned(address)) }
 	else { None }
-}
-
-/// # Valid (Email) Local Part?
-///
-/// Returns `false` if the local part is too big or contains characters that
-/// are invalid or require touch-ups.
-const fn validate_email_local(mut raw: &[u8]) -> bool {
-	if MAX_LOCAL < raw.len() { false }
-	else {
-		let mut last = b' ';
-		while let [first @ (b'a'..=b'z' | b'0'..=b'9' | b'.' | b'!' | b'#' | b'$' | b'%' | b'&' | b'\'' | b'*' | b'+' | b'-' | b'/' | b'=' | b'?' | b'^' | b'_' | b'`' | b'{' | b'|' | b'}' | b'~'), rest @ ..] = raw {
-			// Can't have two dots in a row.
-			let first = *first;
-			if first == b'.' && last == b'.' { return false; }
-
-			last = first;
-			raw = rest;
-		}
-
-		// If we made it to the end, we're good!
-		raw.is_empty()
-	}
 }
 
 
