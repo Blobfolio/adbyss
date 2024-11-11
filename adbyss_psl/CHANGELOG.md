@@ -2,7 +2,7 @@
 
 
 
-## [0.15.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.0) - TBD
+## [0.15.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.0) - 2024-11-11
 
 ### New
 
