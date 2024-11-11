@@ -743,6 +743,41 @@ impl Domain {
 			Some(Cow::Owned(out))
 		}
 	}
+
+	#[must_use]
+	/// # Validate/Normalize Email Address Parts.
+	///
+	/// Like [`Domain::email`], but the local and host parts are kept
+	/// separate and returned as a tuple.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	/// use std::borrow::Cow;
+	///
+	/// let (local, host) = Domain::email_parts("Princess.Peach@Cat♥.com")
+	///     .unwrap();
+	///
+	/// assert_eq!(local, "princess.peach");
+	/// assert_eq!(host, "xn--cat-1x5a.com");
+	/// ```
+	pub fn email_parts(src: &str) -> Option<(Cow<'_, str>, Cow<'_, str>)> {
+		// Trim the absolute ends.
+		let src = src
+			.trim_start_matches(|c: char| matches!(c, '.' | '"') || c.is_ascii_whitespace())
+			.trim_end_matches(|c: char| c == '.' || c.is_ascii_whitespace());
+
+		// Split on @.
+		let (local, host) = src.split_once('@')?;
+
+		// Trim the "inner ends" of each part and normalize them.
+		let local = sanitize_email_local(local.trim_end_matches(['.', '"']))?;
+		let host = sanitize_email_host(host.trim_start_matches('.'))?;
+
+		// Done!
+		Some((local, host))
+	}
 }
 
 
@@ -1260,6 +1295,16 @@ mod tests {
 				expected,
 				"{raw} didn't parse as expected.",
 			);
+
+			if let Some(expected) = expected {
+				let Some((local, host)) = Domain::email_parts(raw) else {
+					panic!("Unable to parse {raw} parts.");
+				};
+				assert_eq!(format!("{local}@{host}"), expected);
+			}
+			else {
+				assert!(Domain::email_parts(raw).is_none());
+			}
 		}
 	}
 
@@ -1278,6 +1323,11 @@ mod tests {
 			"  \"..josh@blobfolio.com..  ", // Edge trimming is free.
 		] {
 			assert!(matches!(Domain::email(raw), Some(Cow::Borrowed(_))));
+			let Some((local, host)) = Domain::email_parts(raw) else {
+				panic!("Unable to parse {raw} parts.");
+			};
+			assert!(matches!(local, Cow::Borrowed(_)));
+			assert!(matches!(host, Cow::Borrowed(_)));
 		}
 	}
 
@@ -1301,9 +1351,27 @@ mod tests {
 			"Princess.Peach@Cat♥.com",
 			"josh.@blobfolio.com", // Inner trimming is not.
 		] {
-			assert!(
-				matches!(Domain::email(raw), Some(Cow::Owned(_)))
-			);
+			assert!(matches!(Domain::email(raw), Some(Cow::Owned(_))));
+		}
+
+		// Parts can go both ways.
+		for (raw, b1, b2) in [
+			("simple@EXAMPLE.COM", true, false),
+			("VERY.COMMON@example.com", false, true),
+			("X@EXAMPLE.COM", false, false),
+			(r#""user"@domain.com"#, true, true),
+			("user@食狮.com.cn", true, false),
+			("cow.(goes).moo@domain.com", false, true),
+		] {
+			let Some((local, host)) = Domain::email_parts(raw) else {
+				panic!("Unable to parse {raw} parts.");
+			};
+
+			if b1 { assert!(matches!(local, Cow::Borrowed(_))); }
+			else { assert!(matches!(local, Cow::Owned(_))); }
+
+			if b2 { assert!(matches!(host, Cow::Borrowed(_))); }
+			else { assert!(matches!(host, Cow::Owned(_))); }
 		}
 	}
 
