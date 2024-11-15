@@ -206,6 +206,7 @@ pub(super) fn read_hosts<P: AsRef<Path>>(src: P) -> Result<(String, bool), Adbys
 	}
 
 	// Look for stray end markers.
+	// TODO: use remove_matches once stable.
 	while let Some(end) = out.find(MARKER_END) {
 		any = true;
 		out.replace_range(end..end + len_end, "");
