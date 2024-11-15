@@ -1057,7 +1057,7 @@ fn sanitize_email_local_slow(good: &str, maybe: &str, mut last: char) -> Option<
 
 	// Retrim the end if needed.
 	if last == '.' {
-		address.trim_end_matches_mut(|c| c == '.');
+		address.trim_end_matches_mut('.');
 		if address.is_empty() { return None; }
 	}
 
