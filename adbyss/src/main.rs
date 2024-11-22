@@ -101,7 +101,7 @@ const MAX_LINE: usize = 245;
 
 /// Main.
 fn main() {
-	match _main() {
+	match main__() {
 		Err(e @ (AdbyssError::PrintHelp | AdbyssError::PrintVersion)) => {
 			println!("{e}");
 		},
@@ -112,7 +112,7 @@ fn main() {
 
 #[inline]
 /// Actual Main.
-fn _main() -> Result<(), AdbyssError> {
+fn main__() -> Result<(), AdbyssError> {
 	// We need root!
 	require_root()?;
 
@@ -225,7 +225,7 @@ fn check_internet() -> Result<(), AdbyssError> {
 			.with_timeout(15)
 			.send();
 
-		if res.map_or(false, |r| r.status_code == 200) { return Ok(()); }
+		if res.is_ok_and(|r| r.status_code == 200) { return Ok(()); }
 
 		// Out of tries?
 		if tries == 9 { return Err(AdbyssError::NoInternet); }

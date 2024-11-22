@@ -804,7 +804,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 		/// # Visitor Instance.
 		struct DomainVisitor;
 
-		impl<'de> serde::de::Visitor<'de> for DomainVisitor {
+		impl serde::de::Visitor<'_> for DomainVisitor {
 			type Value = Domain;
 			fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
 				f.write_str("domain string")
