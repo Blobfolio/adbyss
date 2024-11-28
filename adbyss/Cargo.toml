@@ -95,7 +95,7 @@ fyi_msg = "1.2.*"
 libc = "0.2.*"
 regex = "1.11.*"
 serde_yml = "=0.0.12"
-trimothy = "0.5.*"
+trimothy = "0.6.*"
 utc2k = "0.11.*"
 write_atomic = "0.5.*"
 
