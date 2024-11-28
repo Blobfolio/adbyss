@@ -2,6 +2,17 @@
 
 
 
+## [0.15.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.1) - 2024-11-28
+
+### Changed
+
+* Bump `brunch` to `0.7` (dev)
+* Bump `trimothy` to `0.6`
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.15.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.0) - 2024-11-11
 
 ### New
