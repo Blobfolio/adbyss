@@ -804,7 +804,7 @@ impl<'de> serde::Deserialize<'de> for Domain {
 		/// # Visitor Instance.
 		struct DomainVisitor;
 
-		impl<'de> serde::de::Visitor<'de> for DomainVisitor {
+		impl serde::de::Visitor<'_> for DomainVisitor {
 			type Value = Domain;
 			fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
 				f.write_str("domain string")
@@ -1057,7 +1057,7 @@ fn sanitize_email_local_slow(good: &str, maybe: &str, mut last: char) -> Option<
 
 	// Retrim the end if needed.
 	if last == '.' {
-		address.trim_end_matches_mut(|c| c == '.');
+		address.trim_end_matches_mut('.');
 		if address.is_empty() { return None; }
 	}
 

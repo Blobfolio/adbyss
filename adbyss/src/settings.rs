@@ -155,7 +155,7 @@ impl Settings {
 		if ! yes && ! fyi_msg::confirm!(yes: format!(
 			"Write {} hosts to {}?",
 			NiceU64::from(len),
-			self.hostfile.to_string_lossy(),
+			self.hostfile.display(),
 		)) {
 			return Err(AdbyssError::Aborted);
 		}
@@ -181,7 +181,7 @@ impl Settings {
 			// Prompt the user before taking any action.
 			if ! yes && ! fyi_msg::confirm!(yes: format!(
 				"Remove all Adbyss blackhole entries from {}?",
-				self.hostfile.to_string_lossy(),
+				self.hostfile.display(),
 			)) {
 				return Err(AdbyssError::Aborted);
 			}

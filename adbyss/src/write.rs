@@ -81,7 +81,7 @@ impl Shitlist {
 			// Split into words. If the first is an IP, try the rest to see if
 			// they're prunable domains.
 			let mut words = line.split_ascii_whitespace();
-			if words.next().map_or(false, |w| w.parse::<IpAddr>().is_ok()) {
+			if words.next().is_some_and(|w| w.parse::<IpAddr>().is_ok()) {
 				for word in words.filter_map(Domain::new) {
 					if let Ok(pos) = set.binary_search(&word) { set.remove(pos); }
 				}
@@ -206,6 +206,7 @@ pub(super) fn read_hosts<P: AsRef<Path>>(src: P) -> Result<(String, bool), Adbys
 	}
 
 	// Look for stray end markers.
+	// TODO: use remove_matches once stable.
 	while let Some(end) = out.find(MARKER_END) {
 		any = true;
 		out.replace_range(end..end + len_end, "");
