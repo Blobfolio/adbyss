@@ -104,7 +104,7 @@ path = "../adbyss_psl"
 features = [ "serde" ]
 
 [dependencies.minreq]
-version = "2.12.*"
+version = "2.13.*"
 default-features = false
 features = ["https"]
 
