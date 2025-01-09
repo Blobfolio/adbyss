@@ -2,6 +2,14 @@
 
 
 
+## [0.15.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.2) - 2025-01-09
+
+### Changed
+
+* Bump `brunch` to `0.8` (dev)
+
+
+
 ## [0.15.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.1) - 2024-11-28
 
 ### Changed
