@@ -20,22 +20,16 @@ Debian and Ubuntu users can just grab the pre-built `.deb` package from the [lat
 This application is written in [Rust](https://www.rust-lang.org/) and can alternatively be built from source using [Cargo](https://github.com/rust-lang/cargo):
 
 ```bash
-# Clone the source.
-git clone https://github.com/Blobfolio/adbyss.git
+# See "cargo install --help" for more options.
+cargo install \
+    --git https://github.com/Blobfolio/adbyss.git \
+    --bin adbyss
 
-# Go to it.
-cd adbyss
-
-# Copy the configuration file.
-sudo cp adbyss/misc/adbyss.yaml /etc
-
-# Build as usual. Specify additional flags as desired.
-cargo build \
-    --bin adbyss \
-    --release
+# Optional: download/save the advanced settings template so you can make
+# changes if/as needed.
+wget -qO- https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.yaml | \
+    sudo tee /etc/adbyss.yaml >/dev/null
 ```
-
-(This should work under other 64-bit Unix environments too, like MacOS.)
 
 
 
@@ -43,7 +37,7 @@ cargo build \
 
 It's easy.
 
-Settings are stored in `/etc/adbyss.yaml`. Edit those as needed.
+Advanced settings are stored in `/etc/adbyss.yaml`. Just grab, edit, and save the [default config](https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.yaml) to that location if you want to change anything.
 
 Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
@@ -86,7 +80,7 @@ sudo systemctl enable adbyss.timer
 sudo systemctl start adbyss.timer
 ```
 
-If you built Adbyss manually, you'll need to manually copy both scripts to the appropriate `/etc/systemd` or `/lib/systemd` subfolder and run:
+If you built Adbyss manually, you'll need to manually copy both scripts to the appropriate `/etc/systemd` or `/usr/lib/systemd` subfolder and run:
 
 ```bash
 sudo systemctl daemon-reload
