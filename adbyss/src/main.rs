@@ -70,7 +70,10 @@ use fyi_msg::Msg;
 use dactyl::NiceU64;
 use std::{
 	io::Write,
-	process::Command,
+	process::{
+		Command,
+		ExitCode,
+	},
 };
 
 
@@ -101,13 +104,17 @@ const MAX_LINE: usize = 245;
 
 
 /// Main.
-fn main() {
+fn main() -> ExitCode {
 	match main__() {
+		Ok(()) => ExitCode::SUCCESS,
 		Err(e @ (AdbyssError::PrintHelp | AdbyssError::PrintVersion)) => {
 			println!("{e}");
+			ExitCode::SUCCESS
 		},
-		Err(e) => { Msg::error(e.to_string()).die(1); },
-		Ok(()) => {},
+		Err(e) => {
+			Msg::error(e.to_string()).eprint();
+			ExitCode::FAILURE
+		},
 	}
 }
 
