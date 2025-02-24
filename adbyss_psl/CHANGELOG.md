@@ -2,6 +2,16 @@
 
 
 
+## [0.16.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.0) - TBD
+
+### Changed
+
+* Bump MSRV to `1.85`
+* Bump Rust edition to `2024`
+* Miscellaneous code cleanup and lints
+
+
+
 ## [0.15.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.3) - 2025-02-20
 
 ### Changed
