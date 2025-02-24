@@ -281,11 +281,10 @@ impl Settings {
 
 			// Pull in the results.
 			for (mut thread, (source, raw)) in workers.into_iter().zip(out.iter_mut()) {
-				if let Some(thread) = thread.take() {
-					let thread = thread.join()
-						.map_err(|_| AdbyssError::SourceFetch(*source))?;
-					*raw = thread?;
-				}
+				let Some(thread) = thread.take() else { continue; };
+				let thread = thread.join()
+					.map_err(|_| AdbyssError::SourceFetch(*source))?;
+				*raw = thread?;
 			}
 
 			// Done!
@@ -355,34 +354,38 @@ impl<'a> Iterator for SourceDomains<'a> {
 /// # Deserialize Include.
 fn deserialize_include<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where D: de::Deserializer<'de> {
-	if let Ok(mut tmp) = Vec::<String>::deserialize(deserializer) {
-		// Make sure the entries are lowercase, and if there are www-prefixed
-		// domains, add their non-www counterparts.
-		let mut extra = Vec::with_capacity(tmp.len());
-		for v in &mut tmp {
-			v.make_ascii_lowercase();
-			if let Some(rest) = v.strip_prefix("www.") { extra.push(rest.to_owned()); }
-		}
-		tmp.append(&mut extra);
+	match Vec::<String>::deserialize(deserializer) {
+		Ok(mut tmp) => {
+			// Make sure the entries are lowercase, and if there are www-prefixed
+			// domains, add their non-www counterparts.
+			let mut extra = Vec::with_capacity(tmp.len());
+			for v in &mut tmp {
+				v.make_ascii_lowercase();
+				if let Some(rest) = v.strip_prefix("www.") { extra.push(rest.to_owned()); }
+			}
+			tmp.append(&mut extra);
 
-		// Sort and dedupe.
-		tmp.sort_unstable();
-		tmp.dedup();
+			// Sort and dedupe.
+			tmp.sort_unstable();
+			tmp.dedup();
 
-		Ok(tmp)
+			Ok(tmp)
+		},
+		_ => Ok(Vec::new()),
 	}
-	else { Ok(Vec::new()) }
 }
 
 /// # Deserialize Regexclude.
 fn deserialize_regexclude<'de, D>(deserializer: D) -> Result<Option<RegexSet>, D::Error>
 where D: de::Deserializer<'de> {
-	if let Ok(tmp) = Vec::<Cow<str>>::deserialize(deserializer) {
-		let tmp = RegexSet::new(tmp).map_err(de::Error::custom)?;
-		if tmp.is_empty() { Ok(None) }
-		else { Ok(Some(tmp)) }
+	match Vec::<Cow<str>>::deserialize(deserializer) {
+		Ok(tmp) => {
+			let tmp = RegexSet::new(tmp).map_err(de::Error::custom)?;
+			if tmp.is_empty() { Ok(None) }
+			else { Ok(Some(tmp)) }
+		},
+		_ => Ok(None),
 	}
-	else { Ok(None) }
 }
 
 /// # Snip Domain Line.
