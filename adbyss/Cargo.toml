@@ -92,7 +92,6 @@ items = [
 argyle = "0.10.*"
 dactyl = "0.9.*"
 fyi_msg = "1.6.*"
-libc = "0.2.*"
 regex = "1.11.*"
 serde_yml = "=0.0.12"
 trimothy = "0.6.*"
@@ -107,6 +106,11 @@ features = [ "serde" ]
 version = "2.13.*"
 default-features = false
 features = ["https"]
+
+[dependencies.nix]
+version = "0.29.0"
+default-features = false
+features = [ "user" ]
 
 [dependencies.serde]
 version = "1.0.*"

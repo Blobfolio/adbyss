@@ -2,11 +2,12 @@
 # Adbyss
 */
 
+#![forbid(unsafe_code)]
+
 #![deny(
 	clippy::allow_attributes_without_reason,
 	clippy::correctness,
 	unreachable_pub,
-	unsafe_code,
 )]
 
 #![warn(
@@ -236,22 +237,20 @@ fn check_internet() -> Result<(), AdbyssError> {
 	}
 }
 
-#[expect(unsafe_code, reason = "For root.")]
 /// # Require Root.
 ///
 /// This will restart the command with root privileges if necessary, or fail
 /// if that doesn't work.
 fn require_root() -> Result<(), AdbyssError> {
-	// Safety: we have to trust libc knows how to fetch the user and group!
-	let (uid, e_uid) = unsafe { (libc::getuid(), libc::geteuid()) };
+	use nix::unistd::Uid;
 
 	// We're already root.
-	if uid == 0 && e_uid == 0 { Ok(()) }
-	// We just need to SETUID.
-	else if e_uid == 0 {
-		// Safety: again we have to trust this works correctly.
-		unsafe { libc::setuid(0); }
-		Ok(())
+	if Uid::effective().is_root() {
+		if Uid::current().is_root() { Ok(()) }
+		// Almost… we just need to SETUID.
+		else {
+			nix::unistd::setuid(Uid::from_raw(0)).map_err(|_| AdbyssError::Root)
+		}
 	}
 	// We need to escalate!
 	else {
