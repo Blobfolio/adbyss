@@ -2,12 +2,14 @@
 
 
 
-## [0.16.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.0) - TBD
+## [0.16.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.0) - 2025-02-25
 
 ### Changed
 
+* Bump `brunch` to `0.9` (dev)
 * Bump MSRV to `1.85`
 * Bump Rust edition to `2024`
+* Bump `trimothy` to `0.7`
 * Miscellaneous code cleanup and lints
 
 
