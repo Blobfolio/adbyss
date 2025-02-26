@@ -11,6 +11,7 @@
 * Bump Rust edition to `2024`
 * Bump `trimothy` to `0.7`
 * Miscellaneous code cleanup and lints
+* Update suffix database
 
 
 
