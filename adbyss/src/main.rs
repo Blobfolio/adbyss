@@ -120,12 +120,12 @@ fn main__() -> Result<(), AdbyssError> {
 	let mut flags = Flags::None;
 	for arg in args {
 		match arg {
-			Argument::Key("--disable") => { flags |= Flags::Disable; },
-			Argument::Key("-q" | "--quiet") => { flags |= Flags::Quiet; },
-			Argument::Key("--show") => { flags |= Flags::Show; },
-			Argument::Key("--stdout") => { flags |= Flags::Stdout; },
-			Argument::Key("--systemd") => { flags |= Flags::Systemd; },
-			Argument::Key("-y" | "--yes") => { flags |= Flags::Yes; },
+			Argument::Key("--disable") => { flags.set(Flags::Disable); },
+			Argument::Key("-q" | "--quiet") => { flags.set(Flags::Quiet); },
+			Argument::Key("--show") => { flags.set(Flags::Show); },
+			Argument::Key("--stdout") => { flags.set(Flags::Stdout); },
+			Argument::Key("--systemd") => { flags.set(Flags::Systemd); },
+			Argument::Key("-y" | "--yes") => { flags.set(Flags::Yes); },
 
 			Argument::Key("-h" | "--help") => return Err(AdbyssError::PrintHelp),
 			Argument::Key("-V" | "--version") => return Err(AdbyssError::PrintVersion),
