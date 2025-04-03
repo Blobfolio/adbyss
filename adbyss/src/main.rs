@@ -251,8 +251,7 @@ fn require_root() -> Result<(), AdbyssError> {
 			.map_err(|_| AdbyssError::Root)?;
 
 		// Wait to see what happens.
-		let exit = child.wait()
-			.map_err(|_| AdbyssError::Root)?;
+		let exit = child.wait().map_err(|_| AdbyssError::Root)?;
 
 		// Exit this (the old) instance with an appropriate code.
 		std::process::exit(

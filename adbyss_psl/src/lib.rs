@@ -346,6 +346,7 @@ impl Domain {
 	/// # Length.
 	pub fn len(&self) -> usize { self.host.len() }
 
+	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # As String Slice.
 	///
@@ -583,6 +584,7 @@ impl Domain {
 
 /// # Getters.
 impl Domain {
+	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # Host.
 	///
