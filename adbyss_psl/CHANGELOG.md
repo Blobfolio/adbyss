@@ -2,6 +2,15 @@
 
 
 
+## [0.16.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.1) - 2025-04-03
+
+### Changed
+
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.16.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.0) - 2025-02-25
 
 ### Changed
