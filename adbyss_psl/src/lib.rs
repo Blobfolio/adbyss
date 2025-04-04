@@ -233,7 +233,7 @@ impl Eq for Domain {}
 impl fmt::Display for Domain {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.pad(self.as_str())
+		<str as fmt::Display>::fmt(self.as_str(), f)
 	}
 }
 
