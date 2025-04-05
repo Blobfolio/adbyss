@@ -266,26 +266,29 @@ impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
-/// # Helper: Symmetrical `PartialEq`.
-macro_rules! partial_eq {
-	($($ty:ty),+ $(,)?) => ($(
+impl PartialEq<str> for Domain {
+	#[inline]
+	fn eq(&self, other: &str) -> bool { self.as_str() == other }
+}
+impl PartialEq<Domain> for str {
+	#[inline]
+	fn eq(&self, other: &Domain) -> bool { <Domain as PartialEq<Self>>::eq(other, self) }
+}
+
+/// # Helper: Reciprocal `PartialEq`.
+macro_rules! eq {
+	($($ty:ty),+) => ($(
 		impl PartialEq<$ty> for Domain {
 			#[inline]
-			fn eq(&self, other: &$ty) -> bool {
-				self.as_str() == AsRef::<str>::as_ref(other)
-			}
+			fn eq(&self, other: &$ty) -> bool { <Self as PartialEq<str>>::eq(self, other) }
 		}
 		impl PartialEq<Domain> for $ty {
 			#[inline]
-			fn eq(&self, other: &Domain) -> bool {
-				other.as_str() == AsRef::<str>::as_ref(self)
-			}
+			fn eq(&self, other: &Domain) -> bool { <Domain as PartialEq<str>>::eq(other, self) }
 		}
 	)+);
 }
-
-// String equality.
-partial_eq!(str, &str, String, &String);
+eq!(&str, &String, String, &Cow<'_, str>, Cow<'_, str>, &Box<str>, Box<str>);
 
 impl PartialOrd for Domain {
 	#[inline]
