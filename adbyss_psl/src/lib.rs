@@ -310,8 +310,6 @@ macro_rules! impl_try {
 		}
 	)+)
 }
-
-// Same as Domain::new, essentially.
 impl_try!(&str, &String);
 
 impl TryFrom<Cow<'_, str>> for Domain {
@@ -349,7 +347,6 @@ impl Domain {
 	/// # Length.
 	pub fn len(&self) -> usize { self.host.len() }
 
-	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # As String Slice.
 	///
@@ -366,7 +363,7 @@ impl Domain {
 	///     "netflix.com",
 	/// );
 	/// ```
-	pub fn as_str(&self) -> &str { &self.host }
+	pub fn as_str(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # As Byte Slice.
@@ -587,7 +584,6 @@ impl Domain {
 
 /// # Getters.
 impl Domain {
-	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # Host.
 	///
@@ -602,7 +598,7 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.host(), "www.blobfolio.com");
 	/// ```
-	pub fn host(&self) -> &str { &self.host }
+	pub fn host(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # Root.
