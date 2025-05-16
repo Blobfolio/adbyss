@@ -341,11 +341,11 @@ impl TryFrom<String> for Domain {
 impl Domain {
 	#[must_use]
 	/// # Is Empty.
-	pub fn is_empty(&self) -> bool { self.host.is_empty() }
+	pub const fn is_empty(&self) -> bool { self.host.is_empty() }
 
 	#[must_use]
 	/// # Length.
-	pub fn len(&self) -> usize { self.host.len() }
+	pub const fn len(&self) -> usize { self.host.len() }
 
 	#[must_use]
 	/// # As String Slice.
@@ -363,7 +363,7 @@ impl Domain {
 	///     "netflix.com",
 	/// );
 	/// ```
-	pub fn as_str(&self) -> &str { self.host.as_str() }
+	pub const fn as_str(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # As Byte Slice.
@@ -381,7 +381,7 @@ impl Domain {
 	///     b"rugbypass.tv",
 	/// );
 	/// ```
-	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
+	pub const fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
 /// # Setters.
@@ -598,7 +598,7 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.host(), "www.blobfolio.com");
 	/// ```
-	pub fn host(&self) -> &str { self.host.as_str() }
+	pub const fn host(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # Root.
