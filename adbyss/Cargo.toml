@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.16.1"
+version = "0.17.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
