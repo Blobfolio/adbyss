@@ -233,7 +233,7 @@ impl Eq for Domain {}
 impl fmt::Display for Domain {
 	#[inline]
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.pad(self.as_str())
+		<str as fmt::Display>::fmt(self.as_str(), f)
 	}
 }
 
@@ -266,26 +266,29 @@ impl PartialEq for Domain {
 	fn eq(&self, other: &Self) -> bool { self.host == other.host }
 }
 
-/// # Helper: Symmetrical `PartialEq`.
-macro_rules! partial_eq {
-	($($ty:ty),+ $(,)?) => ($(
+impl PartialEq<str> for Domain {
+	#[inline]
+	fn eq(&self, other: &str) -> bool { self.as_str() == other }
+}
+impl PartialEq<Domain> for str {
+	#[inline]
+	fn eq(&self, other: &Domain) -> bool { <Domain as PartialEq<Self>>::eq(other, self) }
+}
+
+/// # Helper: Reciprocal `PartialEq`.
+macro_rules! eq {
+	($($ty:ty),+) => ($(
 		impl PartialEq<$ty> for Domain {
 			#[inline]
-			fn eq(&self, other: &$ty) -> bool {
-				self.as_str() == AsRef::<str>::as_ref(other)
-			}
+			fn eq(&self, other: &$ty) -> bool { <Self as PartialEq<str>>::eq(self, other) }
 		}
 		impl PartialEq<Domain> for $ty {
 			#[inline]
-			fn eq(&self, other: &Domain) -> bool {
-				other.as_str() == AsRef::<str>::as_ref(self)
-			}
+			fn eq(&self, other: &Domain) -> bool { <Domain as PartialEq<str>>::eq(other, self) }
 		}
 	)+);
 }
-
-// String equality.
-partial_eq!(str, &str, String, &String);
+eq!(&str, &String, String, &Cow<'_, str>, Cow<'_, str>, &Box<str>, Box<str>);
 
 impl PartialOrd for Domain {
 	#[inline]
@@ -307,8 +310,6 @@ macro_rules! impl_try {
 		}
 	)+)
 }
-
-// Same as Domain::new, essentially.
 impl_try!(&str, &String);
 
 impl TryFrom<Cow<'_, str>> for Domain {
@@ -340,13 +341,12 @@ impl TryFrom<String> for Domain {
 impl Domain {
 	#[must_use]
 	/// # Is Empty.
-	pub fn is_empty(&self) -> bool { self.host.is_empty() }
+	pub const fn is_empty(&self) -> bool { self.host.is_empty() }
 
 	#[must_use]
 	/// # Length.
-	pub fn len(&self) -> usize { self.host.len() }
+	pub const fn len(&self) -> usize { self.host.len() }
 
-	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # As String Slice.
 	///
@@ -363,7 +363,7 @@ impl Domain {
 	///     "netflix.com",
 	/// );
 	/// ```
-	pub fn as_str(&self) -> &str { &self.host }
+	pub const fn as_str(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # As Byte Slice.
@@ -381,7 +381,7 @@ impl Domain {
 	///     b"rugbypass.tv",
 	/// );
 	/// ```
-	pub fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
+	pub const fn as_bytes(&self) -> &[u8] { self.host.as_bytes() }
 }
 
 /// # Setters.
@@ -584,7 +584,6 @@ impl Domain {
 
 /// # Getters.
 impl Domain {
-	#[expect(clippy::missing_const_for_fn, reason = "False positive.")]
 	#[must_use]
 	/// # Host.
 	///
@@ -599,7 +598,7 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.host(), "www.blobfolio.com");
 	/// ```
-	pub fn host(&self) -> &str { &self.host }
+	pub const fn host(&self) -> &str { self.host.as_str() }
 
 	#[must_use]
 	/// # Root.

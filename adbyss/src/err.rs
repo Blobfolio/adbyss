@@ -3,6 +3,11 @@
 */
 
 use crate::Source;
+use fyi_ansi::{
+	ansi,
+	csi,
+	dim,
+};
 use std::fmt;
 
 
@@ -12,7 +17,7 @@ const HELP: &str = concat!(r#"
  .--,       .--,
 ( (  \.---./  ) )
  '.__/o   o\__.'
-    (=  ^  =)       "#, "\x1b[38;5;199mAdbyss\x1b[0;38;5;69m v", env!("CARGO_PKG_VERSION"), "\x1b[0m", r#"
+    (=  ^  =)       "#, csi!(199), "Adbyss", ansi!((cornflower_blue) " v", env!("CARGO_PKG_VERSION")), r#"
      >  -  <        Block ads, trackers, malware, and
     /       \       other garbage sites in /etc/hosts.
    //       \\
@@ -92,8 +97,8 @@ impl fmt::Display for AdbyssError {
 		f.write_str(self.as_str())?;
 		match self {
 			Self::InvalidCli(s) | Self::Parse(s) | Self::Read(s) | Self::Write(s) =>
-				write!(f, " \x1b[2m({s})\x1b[0m"),
-			Self::SourceFetch(s) => write!(f, " \x1b[2m({})\x1b[0m", s.as_str()),
+				write!(f, dim!(" ({})"), s),
+			Self::SourceFetch(s) => write!(f, dim!(" ({})"), s.as_str()),
 			_ => Ok(()),
 		}
 	}

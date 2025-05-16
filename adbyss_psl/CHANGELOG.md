@@ -2,6 +2,22 @@
 
 
 
+## [0.17.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.17.0) - 2025-05-15
+
+### Changed
+
+* Bump `brunch` to `0.9` (dev)
+* Bump MSRV to `1.87`
+* `Domain::as_bytes` is now const
+* `Domain::as_str` is now const
+* `Domain::host` is now const
+* `Domain::is_empty` is now const
+* `Domain::len` is now const
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.16.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.1) - 2025-04-03
 
 ### Changed
