@@ -45,7 +45,7 @@ impl Shitlist {
 	}
 
 	/// # Length.
-	pub(super) fn len(&self) -> usize {
+	pub(super) const fn len(&self) -> usize {
 		match self { Self::Flat(s) | Self::Compact(s) => s.len() }
 	}
 
