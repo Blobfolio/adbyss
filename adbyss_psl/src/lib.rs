@@ -225,7 +225,7 @@ impl Deref for Domain {
 	type Target = str;
 
 	#[inline]
-	fn deref(&self) -> &Self::Target { &self.host }
+	fn deref(&self) -> &Self::Target { self.host.as_str() }
 }
 
 impl Eq for Domain {}
