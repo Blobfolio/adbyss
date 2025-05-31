@@ -200,15 +200,12 @@ pub struct Domain {
 	/// # Host.
 	host: String,
 
-	/// # Root.
+	/// # Root Range.
 	///
-	/// This holds the index range of `host` corresponding to the domain root.
+	/// Being the middle part, we can use this to figure out where the
+	/// subdomain and suffix parts are, i.e. `..root.start - 1` and
+	/// `root.end + 1..` respectively.
 	root: Range<usize>,
-
-	/// # Root.
-	///
-	/// This holds the index range of `host` corresponding to the domain suffix.
-	suffix: Range<usize>,
 }
 
 impl AsRef<str> for Domain {
@@ -437,10 +434,9 @@ impl Domain {
 
 		// Find the suffix.
 		let suffix = find_suffix(bytes)?;
-		let suffix = len.checked_sub(suffix.len())?..len;
 
 		// Find the root (and make sure there is one).
-		let root_end = suffix.start.checked_sub(1)?;
+		let root_end = len.checked_sub(suffix.len() + 1)?;
 		let root = bytes.iter()
 			.copied()
 			.take(root_end)
@@ -448,7 +444,7 @@ impl Domain {
 			.map_or(0, |pos| pos + 1)..root_end;
 
 		// Done!
-		Some(Self { host, root, suffix })
+		Some(Self { host, root })
 	}
 }
 
@@ -511,11 +507,9 @@ impl Domain {
 			// Adjust the ranges.
 			self.root.start -= 4;
 			self.root.end -= 4;
-			self.suffix.start -= 4;
-			self.suffix.end -= 4;
 
-			if ! recurse { return true; }
 			res = true;
+			if ! recurse { break; }
 		}
 
 		res
@@ -650,9 +644,7 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.suffix(), "com");
 	/// ```
-	pub fn suffix(&self) -> &str {
-		&self.host[self.suffix.start..self.suffix.end]
-	}
+	pub fn suffix(&self) -> &str { &self.host[self.root.end + 1..] }
 
 	#[must_use]
 	/// # TLD.
