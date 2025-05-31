@@ -14,6 +14,10 @@
 * Miscellaneous code cleanup and lints
 * Update suffix database
 
+### Breaking
+
+* Removed `Deref` for `Domain`
+
 
 
 ## [0.17.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.17.0) - 2025-05-15

@@ -252,7 +252,7 @@ impl Settings {
 		for ex in &self.exclude {
 			if let Ok(pos) = out.binary_search(ex) { out.remove(pos); }
 		}
-		if let Some(re) = &self.regexclude { out.retain(|v| ! re.is_match(v)); }
+		if let Some(re) = &self.regexclude { out.retain(|v| ! re.is_match(v.as_str())); }
 
 		// Done!
 		if self.compact() { Ok(Shitlist::Compact(out)) }

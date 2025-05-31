@@ -136,7 +136,6 @@ use std::{
 		Error,
 		ErrorKind,
 	},
-	ops::Deref,
 	str::FromStr,
 };
 
@@ -220,13 +219,6 @@ impl AsRef<str> for Domain {
 impl AsRef<[u8]> for Domain {
 	#[inline]
 	fn as_ref(&self) -> &[u8] { self.as_bytes() }
-}
-
-impl Deref for Domain {
-	type Target = str;
-
-	#[inline]
-	fn deref(&self) -> &Self::Target { self.host.as_str() }
 }
 
 impl Eq for Domain {}
@@ -1217,9 +1209,6 @@ mod tests {
 		assert_eq!(dom.suffix(), "xn--fiqs8s");
 		assert_eq!(dom.tld(), "xn--85x722f.xn--fiqs8s");
 		assert_eq!(dom.host(), "abc.www.xn--85x722f.xn--fiqs8s");
-
-		// Make sure dereference does the right thing. It should...
-		assert_eq!(dom.host(), &*dom);
 
 		dom = Domain::new("blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), None);
