@@ -2,6 +2,20 @@
 
 
 
+## [0.18.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.18.0) - TBD
+
+### Changed
+
+* `Domain::has_www` is now const
+* `Domain::subdomain` is now const
+* `Domain::suffix` is now const
+* `Domain::tld` is now const
+* Lighten `Domain` struct by 16 bytes
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.17.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.17.0) - 2025-05-15
 
 ### Changed

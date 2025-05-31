@@ -467,8 +467,9 @@ impl Domain {
 	/// let dom2 = Domain::new("blobfolio.com").unwrap();
 	/// assert!(! dom2.has_www());
 	/// ```
-	pub fn has_www(&self) -> bool {
-		self.root.start >= 4 && self.host.starts_with("www.")
+	pub const fn has_www(&self) -> bool {
+		self.root.start >= 4 &&
+		matches!(self.as_bytes(), [b'w', b'w', b'w', b'.', ..])
 	}
 
 	/// # Remove Leading WWW.
@@ -626,8 +627,12 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.subdomain(), Some("www"));
 	/// ```
-	pub fn subdomain(&self) -> Option<&str> {
-		self.root.start.checked_sub(1).map(|pos| &self.host[..pos])
+	pub const fn subdomain(&self) -> Option<&str> {
+		if let Some(end) = self.root.start.checked_sub(1) {
+			let (out, _) = self.host.as_str().split_at(end);
+			Some(out)
+		}
+		else { None }
 	}
 
 	#[must_use]
@@ -644,7 +649,10 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.suffix(), "com");
 	/// ```
-	pub fn suffix(&self) -> &str { &self.host[self.root.end + 1..] }
+	pub const fn suffix(&self) -> &str {
+		let (_ ,out) = self.host.as_str().split_at(self.root.end + 1);
+		out
+	}
 
 	#[must_use]
 	/// # TLD.
@@ -660,7 +668,10 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.tld(), "blobfolio.com");
 	/// ```
-	pub fn tld(&self) -> &str { &self.host[self.root.start..] }
+	pub const fn tld(&self) -> &str {
+		let (_, out) = self.host.as_str().split_at(self.root.start);
+		out
+	}
 }
 
 /// # Miscellaneous.
