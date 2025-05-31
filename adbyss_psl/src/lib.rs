@@ -136,10 +136,7 @@ use std::{
 		Error,
 		ErrorKind,
 	},
-	ops::{
-		Deref,
-		Range,
-	},
+	ops::Deref,
 	str::FromStr,
 };
 
@@ -200,12 +197,19 @@ pub struct Domain {
 	/// # Host.
 	host: String,
 
-	/// # Root Range.
+	/// # Root Start.
 	///
-	/// Being the middle part, we can use this to figure out where the
-	/// subdomain and suffix parts are, i.e. `..root.start - 1` and
-	/// `root.end + 1..` respectively.
-	root: Range<usize>,
+	/// The root portion of the `Domain` starts at this position.
+	///
+	/// If there's a subdomain, it will end at `root_start - 1`.
+	root_start: usize,
+
+	/// # Root End.
+	///
+	/// The root portion of the `Domain` ends here (exclusive).
+	///
+	/// The suffix begins at `root_end + 1`.
+	root_end: usize,
 }
 
 impl AsRef<str> for Domain {
@@ -437,14 +441,14 @@ impl Domain {
 
 		// Find the root (and make sure there is one).
 		let root_end = len.checked_sub(suffix.len() + 1)?;
-		let root = bytes.iter()
+		let root_start = bytes.iter()
 			.copied()
 			.take(root_end)
 			.rposition(|b| b == b'.')
-			.map_or(0, |pos| pos + 1)..root_end;
+			.map_or(0, |pos| pos + 1);
 
 		// Done!
-		Some(Self { host, root })
+		Some(Self { host, root_start, root_end })
 	}
 }
 
@@ -468,7 +472,7 @@ impl Domain {
 	/// assert!(! dom2.has_www());
 	/// ```
 	pub const fn has_www(&self) -> bool {
-		self.root.start >= 4 &&
+		self.root_start >= 4 &&
 		matches!(self.as_bytes(), [b'w', b'w', b'w', b'.', ..])
 	}
 
@@ -506,8 +510,8 @@ impl Domain {
 			self.host.replace_range(..4, "");
 
 			// Adjust the ranges.
-			self.root.start -= 4;
-			self.root.end -= 4;
+			self.root_start -= 4;
+			self.root_end -= 4;
 
 			res = true;
 			if ! recurse { break; }
@@ -610,7 +614,7 @@ impl Domain {
 	/// assert_eq!(dom.root(), "blobfolio");
 	/// ```
 	pub fn root(&self) -> &str {
-		&self.host[self.root.start..self.root.end]
+		&self.host[self.root_start..self.root_end]
 	}
 
 	#[must_use]
@@ -628,7 +632,7 @@ impl Domain {
 	/// assert_eq!(dom.subdomain(), Some("www"));
 	/// ```
 	pub const fn subdomain(&self) -> Option<&str> {
-		if let Some(end) = self.root.start.checked_sub(1) {
+		if let Some(end) = self.root_start.checked_sub(1) {
 			let (out, _) = self.host.as_str().split_at(end);
 			Some(out)
 		}
@@ -650,7 +654,7 @@ impl Domain {
 	/// assert_eq!(dom.suffix(), "com");
 	/// ```
 	pub const fn suffix(&self) -> &str {
-		let (_ ,out) = self.host.as_str().split_at(self.root.end + 1);
+		let (_ ,out) = self.host.as_str().split_at(self.root_end + 1);
 		out
 	}
 
@@ -669,7 +673,7 @@ impl Domain {
 	/// assert_eq!(dom.tld(), "blobfolio.com");
 	/// ```
 	pub const fn tld(&self) -> &str {
-		let (_, out) = self.host.as_str().split_at(self.root.start);
+		let (_, out) = self.host.as_str().split_at(self.root_start);
 		out
 	}
 }
