@@ -16,6 +16,7 @@
 
 ### Breaking
 
+* Removed `Default` for `Domain`
 * Removed `Deref` for `Domain`
 
 

@@ -146,7 +146,7 @@ const MAX_LOCAL: usize = 64;
 
 
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 /// # Domain.
 ///
 /// This struct validates and normalizes Internet hostnames, like
