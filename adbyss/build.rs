@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 
 /// # Set Up CLI Arguments and Flags.
-pub fn main() {
+fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 
 	build_cli();

@@ -32,7 +32,7 @@ type RawWildMap = HashMap<String, Vec<String>>;
 /// * Public Suffix List;
 /// * IDNA/Unicode Tables;
 /// * IDNA/Unicode unit tests;
-pub fn main() {
+fn main() {
 	println!("cargo:rerun-if-env-changed=CARGO_PKG_VERSION");
 	println!("cargo:rerun-if-changed=skel/raw/public_suffix_list.dat");
 
