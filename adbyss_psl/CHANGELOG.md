@@ -6,6 +6,7 @@
 
 ### Changed
 
+* Bump `trimothy` to `0.8`
 * `Domain::has_www` is now const
 * `Domain::subdomain` is now const
 * `Domain::suffix` is now const
