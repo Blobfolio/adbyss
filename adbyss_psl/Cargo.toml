@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.17.0"
+version = "0.18.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -28,7 +28,7 @@ serde_json = "1.0.*"
 
 [dependencies]
 idna = "1.0.0"
-trimothy = "0.7.*"
+trimothy = "0.8.*"
 
 [dependencies.serde]
 version = "1.0.*"

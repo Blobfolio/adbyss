@@ -5,7 +5,7 @@
 [![changelog](https://img.shields.io/crates/v/adbyss_psl.svg?style=flat-square&label=changelog&color=9b59b6)](https://github.com/Blobfolio/adbyss/blob/master/adbyss_psl/CHANGELOG.md)<br>
 [![crates.io](https://img.shields.io/crates/v/adbyss_psl.svg?style=flat-square&label=crates.io)](https://crates.io/crates/adbyss_psl)
 [![ci](https://img.shields.io/github/actions/workflow/status/Blobfolio/adbyss/ci.yaml?style=flat-square&label=ci)](https://github.com/Blobfolio/adbyss/actions)
-[![deps.rs](https://deps.rs/repo/github/blobfolio/adbyss/status.svg?style=flat-square&label=deps.rs)](https://deps.rs/repo/github/blobfolio/adbyss)<br>
+[![deps.rs](https://deps.rs/crate/adbyss_psl/latest/status.svg?style=flat-square&label=deps.rs)](https://deps.rs/crate/adbyss_psl/)<br>
 [![license](https://img.shields.io/badge/license-wtfpl-ff1493?style=flat-square)](https://en.wikipedia.org/wiki/WTFPL)
 [![contributions welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square&label=contributions)](https://github.com/Blobfolio/adbyss/issues)
 
@@ -136,10 +136,6 @@ use std::{
 		Error,
 		ErrorKind,
 	},
-	ops::{
-		Deref,
-		Range,
-	},
 	str::FromStr,
 };
 
@@ -150,7 +146,7 @@ const MAX_LOCAL: usize = 64;
 
 
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 /// # Domain.
 ///
 /// This struct validates and normalizes Internet hostnames, like
@@ -200,15 +196,19 @@ pub struct Domain {
 	/// # Host.
 	host: String,
 
-	/// # Root.
+	/// # Root Start.
 	///
-	/// This holds the index range of `host` corresponding to the domain root.
-	root: Range<usize>,
+	/// The root portion of the `Domain` starts at this position.
+	///
+	/// If there's a subdomain, it will end at `root_start - 1`.
+	root_start: usize,
 
-	/// # Root.
+	/// # Root End.
 	///
-	/// This holds the index range of `host` corresponding to the domain suffix.
-	suffix: Range<usize>,
+	/// The root portion of the `Domain` ends here (exclusive).
+	///
+	/// The suffix begins at `root_end + 1`.
+	root_end: usize,
 }
 
 impl AsRef<str> for Domain {
@@ -219,13 +219,6 @@ impl AsRef<str> for Domain {
 impl AsRef<[u8]> for Domain {
 	#[inline]
 	fn as_ref(&self) -> &[u8] { self.as_bytes() }
-}
-
-impl Deref for Domain {
-	type Target = str;
-
-	#[inline]
-	fn deref(&self) -> &Self::Target { &self.host }
 }
 
 impl Eq for Domain {}
@@ -437,18 +430,17 @@ impl Domain {
 
 		// Find the suffix.
 		let suffix = find_suffix(bytes)?;
-		let suffix = len.checked_sub(suffix.len())?..len;
 
 		// Find the root (and make sure there is one).
-		let root_end = suffix.start.checked_sub(1)?;
-		let root = bytes.iter()
+		let root_end = len.checked_sub(suffix.len() + 1)?;
+		let root_start = bytes.iter()
 			.copied()
 			.take(root_end)
 			.rposition(|b| b == b'.')
-			.map_or(0, |pos| pos + 1)..root_end;
+			.map_or(0, |pos| pos + 1);
 
 		// Done!
-		Some(Self { host, root, suffix })
+		Some(Self { host, root_start, root_end })
 	}
 }
 
@@ -471,8 +463,9 @@ impl Domain {
 	/// let dom2 = Domain::new("blobfolio.com").unwrap();
 	/// assert!(! dom2.has_www());
 	/// ```
-	pub fn has_www(&self) -> bool {
-		self.root.start >= 4 && self.host.starts_with("www.")
+	pub const fn has_www(&self) -> bool {
+		self.root_start >= 4 &&
+		matches!(self.as_bytes(), [b'w', b'w', b'w', b'.', ..])
 	}
 
 	/// # Remove Leading WWW.
@@ -509,13 +502,11 @@ impl Domain {
 			self.host.replace_range(..4, "");
 
 			// Adjust the ranges.
-			self.root.start -= 4;
-			self.root.end -= 4;
-			self.suffix.start -= 4;
-			self.suffix.end -= 4;
+			self.root_start -= 4;
+			self.root_end -= 4;
 
-			if ! recurse { return true; }
 			res = true;
+			if ! recurse { break; }
 		}
 
 		res
@@ -615,7 +606,7 @@ impl Domain {
 	/// assert_eq!(dom.root(), "blobfolio");
 	/// ```
 	pub fn root(&self) -> &str {
-		&self.host[self.root.start..self.root.end]
+		&self.host[self.root_start..self.root_end]
 	}
 
 	#[must_use]
@@ -632,8 +623,12 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.subdomain(), Some("www"));
 	/// ```
-	pub fn subdomain(&self) -> Option<&str> {
-		self.root.start.checked_sub(1).map(|pos| &self.host[..pos])
+	pub const fn subdomain(&self) -> Option<&str> {
+		if let Some(end) = self.root_start.checked_sub(1) {
+			let (out, _) = self.host.as_str().split_at(end);
+			Some(out)
+		}
+		else { None }
 	}
 
 	#[must_use]
@@ -650,8 +645,9 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.suffix(), "com");
 	/// ```
-	pub fn suffix(&self) -> &str {
-		&self.host[self.suffix.start..self.suffix.end]
+	pub const fn suffix(&self) -> &str {
+		let (_ ,out) = self.host.as_str().split_at(self.root_end + 1);
+		out
 	}
 
 	#[must_use]
@@ -668,7 +664,10 @@ impl Domain {
 	/// let dom = Domain::new("www.blobfolio.com").unwrap();
 	/// assert_eq!(dom.tld(), "blobfolio.com");
 	/// ```
-	pub fn tld(&self) -> &str { &self.host[self.root.start..] }
+	pub const fn tld(&self) -> &str {
+		let (_, out) = self.host.as_str().split_at(self.root_start);
+		out
+	}
 }
 
 /// # Miscellaneous.
@@ -1210,9 +1209,6 @@ mod tests {
 		assert_eq!(dom.suffix(), "xn--fiqs8s");
 		assert_eq!(dom.tld(), "xn--85x722f.xn--fiqs8s");
 		assert_eq!(dom.host(), "abc.www.xn--85x722f.xn--fiqs8s");
-
-		// Make sure dereference does the right thing. It should...
-		assert_eq!(dom.host(), &*dom);
 
 		dom = Domain::new("blobfolio.com").unwrap();
 		assert_eq!(dom.subdomain(), None);
