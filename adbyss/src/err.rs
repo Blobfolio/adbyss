@@ -3,7 +3,7 @@
 */
 
 use crate::Source;
-use fyi_ansi::{
+use fyi_msg::fyi_ansi::{
 	ansi,
 	csi,
 	dim,
