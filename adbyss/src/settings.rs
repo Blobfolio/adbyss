@@ -347,6 +347,8 @@ impl<'a> Iterator for SourceDomains<'a> {
 	}
 }
 
+impl std::iter::FusedIterator for SourceDomains<'_> {}
+
 
 
 #[expect(clippy::unnecessary_wraps, reason = "We don't control the signature.")]

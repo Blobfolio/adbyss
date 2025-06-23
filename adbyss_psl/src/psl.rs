@@ -94,6 +94,8 @@ impl<'a> Iterator for SuffixPartIter<'a> {
 	}
 }
 
+impl std::iter::FusedIterator for SuffixPartIter<'_> {}
+
 
 
 #[cfg(test)]
