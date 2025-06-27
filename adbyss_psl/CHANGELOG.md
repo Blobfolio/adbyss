@@ -10,6 +10,7 @@
 * Bump `trimothy` to `0.9`
 * Bump MSRV to `1.88`
 * Miscellaneous code cleanup and lints
+* Update suffix database
 
 
 
