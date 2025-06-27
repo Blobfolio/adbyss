@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.18.0"
+version = "0.19.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -89,13 +89,13 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.12.*"
-dactyl = "0.12.*"
-fyi_msg = "2.2.*"
+argyle = "0.13.*"
+dactyl = "0.13.*"
+fyi_msg = "2.3.*"
 regex = "1.11.*"
 serde_yml = "=0.0.12"
-trimothy = "0.8.*"
-utc2k = "0.14.*"
+trimothy = "0.9.*"
+utc2k = "0.15.*"
 write_atomic = "0.7.*"
 
 [dependencies.adbyss_psl]
@@ -117,4 +117,4 @@ version = "1.0.*"
 features = [ "derive" ]
 
 [build-dependencies]
-argyle = "0.12.*"
+argyle = "0.13.*"

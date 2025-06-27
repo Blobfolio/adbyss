@@ -120,18 +120,17 @@ impl Source {
 /// possible to reduce the transfer times. All sources currently serve Gzipped
 /// content, so the extra complexity is worth it.
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
-	if let Ok(res) = minreq::get(kind.url())
-		.with_header("user-agent", "Mozilla/5.0")
-		.with_timeout(15)
-		.send()
+	if
+		let Ok(res) = minreq::get(kind.url())
+			.with_header("user-agent", "Mozilla/5.0")
+			.with_timeout(15)
+			.send() &&
+		(200..=399).contains(&res.status_code) &&
+		let Ok(out) = res.as_str()
 	{
-		// Only accept happy response codes with sized bodies.
-		if (200..=399).contains(&res.status_code) {
-			if let Ok(out) = res.as_str() { return Ok(out.to_owned()); }
-		}
+		Ok(out.to_owned())
 	}
-
-	Err(AdbyssError::SourceFetch(kind))
+	else { Err(AdbyssError::SourceFetch(kind)) }
 }
 
 /// # Read From Cache.

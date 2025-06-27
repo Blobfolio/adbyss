@@ -2,6 +2,18 @@
 
 
 
+## [0.19.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.19.0) - 2025-06-26
+
+### Changed
+
+* Bump `brunch` to `0.11` (dev)
+* Bump `trimothy` to `0.9`
+* Bump MSRV to `1.88`
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.18.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.18.0) - 2025-06-01
 
 ### Changed
