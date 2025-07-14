@@ -95,7 +95,7 @@ fyi_msg = "2.3.*"
 regex = "1.11.*"
 serde_yml = "=0.0.12"
 trimothy = "0.9.*"
-utc2k = "0.15.*"
+utc2k = "0.16.*"
 write_atomic = "0.7.*"
 
 [dependencies.adbyss_psl]
