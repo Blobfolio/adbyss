@@ -2,6 +2,19 @@
 
 
 
+## [0.20.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.20.0) - 2025-08-12
+
+### New
+
+* Optional crate feature `sqlx-mysql`
+
+### Changed
+
+* Miscellaneous code cleanup and lints
+* Update suffix database
+
+
+
 ## [0.19.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.19.0) - 2025-06-26
 
 ### Changed
