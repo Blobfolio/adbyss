@@ -36,7 +36,7 @@ default-features = false
 optional = true
 
 [dependencies.sqlx]
-version = "0.8.*"
+version = "0.8.6"
 optional = true
 default-features = false
 
