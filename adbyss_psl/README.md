@@ -66,3 +66,4 @@ let owned = dom.take(); // "www.mydomain.com"
 ## Optional Crate Features
 
 * `serde`: Enables serialization/deserialization support.
+* `sqlx-mysql`: Enables [`sqlx`](https://crates.io/crates/sqlx) encoding/decoding support for MySql databases.

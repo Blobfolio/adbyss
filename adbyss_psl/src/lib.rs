@@ -69,6 +69,7 @@ let owned = dom.take(); // "www.mydomain.com"
 ## Optional Crate Features
 
 * `serde`: Enables serialization/deserialization support.
+* `sqlx-mysql`: Enables [`sqlx`](https://crates.io/crates/sqlx) encoding/decoding support for Mysql databases.
 */
 
 #![forbid(unsafe_code)]
@@ -129,6 +130,11 @@ mod psl;
 #[cfg(any(test, feature = "serde"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde;
+
+#[cfg(feature = "sqlx-mysql")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sqlx-mysql")))]
+mod sqlx;
+
 use psl::SuffixKind;
 use std::{
 	borrow::Cow,
