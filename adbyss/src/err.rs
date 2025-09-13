@@ -41,14 +41,14 @@ FLAGS:
     -y, --yes          Non-interactive mode; answer "yes" to all prompts.
 
 OPTIONS:
-    -c, --config <path>    Use this configuration instead of /etc/adbyss.yaml.
+    -c, --config <path>    Use this configuration instead of /etc/adbyss.toml.
 
 SOURCES:
     AdAway:       <https://adaway.org/>
     Steven Black: <https://github.com/StevenBlack/hosts>
     Yoyo:         <https://pgl.yoyo.org/adservers/>
 
-Additional global settings are stored in /etc/adbyss.yaml.
+Additional global settings are stored in /etc/adbyss.toml.
 "#);
 
 

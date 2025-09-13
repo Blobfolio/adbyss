@@ -221,7 +221,7 @@ version:
 
 # Init dependencies.
 @_init:
-	[ -f "/etc/adbyss.yaml" ] || cp "{{ pkg_dir1 }}/skel/adbyss.yaml" "/etc"
+	[ -f "/etc/adbyss.toml" ] || cp "{{ pkg_dir1 }}/skel/adbyss.toml" "/etc"
 
 
 # Fix file/directory permissions.

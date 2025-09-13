@@ -18,11 +18,11 @@ extended-description = ""
 section = "net"
 assets = [
     ["../target/release/adbyss", "usr/bin/", "755"],
-    ["./skel/adbyss.yaml", "etc/", "644"],
+    ["./skel/adbyss.toml", "etc/", "644"],
     ["../release/completions/adbyss.bash", "etc/bash_completion.d/", "644"],
     ["../release/man/adbyss.1.gz", "usr/share/man/man1/", "644"],
 ]
-conf-files = [ "/etc/adbyss.yaml" ]
+conf-files = [ "/etc/adbyss.toml" ]
 maintainer-scripts = "./skel/systemd/"
 
 [package.metadata.deb.systemd-units]
@@ -71,13 +71,13 @@ description = 'Non-interactive mode; answer "yes" to all prompts.'
 short = "-c"
 long = "--config"
 label = "<FILE>"
-description = "Use this configuration instead of /etc/adbyss.yaml."
+description = "Use this configuration instead of /etc/adbyss.toml."
 path = true
 
 [[package.metadata.bashman.sections]]
 name = "GLOBAL"
 inside = true
-lines = [ "Additional settings are stored in /etc/adbyss.yaml. Edit those to set your preferred global runtime behaviors." ]
+lines = [ "Additional settings are stored in /etc/adbyss.toml. Edit those to set your preferred global runtime behaviors." ]
 
 [[package.metadata.bashman.sections]]
 name = "SOURCE LISTS"
@@ -93,7 +93,7 @@ argyle = "0.13.*"
 dactyl = "0.13.*"
 fyi_msg = "2.3.*"
 regex = "1.11.*"
-serde_yml = "=0.0.12"
+toml = "=0.9.*"
 trimothy = "0.9.*"
 utc2k = "0.17.*"
 write_atomic = "0.7.*"
@@ -105,7 +105,7 @@ features = [ "serde" ]
 [dependencies.minreq]
 version = "2.14.*"
 default-features = false
-features = ["https"]
+features = [ "https" ]
 
 [dependencies.nix]
 version = "0.30.*"

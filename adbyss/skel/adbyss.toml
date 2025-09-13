@@ -20,7 +20,7 @@
 # See https://en.wikipedia.org/wiki/Hosts_(file) for general information.
 ##
 
-hostfile: "/etc/hosts"
+hostfile = "/etc/hosts"
 
 
 ##
@@ -30,7 +30,7 @@ hostfile: "/etc/hosts"
 # updating it with any shitlist changes.
 ##
 
-backup: true
+backup = true
 
 
 ##
@@ -47,7 +47,7 @@ backup: true
 # false.
 ##
 
-compact: true
+compact = true
 
 
 ##
@@ -57,10 +57,10 @@ compact: true
 # value to false.
 ##
 
-source_adaway: true
-source_adbyss: true
-source_stevenblack: true
-source_yoyo: true
+source_adaway = true
+source_adbyss = true
+source_stevenblack = true
+source_yoyo = true
 
 
 ##
@@ -71,11 +71,12 @@ source_yoyo: true
 #
 # Add any such hosts below to have them excluded from the blocklists, like:
 #
-# exclude:
-#   - example1.com
-#   - example2.com
+# exclude = [
+#  "example1.com",
+#  "example2.com",
+# ]
 ##
-exclude: []
+exclude = []
 
 
 ##
@@ -95,11 +96,10 @@ exclude: []
 #
 # In practice this would look something like:
 #
-# regexclude:
-#   - '(.+\.)*example.com$'
+# regexclude = [ '(.+\.)*example.com$' ]
 ##
 
-regexclude: []
+regexclude = []
 
 
 ##
@@ -107,13 +107,14 @@ regexclude: []
 #
 # If you have additional enemeies, add the host(s) below, like:
 #
-# include:
-#   - example1.com
-#   - example2.com
+# include = [
+#   "example1.com",
+#   "example2.com",
+# ]
 #
 # You can also save any number of custom entries directly to your hostfile.
 # Adbyss will preserve anything prior to the ADBYSS block when writing
 # blocklist updates (unless the --no-preserve flag is set).
 ##
 
-include: []
+include = []
