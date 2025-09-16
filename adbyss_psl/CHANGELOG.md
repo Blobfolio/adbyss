@@ -2,6 +2,14 @@
 
 
 
+## [0.21.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.21.0) - TBD
+
+### Changed
+
+* Replace `serde` with `serde_core` (optional dependency)
+
+
+
 ## [0.20.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.20.0) - 2025-08-12
 
 ### New
