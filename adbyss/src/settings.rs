@@ -152,7 +152,7 @@ impl Settings {
 		let (out, len) = self.build()?;
 
 		// Double-check with the user before continuing.
-		if ! yes && ! fyi_msg::confirm!(yes: format!(
+		if ! yes && ! fyi_msg::confirm!(@yes format!(
 			"Write {} hosts to {}?",
 			NiceU64::from(len),
 			self.hostfile.display(),
@@ -179,7 +179,7 @@ impl Settings {
 		// We only need to take action if there were entries to begin with.
 		if changed {
 			// Prompt the user before taking any action.
-			if ! yes && ! fyi_msg::confirm!(yes: format!(
+			if ! yes && ! fyi_msg::confirm!(@yes format!(
 				"Remove all Adbyss blackhole entries from {}?",
 				self.hostfile.display(),
 			)) {
