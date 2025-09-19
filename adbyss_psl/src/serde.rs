@@ -2,7 +2,7 @@
 # Adbyss: Serde Extensions.
 */
 
-use serde::{
+use serde_core::{
 	de,
 	Deserialize,
 	Serialize,

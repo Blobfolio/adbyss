@@ -27,7 +27,7 @@ use std::{
 
 
 
-#[expect(clippy::struct_excessive_bools, reason = "The fields mirror our YAML config.")]
+#[expect(clippy::struct_excessive_bools, reason = "The fields mirror our TOML config.")]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 /// # Settings.
@@ -89,14 +89,14 @@ impl Settings {
 	pub(super) const DEFAULT_HOSTFILE: &str = "/etc/hosts";
 
 	/// # Default Config Location.
-	pub(super) const DEFAULT_CONFIG: &str = "/etc/adbyss.yaml";
+	pub(super) const DEFAULT_CONFIG: &str = "/etc/adbyss.toml";
 
 	/// # From File.
 	pub(super) fn from_file<P: AsRef<Path>>(src: P) -> Result<Self, AdbyssError> {
 		let src = src.as_ref();
 		let raw = std::fs::read_to_string(src)
 			.map_err(|_| AdbyssError::Read(src.to_string_lossy().into_owned()))?;
-		serde_yml::from_str::<Self>(&raw)
+		toml::from_str::<Self>(&raw)
 			.map_err(|e| AdbyssError::Parse(e.to_string()))
 	}
 }
@@ -152,7 +152,7 @@ impl Settings {
 		let (out, len) = self.build()?;
 
 		// Double-check with the user before continuing.
-		if ! yes && ! fyi_msg::confirm!(yes: format!(
+		if ! yes && ! fyi_msg::confirm!(@yes format!(
 			"Write {} hosts to {}?",
 			NiceU64::from(len),
 			self.hostfile.display(),
@@ -179,7 +179,7 @@ impl Settings {
 		// We only need to take action if there were entries to begin with.
 		if changed {
 			// Prompt the user before taking any action.
-			if ! yes && ! fyi_msg::confirm!(yes: format!(
+			if ! yes && ! fyi_msg::confirm!(@yes format!(
 				"Remove all Adbyss blackhole entries from {}?",
 				self.hostfile.display(),
 			)) {
@@ -410,7 +410,7 @@ mod tests {
 
 	#[test]
 	fn t_filters() {
-		let settings = Settings::from_file("skel/test.yaml")
+		let settings = Settings::from_file("skel/test.toml")
 			.expect("Unable to parse settings.");
 
 		// The only enabled source should be our own (local) one.

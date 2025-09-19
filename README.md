@@ -27,8 +27,8 @@ cargo install \
 
 # Optional: download/save the advanced settings template so you can make
 # changes if/as needed.
-wget -qO- https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.yaml | \
-    sudo tee /etc/adbyss.yaml >/dev/null
+wget -qO- https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.toml | \
+    sudo tee /etc/adbyss.toml >/dev/null
 ```
 
 
@@ -37,7 +37,7 @@ wget -qO- https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/a
 
 It's easy.
 
-Advanced settings are stored in `/etc/adbyss.yaml`. Just grab, edit, and save the [default config](https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.yaml) to that location if you want to change anything.
+Advanced settings are stored in `/etc/adbyss.toml`. Just grab, edit, and save the [default config](https://raw.githubusercontent.com/Blobfolio/adbyss/refs/heads/master/adbyss/skel/adbyss.toml) to that location if you want to change anything.
 
 Otherwise, just run `sudo adbyss [FLAGS] [OPTIONS]`.
 
@@ -57,9 +57,9 @@ And the following option is available:
 
 | Short | Long | Value | Description |
 | ----- | ---- | ----- | ----------- |
-| `-c` | `--config` | `<PATH>` | Use this configuration instead of /etc/adbyss.yaml. |
+| `-c` | `--config` | `<PATH>` | Use this configuration instead of /etc/adbyss.toml. |
 
-After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.yaml` configuration accordingly.
+After running Adbyss for the first time, you might find some web sites are no longer working as expected. Most likely you're blocking an evil dependency the web site thinks it *needs*. No worries, just open your browser's Network Dev Tool window and reload the page. Make note of any failing domain(s), and update the `/etc/adbyss.toml` configuration accordingly.
 
 Restart your browser and/or computer and everything should be peachy again.
 
@@ -71,7 +71,7 @@ It is important to remember that scammers and capitalists birth new schemes all 
 
 ## Automation
 
-The repository contains two `systemd` scripts — a [timer](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.timer) and a [service](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.service) — that can be used to automatically update your `/etc/hosts` file once daily using the global settings (stored in `/etc/adbyss.yaml`).
+The repository contains two `systemd` scripts — a [timer](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.timer) and a [service](https://github.com/Blobfolio/adbyss/tree/master/adbyss/skel/systemd/adbyss.service) — that can be used to automatically update your `/etc/hosts` file once daily using the global settings (stored in `/etc/adbyss.toml`).
 
 If you installed Adbyss using the pre-built `.deb` package, all you need to do is enable and start the timer, then you can forget all about it!
 

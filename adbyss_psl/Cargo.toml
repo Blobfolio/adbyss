@@ -1,6 +1,6 @@
 [package]
 name = "adbyss_psl"
-version = "0.20.0"
+version = "0.21.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -23,14 +23,14 @@ serde_json = "1.0.100"
 
 [dev-dependencies]
 brunch = "0.11.*"
-serde = "1.0.*"
+serde_core = "1.0.*"
 serde_json = "1.0.*"
 
 [dependencies]
 idna = "1.0.0"
 trimothy = "0.9.*"
 
-[dependencies.serde]
+[dependencies.serde_core]
 version = "1.0.*"
 default-features = false
 optional = true
@@ -44,7 +44,7 @@ default-features = false
 default = []
 
 # Expose (de)/serialize support for adbyss_psl::Domain.
-serde = [ "dep:serde" ]
+serde = [ "dep:serde_core" ]
 
 # Add sqlx type/decode/encode support for adbyss_psl::Domain.
 sqlx-mysql = [ "sqlx", "sqlx/mysql" ]
