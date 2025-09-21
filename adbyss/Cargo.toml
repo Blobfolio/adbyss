@@ -89,7 +89,7 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.13.*"
+argyle = "0.14.*"
 dactyl = "0.13.*"
 fyi_msg = "2.4.*"
 regex = "1.11.*"
@@ -117,4 +117,4 @@ version = "1.0.*"
 features = [ "derive" ]
 
 [build-dependencies]
-argyle = "0.13.*"
+argyle = "0.14.*"
