@@ -2,11 +2,21 @@
 
 
 
+## [0.22.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.22.0) - 2025-10-30
+
+### Changed
+
+* Bump MSRV `1.90`
+* Update suffix database
+
+
+
 ## [0.21.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.21.0) - 2025-09-18
 
 ### Changed
 
 * Replace `serde` with `serde_core` (optional dependency)
+* Update suffix database
 
 
 

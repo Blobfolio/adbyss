@@ -24,6 +24,7 @@
 	clippy::format_push_string,
 	clippy::get_unwrap,
 	clippy::impl_trait_in_params,
+	clippy::implicit_clone,
 	clippy::lossy_float_literal,
 	clippy::missing_assert_message,
 	clippy::missing_docs_in_private_items,
@@ -33,7 +34,6 @@
 	clippy::rest_pat_in_fully_bound_structs,
 	clippy::semicolon_inside_block,
 	clippy::str_to_string,
-	clippy::string_to_string,
 	clippy::todo,
 	clippy::undocumented_unsafe_blocks,
 	clippy::unneeded_field_pattern,
@@ -65,7 +65,6 @@ use settings::Settings;
 use source::Source;
 use write::Shitlist;
 
-use argyle::Argument;
 use fyi_msg::Msg;
 use dactyl::NiceU64;
 use std::{
@@ -112,30 +111,39 @@ fn main__() -> Result<(), AdbyssError> {
 	require_root()?;
 
 	// Set up the parser.
-	let args = argyle::args()
-		.with_keywords(include!(concat!(env!("OUT_DIR"), "/argyle.rs")));
+	argyle::argue! {
+		Disable      "--disable",
+		Help    "-h" "--help",
+		Quiet   "-q" "--quiet",
+		Show         "--show",
+		Stdout       "--stdout",
+		Systemd      "--systemd",
+		Version "-V" "--version",
+		Yes     "-y" "--yes",
+		@options
+		Config  "-c" "--config",
+	}
 
 	// See what we've got!
 	let mut config = None;
 	let mut flags = Flags::None;
-	for arg in args {
+	for arg in Argument::args_os() {
 		match arg {
-			Argument::Key("--disable") => { flags.set(Flags::Disable); },
-			Argument::Key("-q" | "--quiet") => { flags.set(Flags::Quiet); },
-			Argument::Key("--show") => { flags.set(Flags::Show); },
-			Argument::Key("--stdout") => { flags.set(Flags::Stdout); },
-			Argument::Key("--systemd") => { flags.set(Flags::Systemd); },
-			Argument::Key("-y" | "--yes") => { flags.set(Flags::Yes); },
+			Argument::Disable => { flags.set(Flags::Disable); },
+			Argument::Quiet =>   { flags.set(Flags::Quiet); },
+			Argument::Show =>    { flags.set(Flags::Show); },
+			Argument::Stdout =>  { flags.set(Flags::Stdout); },
+			Argument::Systemd => { flags.set(Flags::Systemd); },
+			Argument::Yes =>     { flags.set(Flags::Yes); },
 
-			Argument::Key("-h" | "--help") => return Err(AdbyssError::PrintHelp),
-			Argument::Key("-V" | "--version") => return Err(AdbyssError::PrintVersion),
+			Argument::Help => return Err(AdbyssError::PrintHelp),
+			Argument::Version => return Err(AdbyssError::PrintVersion),
 
-			Argument::KeyWithValue("-c" | "--config", s) => { config.replace(s); },
+			Argument::Config(s) => { config.replace(s); },
 
 			// Nothing else is expected.
 			Argument::Other(s) => return Err(AdbyssError::InvalidCli(s)),
-			Argument::InvalidUtf8(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned())),
-			_ => {},
+			Argument::OtherOs(s) => return Err(AdbyssError::InvalidCli(s.to_string_lossy().into_owned())),
 		}
 	}
 
