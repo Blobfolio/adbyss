@@ -6,6 +6,7 @@
 
 ### New
 
+* `Domain::ends_with`
 * `Domain::eq` (const alternative)
 * `Domain::eq_tld`
 
