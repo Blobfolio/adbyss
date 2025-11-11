@@ -682,6 +682,42 @@ impl Domain {
 /// # Comparison.
 impl Domain {
 	#[must_use]
+	/// # Same Domain?
+	///
+	/// Same as `Eq`/`PartialEq`, but const.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let a = Domain::new("domain.com").unwrap();
+	/// let b = Domain::new("www.domain.com").unwrap();
+	///
+	/// // A is equal to itself.
+	/// assert!(a == a);
+	/// assert!(Domain::eq(&a, &a));
+	///
+	/// // A is _not_ equal to B.
+	/// assert!(a != b);
+	/// assert!(! Domain::eq(&a, &b));
+	/// ```
+	pub const fn eq(a: &Self, b: &Self) -> bool {
+		let a = a.as_bytes();
+		let b = b.as_bytes();
+
+		if a.len() == b.len() {
+			let mut idx = 0;
+			while idx < a.len() {
+				if a[idx] != b[idx] { return false; }
+				idx += 1;
+			}
+			true
+		}
+		else { false }
+	}
+
+	#[must_use]
 	/// # Same TLD?
 	///
 	/// Returns true if two domains share the same TLD.

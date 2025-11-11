@@ -6,6 +6,7 @@
 
 ### New
 
+* `Domain::eq` (const alternative)
 * `Domain::eq_tld`
 
 ### Changed
