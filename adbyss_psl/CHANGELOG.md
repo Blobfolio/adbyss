@@ -2,6 +2,19 @@
 
 
 
+## [0.23.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.0) - TBD
+
+### New
+
+* `Domain::eq_tld`
+
+### Changed
+
+* Bump MSRV `1.92` (TODO)
+* Update suffix database
+
+
+
 ## [0.22.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.22.0) - 2025-10-30
 
 ### Changed

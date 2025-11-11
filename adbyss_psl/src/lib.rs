@@ -679,6 +679,43 @@ impl Domain {
 	}
 }
 
+/// # Comparison.
+impl Domain {
+	#[must_use]
+	/// # Same TLD?
+	///
+	/// Returns true if two domains share the same TLD.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let a = Domain::new("domain.com").unwrap();
+	/// let b = Domain::new("store.domain.com").unwrap();
+	/// let c = Domain::new("status.domain.com").unwrap();
+	/// assert!(Domain::eq_tld(&a, &b)); // All three do share a TLD!
+	/// assert!(Domain::eq_tld(&b, &c));
+	///
+	/// let d = Domain::new("different.com").unwrap();
+	/// assert!(! Domain::eq_tld(&a, &d)); // Different is different.
+	/// ```
+	pub const fn eq_tld(a: &Self, b: &Self) -> bool {
+		let a = a.tld().as_bytes();
+		let b = b.tld().as_bytes();
+
+		if a.len() == b.len() {
+			let mut idx = 0;
+			while idx < a.len() {
+				if a[idx] != b[idx] { return false; }
+				idx += 1;
+			}
+			true
+		}
+		else { false }
+	}
+}
+
 /// # Miscellaneous.
 impl Domain {
 	#[must_use]
