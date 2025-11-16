@@ -13,7 +13,12 @@
 ### Changed
 
 * Bump MSRV `1.92` (TODO)
+* Make `sqlx` traits generic over `sqlx::Database`
 * Update suffix database
+
+### Breaking
+
+* Rename `sqlx-mysql` feature `sqlx`
 
 
 

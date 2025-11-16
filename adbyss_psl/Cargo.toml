@@ -13,7 +13,7 @@ readme = "README.md"
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "docsrs"]
 rustdoc-args = ["--cfg", "docsrs"]
-features = [ "serde", "sqlx-mysql" ]
+features = [ "serde" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
@@ -47,7 +47,7 @@ default = []
 serde = [ "dep:serde_core" ]
 
 # Add sqlx type/decode/encode support for adbyss_psl::Domain.
-sqlx-mysql = [ "sqlx", "sqlx/mysql" ]
+sqlx = [ "dep:sqlx" ]
 
 [[bench]]
 name = "psl_parse"

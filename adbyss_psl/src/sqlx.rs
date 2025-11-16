@@ -8,61 +8,68 @@ use sqlx::{
 	Encode,
 	encode::IsNull,
 	error::BoxDynError,
-	MySql,
 	Type,
 };
 use super::Domain;
 
 
 
-impl Type<MySql> for Domain
-where for<'x> &'x str: Type<MySql> {
+impl<DB> Type<DB> for Domain
+where DB: Database, for<'x> &'x str: Type<DB> {
 	#[inline]
 	/// # Database Type For `Domain`.
 	///
-	/// Use the optional `sqlx-mysql` crate feature to enable Mysql database
+	/// Use the optional `sqlx` crate feature to enable Mysql database
 	/// support for [`Domain`]s.
-	fn type_info() -> <MySql as Database>::TypeInfo { <&str as Type<MySql>>::type_info() }
+	fn type_info() -> <DB as Database>::TypeInfo {
+		<&str as Type<DB>>::type_info()
+	}
+
+	/// # Compatibility.
+	fn compatible(ty: &<DB as Database>::TypeInfo) -> bool {
+		<&str as Type<DB>>::compatible(ty)
+	}
 }
 
-impl<'r> Decode<'r, MySql> for Domain
-where for<'x> &'x str: Decode<'x, MySql> + Type<MySql> {
+impl<'r, DB> Decode<'r, DB> for Domain
+where DB: Database, &'r str: Decode<'r, DB> + Type<DB> {
 	#[inline]
 	/// # Decode `Domain`.
 	///
-	/// Use the optional `sqlx-mysql` crate feature to enable Mysql database
+	/// Use the optional `sqlx` crate feature to enable Mysql database
 	/// decoding support for [`Domain`]s.
 	///
 	/// Note that this expects a string column.
-	fn decode(value: <MySql as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
-		let raw = <&str as Decode<MySql>>::decode(value)?;
+	fn decode(value: <DB as Database>::ValueRef<'r>) -> Result<Self, BoxDynError> {
+		let raw = <&str as Decode<DB>>::decode(value)?;
 		let out = Self::try_from(raw).map_err(|_| "invalid domain")?;
 		Ok(out)
 	}
 }
 
-impl<'q> Encode<'q, MySql> for Domain {
+impl<'q, DB> Encode<'q, DB> for Domain
+where DB: Database, for<'x> &'x str: Encode<'q, DB> {
 	#[inline]
 	/// # Encode `Domain`.
 	///
-	/// Use the optional `sqlx-mysql` crate feature to enable Mysql database
+	/// Use the optional `sqlx` crate feature to enable Mysql database
 	/// encoding support for [`Domain`]s.
 	///
 	/// Note that this expects a string column.
 	fn encode_by_ref(
 		&self,
-		buf: &mut <MySql as Database>::ArgumentBuffer<'q>,
+		buf: &mut <DB as Database>::ArgumentBuffer<'q>,
 	) -> Result<IsNull, BoxDynError> {
-		Encode::<'_, MySql>::encode_by_ref(&self.as_str(), buf)
+		Encode::<'q, DB>::encode_by_ref(&self.as_str(), buf)
 	}
 
 	#[inline]
-	fn produces(&self) -> Option<<MySql as Database>::TypeInfo> {
-		<&str as Encode<'_, MySql>>::produces(&self.as_str())
+	fn produces(&self) -> Option<<DB as Database>::TypeInfo> {
+		<&str as Encode<'q, DB>>::produces(&self.as_str())
 	}
 
 	#[inline]
 	fn size_hint(&self) -> usize {
-		<&str as Encode<'_, MySql>>::size_hint(&self.as_str())
+		<&str as Encode<'q, DB>>::size_hint(&self.as_str())
 	}
 }
