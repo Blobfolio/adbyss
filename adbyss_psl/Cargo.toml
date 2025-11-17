@@ -1,10 +1,10 @@
 [package]
 name = "adbyss_psl"
-version = "0.22.0"
+version = "0.23.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.91"
 description = "A minimal Public Suffix List hostname validator."
 repository = "https://github.com/Blobfolio/adbyss"
 keywords = [ "hostname", "validation", "publicsuffix", "idna", "punycode" ]
@@ -13,7 +13,7 @@ readme = "README.md"
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "docsrs"]
 rustdoc-args = ["--cfg", "docsrs"]
-features = [ "serde", "sqlx-mysql" ]
+features = [ "serde" ]
 default-target = "x86_64-unknown-linux-gnu"
 targets = [ "x86_64-unknown-linux-gnu", "x86_64-apple-darwin" ]
 
@@ -47,7 +47,7 @@ default = []
 serde = [ "dep:serde_core" ]
 
 # Add sqlx type/decode/encode support for adbyss_psl::Domain.
-sqlx-mysql = [ "sqlx", "sqlx/mysql" ]
+sqlx = [ "dep:sqlx" ]
 
 [[bench]]
 name = "psl_parse"

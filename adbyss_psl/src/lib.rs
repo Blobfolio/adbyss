@@ -69,7 +69,7 @@ let owned = dom.take(); // "www.mydomain.com"
 ## Optional Crate Features
 
 * `serde`: Enables serialization/deserialization support.
-* `sqlx-mysql`: Enables [`sqlx`](https://crates.io/crates/sqlx) encoding/decoding support for Mysql databases.
+* `sqlx`: Enables [`sqlx`](https://crates.io/crates/sqlx) encoding/decoding support for Mysql databases.
 */
 
 #![forbid(unsafe_code)]
@@ -131,8 +131,8 @@ mod psl;
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 mod serde;
 
-#[cfg(feature = "sqlx-mysql")]
-#[cfg_attr(docsrs, doc(cfg(feature = "sqlx-mysql")))]
+#[cfg(feature = "sqlx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sqlx")))]
 mod sqlx;
 
 use psl::SuffixKind;
@@ -679,6 +679,103 @@ impl Domain {
 	}
 }
 
+/// # Comparison.
+impl Domain {
+	#[must_use]
+	/// # Same Domain?
+	///
+	/// Same as `Eq`/`PartialEq`, but const.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let a = Domain::new(    "domain.com").unwrap();
+	/// let b = Domain::new("www.domain.com").unwrap();
+	///
+	/// // A is equal to itself.
+	/// assert!(a == a);
+	/// assert!(Domain::eq(&a, &a));
+	///
+	/// // A is _not_ equal to B.
+	/// assert!(a != b);
+	/// assert!(! Domain::eq(&a, &b));
+	/// ```
+	pub const fn eq(a: &Self, b: &Self) -> bool {
+		slices_eq(a.as_bytes(), b.as_bytes())
+	}
+
+	#[must_use]
+	/// # Same TLD?
+	///
+	/// Returns `true` if two domains share the same TLD.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let a = Domain::new(       "domain.com").unwrap();
+	/// let b = Domain::new( "store.domain.com").unwrap();
+	/// let c = Domain::new("status.domain.com").unwrap();
+	/// assert!(Domain::eq_tld(&a, &b)); // All three do share a TLD!
+	/// assert!(Domain::eq_tld(&b, &c));
+	///
+	/// let d = Domain::new("different.com").unwrap();
+	/// assert!(! Domain::eq_tld(&a, &d)); // Different is different.
+	/// ```
+	pub const fn eq_tld(a: &Self, b: &Self) -> bool {
+		slices_eq(a.tld().as_bytes(), b.tld().as_bytes())
+	}
+
+	#[must_use]
+	/// # Ends With?
+	///
+	/// Returns `true` if `self` is subordinate or equal to `parent`.
+	///
+	/// ## Examples
+	///
+	/// ```
+	/// use adbyss_psl::Domain;
+	///
+	/// let a = Domain::new(    "cpanel.nodaddy.com").unwrap();
+	/// let b = Domain::new("www.cpanel.nodaddy.com").unwrap();
+	/// let c = Domain::new(     "panel.nodaddy.com").unwrap();
+	/// let d = Domain::new(              "addy.com").unwrap();
+	///
+	/// assert!(a.ends_with(&a)); // Equal.
+	/// assert!(b.ends_with(&a)); // Subordinate.
+	///
+	/// // Parents don't "end with" their children.
+	/// assert!(! a.ends_with(&b));
+	///
+	/// // The following would be true for simple strings, but domain
+	/// // component matching is all or nothing.
+	/// assert!(! a.ends_with(&c));
+	/// assert!(! b.ends_with(&c));
+	/// assert!(! a.ends_with(&d));
+	/// assert!(! b.ends_with(&d));
+	/// ```
+	pub const fn ends_with(&self, parent: &Self) -> bool {
+		let a = self.as_bytes();
+		let b = parent.as_bytes();
+
+		if let Some(diff) = a.len().checked_sub(b.len()) {
+			let (before, after) = a.split_at(diff);
+			(
+				before.is_empty() ||
+				(
+					self.root_start >= diff &&
+					before[diff - 1] == b'.'
+				)
+			) &&
+			slices_eq(after, b)
+		}
+		else { false }
+	}
+}
+
 /// # Miscellaneous.
 impl Domain {
 	#[must_use]
@@ -1026,6 +1123,22 @@ fn sanitize_email_local_slow(good: &str, maybe: &str, mut last: char) -> Option<
 	else { None }
 }
 
+#[inline]
+/// # Constant Slice Equality.
+///
+/// TODO: replace with simple `a == b` once const.
+const fn slices_eq(a: &[u8], b: &[u8]) -> bool {
+	if a.len() == b.len() {
+		let mut idx = 0;
+		while idx < a.len() {
+			if a[idx] != b[idx] { return false; }
+			idx += 1;
+		}
+		true
+	}
+	else { false }
+}
+
 
 
 #[cfg(test)]
@@ -1084,6 +1197,7 @@ mod tests {
 		t_tld_assert("ide.kyoto.jp", None);
 		t_tld_assert("b.ide.kyoto.jp", Some("b.ide.kyoto.jp"));
 		t_tld_assert("a.b.ide.kyoto.jp", Some("b.ide.kyoto.jp"));
+		t_tld_assert("kobe.jp", None);
 		t_tld_assert("c.kobe.jp", None);
 		t_tld_assert("b.c.kobe.jp", Some("b.c.kobe.jp"));
 		t_tld_assert("a.b.c.kobe.jp", Some("b.c.kobe.jp"));
