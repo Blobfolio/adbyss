@@ -2,7 +2,7 @@
 
 
 
-## [0.23.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.0) - TBD
+## [0.23.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.0) - 2025-11-16
 
 ### New
 
@@ -12,7 +12,7 @@
 
 ### Changed
 
-* Bump MSRV `1.92` (TODO)
+* Bump MSRV `1.91`
 * Make `sqlx` traits generic over `sqlx::Database`
 * Update suffix database
 
