@@ -15,7 +15,7 @@ Adbyss instead writes "blackhole" records directly to your system's `/etc/hosts`
 
 ## Installation
 
-Debian and Ubuntu users can just grab the pre-built `.deb` package from the [latest release](https://github.com/Blobfolio/adbyss/releases/latest).
+Debian and Ubuntu users can just grab the pre-built `.deb` package from the [latest release](https://github.com/Blobfolio/adbyss/releases/latest), and Arch users can grab it from [AUR](https://aur.archlinux.org/packages/adbyss-bin) (thanks @Dominiquini!).
 
 This application is written in [Rust](https://www.rust-lang.org/) and can alternatively be built from source using [Cargo](https://github.com/rust-lang/cargo):
 
