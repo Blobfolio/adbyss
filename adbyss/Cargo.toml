@@ -108,7 +108,7 @@ default-features = false
 features = [ "https" ]
 
 [dependencies.nix]
-version = "0.30.*"
+version = "0.31.*"
 default-features = false
 features = [ "user" ]
 
