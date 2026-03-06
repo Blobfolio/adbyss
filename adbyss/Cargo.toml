@@ -91,7 +91,7 @@ items = [
 [dependencies]
 argyle = "0.15.*"
 dactyl = "0.13.*"
-fyi_msg = "2.4.*"
+fyi_msg = "2.5.*"
 regex = "1.12.*"
 toml = "=1.0.*"
 trimothy = "0.9.*"
