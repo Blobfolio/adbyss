@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.23.3"
+version = "0.23.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -91,9 +91,9 @@ items = [
 [dependencies]
 argyle = "0.15.*"
 dactyl = "0.13.*"
-fyi_msg = "2.5.*"
+fyi_msg = "2.6.*"
 regex = "1.12.*"
-toml = "=1.0.*"
+toml = "=1.1.*"
 trimothy = "0.9.*"
 utc2k = "0.19.*"
 write_atomic = "0.7.*"
@@ -102,15 +102,14 @@ write_atomic = "0.7.*"
 path = "../adbyss_psl"
 features = [ "serde" ]
 
-[dependencies.minreq]
-version = "2.14.*"
-default-features = false
-features = [ "https" ]
-
 [dependencies.nix]
 version = "0.31.*"
 default-features = false
 features = [ "user" ]
+
+[dependencies.reqwest]
+version = "0.13.*"
+features = [ "blocking", "gzip" ]
 
 [dependencies.serde]
 version = "1.0.*"

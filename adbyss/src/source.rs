@@ -121,16 +121,19 @@ impl Source {
 /// content, so the extra complexity is worth it.
 fn download_source(kind: Source) -> Result<String, AdbyssError> {
 	if
-		let Ok(res) = minreq::get(kind.url())
-			.with_header("user-agent", "Mozilla/5.0")
-			.with_timeout(15)
-			.send() &&
-		(200..=399).contains(&res.status_code) &&
-		let Ok(out) = res.as_str()
+		let Some(client) = crate::net::client() &&
+		let Ok(res) = client.get(kind.url()).send()
 	{
-		Ok(out.to_owned())
+		let status = res.status();
+		if
+			(status.is_success() || status.is_redirection()) &&
+			let Ok(out) = res.text()
+		{
+			return Ok(out);
+		}
 	}
-	else { Err(AdbyssError::SourceFetch(kind)) }
+
+	Err(AdbyssError::SourceFetch(kind))
 }
 
 /// # Read From Cache.
