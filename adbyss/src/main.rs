@@ -56,7 +56,6 @@
 
 
 mod err;
-mod net;
 mod settings;
 mod source;
 mod write;
@@ -162,7 +161,7 @@ fn main__() -> Result<(), AdbyssError> {
 	}
 
 	// Make sure we're online if any sources other than our own are enabled.
-	if settings.needs_internet() { net::check_internet()?; }
+	if settings.needs_internet() { check_internet()?; }
 
 	// Just print the domains.
 	if flags.contains(Flags::Show) {
@@ -199,6 +198,41 @@ fn main__() -> Result<(), AdbyssError> {
 	}
 
 	Ok(())
+}
+
+/// # Check Internet.
+///
+/// This method attempts to check for an internet connection by trying to reach
+/// Github (which is serving one of the lists Adbyss needs anyway). It will
+/// give it ten tries, with ten seconds in between each try, returning an
+/// error if nothing has been reached after that.
+///
+/// ## Errors
+///
+/// If the site can't be reached, an error will be returned.
+fn check_internet() -> Result<(), AdbyssError> {
+	use std::{
+		thread::sleep,
+		time::Duration,
+	};
+
+	let mut tries: u8 = 0;
+	loop {
+		// Are you there?
+		let res = minreq::head("https://github.com/")
+			.with_header("user-agent", "Mozilla/5.0")
+			.with_timeout(15)
+			.send();
+
+		if res.is_ok_and(|r| r.status_code == 200) { return Ok(()); }
+
+		// Out of tries?
+		if tries == 9 { return Err(AdbyssError::NoInternet); }
+
+		// Wait and try again.
+		tries += 1;
+		sleep(Duration::from_secs(10));
+	}
 }
 
 /// # Require Root.
