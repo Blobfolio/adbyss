@@ -58,9 +58,9 @@ where DB: Database, for<'x> &'x str: Encode<'q, DB> {
 	/// Note that this expects a string column.
 	fn encode_by_ref(
 		&self,
-		buf: &mut <DB as Database>::ArgumentBuffer<'q>,
+		buf: &mut <DB as Database>::ArgumentBuffer,
 	) -> Result<IsNull, BoxDynError> {
-		Encode::<'q, DB>::encode_by_ref(&self.as_str(), buf)
+		Encode::<DB>::encode_by_ref(&self.as_str(), buf)
 	}
 
 	#[inline]
