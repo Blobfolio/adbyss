@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.23.4"
+version = "0.24.0"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -102,14 +102,15 @@ write_atomic = "0.7.*"
 path = "../adbyss_psl"
 features = [ "serde" ]
 
+[dependencies.minreq]
+version = "3.0.0-rc.0"
+default-features = false
+features = [ "https" ]
+
 [dependencies.nix]
 version = "0.31.*"
 default-features = false
 features = [ "user" ]
-
-[dependencies.reqwest]
-version = "0.13.*"
-features = [ "blocking", "gzip" ]
 
 [dependencies.serde]
 version = "1.0.*"
