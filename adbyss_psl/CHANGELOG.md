@@ -2,6 +2,16 @@
 
 
 
+## [0.24.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.4) - 2026-05-21
+
+### Changed
+
+* Bump `sqlx` to `0.9`
+* Bump MSRV to `1.95`
+* Update suffix database
+
+
+
 ## [0.23.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.4) - 2026-04-16
 
 ### Changed
