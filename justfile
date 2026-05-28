@@ -57,7 +57,7 @@ bench BENCH="":
 # Build Release!
 @build:
 	# First let's build the Rust bit.
-	env SHOW_TOTALS=1 cargo build \
+	env SHOW_TOTALS=1 cargo auditable build \
 		--bin "{{ pkg_id }}" \
 		--release \
 		--target-dir "{{ cargo_dir }}"
