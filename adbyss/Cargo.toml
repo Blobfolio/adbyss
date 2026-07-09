@@ -92,7 +92,7 @@ items = [
 argyle = "0.15.*"
 dactyl = "0.13.*"
 fyi_msg = "2.6.*"
-regex = "1.12.*"
+regex = "1.13.*"
 toml = "=1.1.*"
 trimothy = "0.9.*"
 utc2k = "0.20.*"
