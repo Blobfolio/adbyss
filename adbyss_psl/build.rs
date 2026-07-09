@@ -316,7 +316,7 @@ fn psl_load_data() -> (RawMainMap, RawWildMap) {
 
 		// To correctly handle the suffixes, we'll need to prepend a
 		// hypothetical root and strip it off after cleanup.
-		scratch.truncate(0);
+		scratch.clear();
 		scratch.push_str(STUB);
 		scratch.push_str(line);
 		let Some(host) = idna_to_ascii(scratch.as_bytes()) else { continue; };
