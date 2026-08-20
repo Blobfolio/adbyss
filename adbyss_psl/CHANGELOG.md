@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.24.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.3) - 2026-08-20
+
+### Changed
+
+* Update suffix database
+* Miscellaneous code cleanup and lints
+
 
 ## [0.24.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.2) - 2026-07-09
 
@@ -10,13 +17,11 @@
 * Miscellaneous code cleanup and lints
 
 
-
 ## [0.24.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.1) - 2026-05-28
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.24.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.0) - 2026-05-21
@@ -28,13 +33,11 @@
 * Update suffix database
 
 
-
 ## [0.23.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.4) - 2026-04-16
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.23.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.3) - 2026-03-05
@@ -44,7 +47,6 @@
 * Update suffix database
 
 
-
 ## [0.23.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.2) - 2026-01-22
 
 ### Changed
@@ -52,13 +54,11 @@
 * Update suffix database
 
 
-
 ## [0.23.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.1) - 2025-12-11
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.23.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.23.0) - 2025-11-16
@@ -80,7 +80,6 @@
 * Rename `sqlx-mysql` feature `sqlx`
 
 
-
 ## [0.22.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.22.0) - 2025-10-30
 
 ### Changed
@@ -89,14 +88,12 @@
 * Update suffix database
 
 
-
 ## [0.21.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.21.0) - 2025-09-18
 
 ### Changed
 
 * Replace `serde` with `serde_core` (optional dependency)
 * Update suffix database
-
 
 
 ## [0.20.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.20.0) - 2025-08-12
@@ -111,7 +108,6 @@
 * Update suffix database
 
 
-
 ## [0.19.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.19.0) - 2025-06-26
 
 ### Changed
@@ -121,7 +117,6 @@
 * Bump MSRV to `1.88`
 * Miscellaneous code cleanup and lints
 * Update suffix database
-
 
 
 ## [0.18.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.18.0) - 2025-06-01
@@ -143,7 +138,6 @@
 * Removed `Deref` for `Domain`
 
 
-
 ## [0.17.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.17.0) - 2025-05-15
 
 ### Changed
@@ -159,14 +153,12 @@
 * Update suffix database
 
 
-
 ## [0.16.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.1) - 2025-04-03
 
 ### Changed
 
 * Miscellaneous code cleanup and lints
 * Update suffix database
-
 
 
 ## [0.16.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.16.0) - 2025-02-25
@@ -181,7 +173,6 @@
 * Update suffix database
 
 
-
 ## [0.15.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.3) - 2025-02-20
 
 ### Changed
@@ -189,13 +180,11 @@
 * Update suffix database
 
 
-
 ## [0.15.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.2) - 2025-01-09
 
 ### Changed
 
 * Bump `brunch` to `0.8` (dev)
-
 
 
 ## [0.15.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.1) - 2024-11-28
@@ -206,7 +195,6 @@
 * Bump `trimothy` to `0.6`
 * Miscellaneous code cleanup and lints
 * Update suffix database
-
 
 
 ## [0.15.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.15.0) - 2024-11-11
@@ -225,7 +213,6 @@
 * Update suffix database
 
 
-
 ## [0.14.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.14.0) - 2024-10-21
 
 ### Changed
@@ -238,14 +225,12 @@
 * Update suffix database
 
 
-
 ## [0.13.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.1) - 2024-10-17
 
 ### Changed
 
 * Reduce intermediary string allocations during build
 * Update suffix database
-
 
 
 ## [0.13.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.13.0) - 2024-09-05
@@ -257,7 +242,6 @@
 * Minor code lints
 * Reduce build script allocations
 * Update suffix database
-
 
 
 ## [0.12.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.12.0) - 2024-08-08
@@ -278,13 +262,11 @@
 * Remove old assets from `build.rs` `rerun-if-changed` triggers (lib)
 
 
-
 ## [0.11.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.1) - 2024-07-25
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.11.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.11.0) - 2024-06-13
@@ -295,7 +277,6 @@
 * Update suffix database
 
 
-
 ## [0.10.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.2) - 2024-05-02
 
 ### Changed
@@ -303,13 +284,11 @@
 * Update suffix database
 
 
-
 ## [0.10.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.1) - 2024-03-21
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.10.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.10.0) - 2024-02-15
@@ -320,13 +299,11 @@
 * Update suffix database
 
 
-
 ## [0.9.5](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.5) - 2024-02-08
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.9.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.4) - 2024-01-26
@@ -336,7 +313,6 @@
 * Update suffix database
 
 
-
 ## [0.9.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.3) - 2023-12-28
 
 ### Changed
@@ -344,13 +320,11 @@
 * Bump `idna` to `0.5`
 
 
-
 ## [0.9.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.2) - 2023-11-16
 
 ### Changed
 
 * Update suffix database
-
 
 
 ## [0.9.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.1) - 2023-10-09
@@ -362,14 +336,12 @@
 * Update suffix database
 
 
-
 ## [0.9.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.9.0) - 2023-10-05
 
 ### Changed
 
 * Minor code lints and cleanup
 * Update suffix database
-
 
 
 ## [0.8.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.2) - 2023-08-24
@@ -379,13 +351,11 @@
 * Update suffix database
 
 
-
 ## [0.8.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.1) - 2023-07-05
 
 ### Changed
 
 * Update dependencies
-
 
 
 ## [0.8.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.8.0) - 2023-06-01
@@ -398,7 +368,6 @@
 * Drop `dactyl` build dependency
 
 
-
 ## [0.7.22](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.22) - 2023-04-27
 
 ### Changed
@@ -406,13 +375,11 @@
 * Update dependencies
 
 
-
 ## [0.7.21](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.21) - 2023-04-20
 
 ### Fixed
 
 * Unit test stack overflow in Rust `1.69`
-
 
 
 ## [0.7.20](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.20) - 2023-03-09
@@ -423,14 +390,12 @@
 * impl `FromStr` for `Domain`
 
 
-
 ## [0.7.19](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.19) - 2023-02-04
 
 ### Changed
 
 * Improve docs.rs environment detection
 * Declare "serde" feature explicitly
-
 
 
 ## [0.7.18](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.18) - 2023-01-26
@@ -441,7 +406,6 @@
 * Minor code lints
 
 
-
 ## [0.7.17](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.17) - 2022-12-26
 
 ### Changed
@@ -449,11 +413,9 @@
 * Drop `ureq` build dependency; the remote data are now bundled with each release.
 
 
-
 ## [0.7.16](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.16) - 2022-12-15
 
 (Bin-only release.)
-
 
 
 ## [0.7.15](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.15) - 2022-11-06
@@ -462,7 +424,6 @@
 
 * Bump Unicode 15
 * Bump regex `1.7.0`
-
 
 
 ## [0.7.14](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.14) - 2022-11-03
@@ -474,14 +435,12 @@
 * Minor code lints
 
 
-
 ## [0.7.13](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.13) - 2022-09-22
 
 ### Changed
 
 * Update dependencies
 * Improve docs
-
 
 
 ## [0.7.12](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.12) - 2022-09-11
@@ -492,7 +451,6 @@
 * Cleanup dependencies
 
 
-
 ## [0.7.11](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.11) - 2022-08-22
 
 ### Changed
@@ -500,13 +458,11 @@
 * Update dependencies
 
 
-
 ## [0.7.10](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.10) - 2022-08-12
 
 ### Changed
 
 * Go back to using `ahash` for internal keying
-
 
 
 ## [0.7.9](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.9) - 2022-08-11
@@ -517,14 +473,12 @@
 * Remove `serde_yaml` dev dependency
 
 
-
 ## [0.7.8](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.8) - 2022-07-14
 
 ### Changed
 
 * Update dependencies
 * Loosen build dependency requirements
-
 
 
 ## [0.7.7](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.7) - 2022-06-30
@@ -534,13 +488,11 @@
 * Update dependencies
 
 
-
 ## [0.7.6](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.6) - 2022-06-18
 
 ### Changed
 
 * Update dependencies
-
 
 
 ## [0.7.5](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.5) - 2022-05-30
@@ -550,7 +502,6 @@
 * Update dependencies
 
 
-
 ## [0.7.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.4) - 2022-05-19
 
 ### Changed
@@ -558,17 +509,14 @@
 * Update and lock third-party dependency versions
 
 
-
 ## [0.7.3](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.3) - 2022-04-29
 
 This release merely contains some documentation and linting changes.
 
 
-
 ## [0.7.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.2) - 2022-04-07
 
 There are no changes from version 0.7.1; this was a binary-only update.
-
 
 
 ## [0.7.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.1) - 2022-03-29
@@ -579,13 +527,11 @@ There are no changes from version 0.7.1; this was a binary-only update.
 * Remove an `unsafe` block
 
 
-
 ## [0.7.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.7.0) - 2022-03-07
 
 ### Removed
 
 * `Domain::parse`
-
 
 
 ## [0.6.2](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.2) - 2022-02-08
@@ -595,7 +541,6 @@ There are no changes from version 0.7.1; this was a binary-only update.
 * Improved documentation;
 
 
-
 ## [0.6.1](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.1) - 2022-01-19
 
 ### Changed
@@ -603,7 +548,6 @@ There are no changes from version 0.7.1; this was a binary-only update.
 * 2x-3x performance improvements for PUNY and Unicode domain parsing;
 * Build script cleanup;
 * Import IDNA/Unicode unit tests;
-
 
 
 ## [0.6.0](https://github.com/Blobfolio/adbyss/releases/tag/v0.6.0) - 2022-01-13
