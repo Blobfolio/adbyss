@@ -96,7 +96,7 @@ regex = "1.13.*"
 toml = "=1.1.*"
 trimothy = "0.9.*"
 utc2k = "0.20.*"
-write_atomic = "0.7.*"
+write_atomic = "0.8.*"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
