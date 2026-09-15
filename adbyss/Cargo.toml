@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.24.3"
+version = "0.24.4"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -95,8 +95,8 @@ fyi_msg = "2.7.*"
 regex = "1.13.*"
 toml = "=1.1.*"
 trimothy = "0.9.*"
-utc2k = "0.20.*"
-write_atomic = "0.7.*"
+utc2k = "0.21.*"
+write_atomic = "0.8.*"
 
 [dependencies.adbyss_psl]
 path = "../adbyss_psl"
