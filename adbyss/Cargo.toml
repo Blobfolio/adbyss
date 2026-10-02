@@ -94,7 +94,7 @@ dactyl = "0.13.*"
 fyi_msg = "2.7.*"
 regex = "1.13.*"
 toml = "=1.1.*"
-trimothy = "0.9.*"
+trimothy = "0.10.*"
 utc2k = "0.21.*"
 write_atomic = "0.8.*"
 
