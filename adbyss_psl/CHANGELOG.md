@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.24.5](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.5) - 2026-10-01
+
+### Changed
+
+* Bump `brunch` to `0.12` (dev)
+* Bump `trimothy` to `0.10`
+* Update suffix database
+
+
 ## [0.24.4](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.4) - 2026-09-14
 
 ### Changed
