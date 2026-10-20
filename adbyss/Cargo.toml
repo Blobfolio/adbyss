@@ -1,6 +1,6 @@
 [package]
 name = "adbyss"
-version = "0.24.5"
+version = "0.24.6"
 license = "WTFPL"
 authors = ["Josh Stoik <josh@blobfolio.com>"]
 edition = "2024"
@@ -89,32 +89,18 @@ items = [
 ]
 
 [dependencies]
-argyle = "0.16.*"
-dactyl = "0.14.*"
-fyi_msg = "2.7.*"
-regex = "1.13.*"
-toml = "=1.1.*"
-trimothy = "0.10.*"
-utc2k = "0.21.*"
-write_atomic = "0.9.*"
-
-[dependencies.adbyss_psl]
-path = "../adbyss_psl"
-features = [ "serde" ]
-
-[dependencies.minreq]
-version = "3.0.*"
-default-features = false
-features = [ "https" ]
-
-[dependencies.nix]
-version = "0.31.*"
-default-features = false
-features = [ "user" ]
-
-[dependencies.serde]
-version = "1.0.*"
-features = [ "derive" ]
+adbyss_psl =   { workspace = true, features = ["serde"] }
+argyle =       { workspace = true }
+dactyl =       { workspace = true }
+fyi_msg =      { workspace = true }
+minreq =       { workspace = true, features = ["https"] }
+nix =          { workspace = true, features = ["user"] }
+regex =        { workspace = true }
+serde =        { workspace = true, features = ["derive"] }
+toml =         { workspace = true }
+trimothy =     { workspace = true }
+utc2k =        { workspace = true }
+write_atomic = { workspace = true }
 
 [build-dependencies]
-argyle = "0.16.*"
+argyle = { workspace = true }
