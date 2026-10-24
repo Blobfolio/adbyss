@@ -222,9 +222,10 @@ fn check_internet() -> Result<(), AdbyssError> {
 		let res = minreq::head("https://github.com/")
 			.with_header("user-agent", "Mozilla/5.0")
 			.with_timeout(15)
+			.with_max_headers_size(Some(32_768_usize))
 			.send();
 
-		if res.is_ok_and(|r| r.status_code == 200) { return Ok(()); }
+		if res.as_ref().is_ok_and(|r| r.status_code == 200) { return Ok(()); }
 
 		// Out of tries?
 		if tries == 9 { return Err(AdbyssError::NoInternet); }

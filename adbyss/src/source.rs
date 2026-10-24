@@ -124,6 +124,7 @@ fn download_source(kind: Source) -> Result<String, AdbyssError> {
 		let Ok(res) = minreq::get(kind.url())
 			.with_header("user-agent", "Mozilla/5.0")
 			.with_timeout(15)
+			.with_max_headers_size(Some(32_768_usize))
 			.send() &&
 		(200..=399).contains(&res.status_code) &&
 		let Ok(out) = res.as_str()
