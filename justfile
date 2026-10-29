@@ -26,7 +26,7 @@ doc_dir     := justfile_directory() + "/doc"
 release_dir := justfile_directory() + "/release"
 skel_dir    := pkg_dir2 + "/skel"
 
-export RUSTFLAGS := "-Ctarget-cpu=x86-64-v3"
+export RUSTFLAGS := "-Dwarnings -Ctarget-cpu=x86-64-v3 -Clinker-plugin-lto"
 
 
 
