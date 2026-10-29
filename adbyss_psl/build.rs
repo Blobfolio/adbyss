@@ -164,6 +164,17 @@ const MAP_{count}: &[(&[u8], SuffixKind)] = &[",
 		out.push_str("];\n\n");
 	}
 
+	// Test to ensure all the slices are sorted.
+	out.push_str(r"#[cfg(test)]
+mod sort_test {
+	#[test]
+	fn t_maps_are_sorted() {
+");
+	for count in grouped.keys() {
+		writeln!(&mut out, "\t\tassert!(super::MAP_{count}.is_sorted_by_key(|v| v.0));").unwrap();
+	}
+	out.push_str("}\n}\n\n");
+
 	// Generate the WildKind enum.
 	out.push_str(r#"#[derive(Clone, Copy)]
 /// # Wild Kind Exceptions.
