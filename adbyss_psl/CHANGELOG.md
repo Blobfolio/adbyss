@@ -1,6 +1,17 @@
 # Changelog
 
 
+## [0.24.8](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.8) - 2026-11-12
+
+### Changed
+
+* Update suffix database
+
+### Removed
+
+* Unused `serde_json` build dependency
+
+
 ## [0.24.7](https://github.com/Blobfolio/adbyss/releases/tag/v0.24.7) - 2026-10-24
 
 ### Changed
